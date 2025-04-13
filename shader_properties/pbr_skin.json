@@ -1,0 +1,434 @@
+{
+  "/Base/Diffuse/Reflection": [
+    {
+      "id": "diffuse",
+      "type": "float_color",
+      "uses_map": true
+    },
+    {
+      "id": "Metallicity Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Metallic Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Diffuse Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Diffuse Roughness",
+      "type": "float",
+      "uses_map": true
+    }
+  ],
+  "/General": [
+    {
+      "id": "Tags",
+      "type": "string",
+      "uses_map": false
+    }
+  ],
+  "/Smoothing": [
+    {
+      "id": "Smooth On",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Smooth Angle",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Lines": [
+    {
+      "id": "Line Preview Color",
+      "type": "color",
+      "uses_map": false
+    }
+  ],
+  "/Lines/Generation": [
+    {
+      "id": "Line Start Width",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Line End Width",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Line UV Width",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Render Priority": [
+    {
+      "id": "Render Priority",
+      "type": "enum",
+      "uses_map": false
+    },
+    {
+      "id": "Propagate Priority",
+      "type": "bool",
+      "uses_map": false
+    }
+  ],
+  "/General/Material ID": [
+    {
+      "id": "OutlineColorID",
+      "type": "color",
+      "uses_map": false
+    }
+  ],
+  "/Base/Diffuse/Translucency": [
+    {
+      "id": "Translucency Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Translucency Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Translucency Color",
+      "type": "float_color",
+      "uses_map": true
+    },
+    {
+      "id": "Invert Transmission Normal",
+      "type": "bool",
+      "uses_map": false
+    }
+  ],
+  "/Base/Dual Lobe Specular": [
+    {
+      "id": "Dual Lobe Specular Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Dual Lobe Specular Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Dual Lobe Specular Reflectivity",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Dual Lobe Specular Roughness Mult",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Specular Lobe 1 Roughness",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Specular Lobe 2 Roughness Mult",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Dual Lobe Specular Ratio",
+      "type": "float",
+      "uses_map": true
+    }
+  ],
+  "/Base/Bump": [
+    {
+      "id": "Bump Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Bump Strength",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Normal Map",
+      "type": "float",
+      "uses_map": true
+    }
+  ],
+  "/Makeup": [
+    {
+      "id": "Makeup Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Makeup Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Makeup Base Color",
+      "type": "color",
+      "uses_map": true
+    },
+    {
+      "id": "Makeup Roughness Mult",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Makeup Metallicity Enable",
+      "type": "bool",
+      "uses_map": false
+    }
+  ],
+  "/Occlusion": [
+    {
+      "id": "Specular Occlusion Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Ambient Occlusion Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Specular Occlusion Grazing",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Specular Occusion Facing",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Detail/Base": [
+    {
+      "id": "Detail Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Detail Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Detail Normal Map Mode",
+      "type": "enum",
+      "uses_map": false
+    },
+    {
+      "id": "Detail Normal Map",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Detail Specular Roughness Mult",
+      "type": "float",
+      "uses_map": true
+    }
+  ],
+  "/Detail/Tiling": [
+    {
+      "id": "Detail Horizontal Tiles",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Detail Horizontal Offset",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Detail Vertical Tiles",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Detail Vertical Offset",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Top Coat": [
+    {
+      "id": "Top Coat Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Top Coat Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Top Coat Color",
+      "type": "color",
+      "uses_map": true
+    },
+    {
+      "id": "Top Coat Reflectivity",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Top Coat Roughness",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Top Coat Bump Weight",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Metallic Flakes": [
+    {
+      "id": "Metallic Flakes Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Metallic Flakes Weight",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Metallic Flakes Color",
+      "type": "color",
+      "uses_map": true
+    },
+    {
+      "id": "Metallic Flakes Roughness",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Metallic Flakes Size",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Metallic Flakes Density",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Metallic Flakes Bump Weight",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Geometry/Displacement": [
+    {
+      "id": "Displacement Strength",
+      "type": "float",
+      "uses_map": true
+    },
+    {
+      "id": "Minimum Displacement",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Maximum Displacement",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "SubD Displacement Level",
+      "type": "int",
+      "uses_map": false
+    }
+  ],
+  "/Geometry/Smoothing": [
+    {
+      "id": "Round Corners Radius",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Round Corners Across Materials",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Round Corners Roundness",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Geometry/Tiling": [
+    {
+      "id": "Horizontal Tiles2",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Horizontal Offset2",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Vertical Tiles2",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "Vertical Offset2",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Volume/Transmission": [
+    {
+      "id": "Transmission Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "Transmitted Color",
+      "type": "float_color",
+      "uses_map": false
+    },
+    {
+      "id": "Transmitted Measurement Distance",
+      "type": "float",
+      "uses_map": false
+    }
+  ],
+  "/Volume/Scattering": [
+    {
+      "id": "Sub Surface Enable",
+      "type": "bool",
+      "uses_map": false
+    },
+    {
+      "id": "SSS Color",
+      "type": "color",
+      "uses_map": false
+    },
+    {
+      "id": "Scattering Measurement Distance",
+      "type": "float",
+      "uses_map": false
+    },
+    {
+      "id": "SSS Direction",
+      "type": "float",
+      "uses_map": false
+    }
+  ]
+}

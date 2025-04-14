@@ -2,7 +2,7 @@ from datetime import datetime
 
 from bpy.types import BlendDataNodeTrees
 
-from .common.shader_group import MaterialShader
+from .material_shader import MaterialShader
 
 
 class DualLobeSpecularMaterialShader(MaterialShader):

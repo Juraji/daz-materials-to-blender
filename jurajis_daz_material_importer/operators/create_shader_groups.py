@@ -4,7 +4,7 @@ import bpy
 
 from ..properties import MaterialImportProperties
 from ..shaders import pbr_skin, iray_uber, iwave_translucent_fabric, dls
-from ..shaders.common.shader_group import MaterialShader
+from ..shaders.material_shader import MaterialShader
 
 
 class CreateShaderGroupsOperator(bpy.types.Operator):

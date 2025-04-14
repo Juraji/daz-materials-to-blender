@@ -2,7 +2,7 @@ from datetime import datetime
 
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node
 
-from .common.shader_group import MaterialShader
+from .material_shader import MaterialShader
 
 
 class IWaveTranslucentFabricMaterialShader(MaterialShader):

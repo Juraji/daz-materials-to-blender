@@ -3,9 +3,9 @@ from typing import Literal
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfaceSocket, \
     NodeTreeInterfacePanel
 
-from ...properties import MaterialImportProperties
+from ..properties import MaterialImportProperties
 
-
+# Meant to be abstract
 class MaterialShader:
     group_name: str
 

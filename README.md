@@ -6,6 +6,9 @@ The user decides exactly what gets exported from DAZ and imported in Blender (an
 This bridge just copies materials and sets them up in Blender.
 
 ## Usage
+**K, we're doing the plugin thing, jeez!**  
+I'm currently in the middle of development and will update this readme, when the dust settles.
+
 1. Save your DAZ scene
 2. Export the objects you want to have in Blender using either:
    * `FBX`: Supports rigging, but gets weird when figure is already animated in DAZ.
@@ -23,7 +26,3 @@ If everything worked as expected this script should've set up all materials with
   * PBRSkin
   * Iray Uber
   * iWave's Translucent Fabric Shader
-* At the top of the script are some correction variables.
-  These are used to try and mimic the DAZ Iray output more closely.
-  However, Cycles just works differently, so this is not an exact 1:1 science.
-* This might become a Blender plugin, when I get things mostly right.

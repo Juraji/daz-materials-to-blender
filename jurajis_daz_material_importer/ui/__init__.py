@@ -1,0 +1,1 @@
+from .pt_import_material import VIEW3D_PT_ImportMaterials

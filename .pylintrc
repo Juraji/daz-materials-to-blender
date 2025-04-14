@@ -1,0 +1,12 @@
+[DESIGN]
+min-public-methods=0
+class-rgx=^(VIEW3D_|OBJECT_|MESH_)?([A-Z]T_)?[A-Z][a-zA-Z0-9]*$
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    missing-modukle-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    relative-beyond-top-level,
+    unused-argument

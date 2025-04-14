@@ -1,0 +1,1 @@
+from .op_import_materials import OBJECT_OT_ImportMaterials

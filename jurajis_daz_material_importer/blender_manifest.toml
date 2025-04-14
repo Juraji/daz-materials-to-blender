@@ -1,0 +1,21 @@
+schema_version = "1.0.0"
+
+id = "jurajis_daz_material_importer"
+name = "Juraji's DAZ Material Importer"
+version = "1.0.0"
+tagline = "Another DAZ-Blender bridge. But this time the user is in control!"
+type = "add-on"
+
+maintainer = "Juraji <github@juraji.nl>"
+tags = ["Import-Export", "Material", "Shader", "Texturing", "UI", "Utility"]
+
+license = ["SPDX:GPL-2.0-or-later"]
+
+blender_version_min = "4.2.0"
+
+[build]
+paths_exclude_pattern = [
+    "/.git/",
+    "__pycache__/",
+    ".*",
+]

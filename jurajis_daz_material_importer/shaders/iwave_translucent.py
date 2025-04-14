@@ -5,10 +5,10 @@ from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node
 from .common.shader_group import MaterialShader
 
 
-class IrayUberMaterialShader(MaterialShader):
-    group_name = "DAZ Iray Uber"
+class IWaveTranslucentMaterialShader(MaterialShader):
+    group_name = "iWave Translucent"
 
-    def create_node_group(self, node_trees: BlendDataNodeTrees):
+    def create_node_group(self,node_trees: BlendDataNodeTrees):
         node_group = node_trees.new(type='ShaderNodeTree', name=self.group_name)
         node_group.color_tag = 'TEXTURE'
         node_group.description = f'Created at {datetime.now()}'

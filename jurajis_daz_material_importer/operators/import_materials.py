@@ -3,10 +3,9 @@ from pathlib import Path
 import bpy
 from bpy.types import Operator, Object
 
-from ..daz.dson import read_daz_save_into_mats_per_object
+from ..daz.dson import DazDsonMaterialReader
 from ..daz.utilities import translate_node_id_to_blender_name
 from ..properties import MaterialImportProperties
-from ..shaders import pbr_skin, iray_uber, translucent_shader
 
 
 class ImportMaterialsOperator(Operator):
@@ -37,7 +36,8 @@ class ImportMaterialsOperator(Operator):
             self.report_error(f"File {daz_save_file} does not exist")
             return {"CANCELLED"}
 
-        mats_per_object = read_daz_save_into_mats_per_object(daz_save_file)
+        reader = DazDsonMaterialReader()
+        mats_per_object = reader.read_materials(daz_save_file)
         self.report_info(f"Found {len(mats_per_object)} objects in {daz_save_file}!")
 
         for node_id, mat_def in mats_per_object.items():
@@ -72,8 +72,7 @@ class ImportMaterialsOperator(Operator):
     def report_error(self, message: str):
         self.report({"ERROR"}, f"DAZ Material Import: {message}")
 
-    @staticmethod
-    def apply_material_to_object(b_object: Object, node_materials: dict, props: MaterialImportProperties):
+    def apply_material_to_object(self, b_object: Object, node_materials: dict, props: MaterialImportProperties):
         for mat_name, mat_def in node_materials.items():
             mat_type = mat_def['type']
             channels = mat_def['channels']
@@ -120,12 +119,22 @@ class ImportMaterialsOperator(Operator):
             node_uv_map.location = (-2384.600341796875, -272.91583251953125)
             node_tree.links.new(node_uv_map.outputs[0], node_mapping.inputs[0])
 
+            material_shader = None
             if mat_type == 'pbrskin':
-                pbr_skin.apply_material(node_tree, node_mapping, node_material_output, channels, props)
+                from ..shaders.pbr_skin import PBRSkinMaterialShader
+                material_shader = PBRSkinMaterialShader(props)
             elif mat_type == 'iray_uber':
-                iray_uber.apply_material(node_tree, node_mapping, node_material_output, channels, props)
+                from ..shaders.iray_uber import IrayUberMaterialShader
+                material_shader = IrayUberMaterialShader(props)
             elif mat_type == 'translucent_fabric':
-                translucent_shader.apply_material(node_tree, node_mapping, node_material_output, channels, props)
+                from ..shaders.iwave_translucent import IWaveTranslucentMaterialShader
+                material_shader = IWaveTranslucentMaterialShader(props)
+
+            if material_shader is None:
+                self.report_error(f"Unknown Material Type {mat_type} for {b_object.name}[{mat_name}].")
+                return
+
+            material_shader.apply_material(node_tree, node_mapping, node_material_output, channels)
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

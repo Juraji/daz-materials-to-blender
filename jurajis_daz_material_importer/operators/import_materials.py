@@ -127,8 +127,8 @@ class ImportMaterialsOperator(Operator):
                 from ..shaders.iray_uber import IrayUberMaterialShader
                 material_shader = IrayUberMaterialShader(props)
             elif mat_type == 'translucent_fabric':
-                from ..shaders.iwave_translucent import IWaveTranslucentMaterialShader
-                material_shader = IWaveTranslucentMaterialShader(props)
+                from ..shaders.iwave_translucent_fabric import IWaveTranslucentFabricMaterialShader
+                material_shader = IWaveTranslucentFabricMaterialShader(props)
 
             if material_shader is None:
                 self.report_error(f"Unknown Material Type {mat_type} for {b_object.name}[{mat_name}].")

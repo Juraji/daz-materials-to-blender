@@ -3,7 +3,7 @@ from typing import Type
 import bpy
 
 from ..properties import MaterialImportProperties
-from ..shaders import pbr_skin, iray_uber, iwave_translucent, dls
+from ..shaders import pbr_skin, iray_uber, iwave_translucent_fabric, dls
 from ..shaders.common.shader_group import MaterialShader
 
 
@@ -18,7 +18,7 @@ class CreateShaderGroupsOperator(bpy.types.Operator):
         dls.DualLobeSpecularMaterialShader,
         pbr_skin.PBRSkinMaterialShader,
         iray_uber.IrayUberMaterialShader,
-        iwave_translucent.IWaveTranslucentMaterialShader
+        iwave_translucent_fabric.IWaveTranslucentFabricMaterialShader
     ]
 
     @classmethod

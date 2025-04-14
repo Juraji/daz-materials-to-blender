@@ -5,8 +5,8 @@ from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node
 from .common.shader_group import MaterialShader
 
 
-class IWaveTranslucentMaterialShader(MaterialShader):
-    group_name = "iWave Translucent"
+class IWaveTranslucentFabricMaterialShader(MaterialShader):
+    group_name = "iWave Translucent Fabric"
 
     def create_node_group(self,node_trees: BlendDataNodeTrees):
         node_group = node_trees.new(type='ShaderNodeTree', name=self.group_name)

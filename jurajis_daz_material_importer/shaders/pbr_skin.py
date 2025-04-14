@@ -5,98 +5,108 @@ from datetime import datetime
 
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node
 
-from .shader_helpers import node_tree_color_socket_input_generator, node_tree_float_socket_input_generator, \
-    node_tree_vector_socket_input_generator, node_tree_link_socket_generator
+from .common.dual_lobe_specular_group import GROUP_NAME as DLS_GROUP_NAME
+from .common.sockets import color_socket_input_generator, float_socket_input_generator, \
+    vector_socket_input_generator, link_socket_generator
 from ..properties import MaterialImportProperties
 
-DAZ_PBR_SKIN_GROUP_NAME = 'DAZ PBR Skin'
+GROUP_NAME = 'DAZ PBR Skin'
 
 
 def create_node_group(node_trees: BlendDataNodeTrees, props: MaterialImportProperties):
-    if DAZ_PBR_SKIN_GROUP_NAME in node_trees:
-        if not props.replace_node_groups:
-            return
-        node_trees.remove(node_trees[DAZ_PBR_SKIN_GROUP_NAME])
-
-    node_group = node_trees.new(type='ShaderNodeTree', name=DAZ_PBR_SKIN_GROUP_NAME)
+    node_group = node_trees.new(type='ShaderNodeTree', name=GROUP_NAME)
     node_group.color_tag = 'TEXTURE'
     node_group.description = f'Created at {datetime.now()}'
+    node_group.default_group_node_width = 400
 
-    socket_input_color = node_tree_color_socket_input_generator(node_group)
-    socket_input_float = node_tree_float_socket_input_generator(node_group)
-    socket_input_vector = node_tree_vector_socket_input_generator(node_group)
-    link_socket = node_tree_link_socket_generator(node_group)
+    socket_input_color = color_socket_input_generator(node_group)
+    socket_input_float = float_socket_input_generator(node_group)
+    socket_input_vector = vector_socket_input_generator(node_group)
+    link_socket = link_socket_generator(node_group)
+
+    # Panels
+    panel_pbr_and_opacity = node_group.interface.new_panel("PBR and Opacity", default_closed=False)
+    panel_dls = node_group.interface.new_panel("Dual Lobe Specular", default_closed=True)
+    panel_sss = node_group.interface.new_panel("Sub Surface Scattering", default_closed=True)
+    panel_normal_and_bump = node_group.interface.new_panel("Normal and Bump", default_closed=True)
+    panel_top_coat = node_group.interface.new_panel("Top Coat", default_closed=True)
 
     # Input Sockets: Diffuse
-    sock_diffuse_color_value = socket_input_color('Diffuse Color Value', (1.0, 1.0, 1.0, 1.0))
-    sock_diffuse_color_map = socket_input_color('Diffuse Color Map', (1.0, 1.0, 1.0, 1.0))
+    sock_diffuse_color_value = socket_input_color('Diffuse Color Value', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
+    sock_diffuse_color_map = socket_input_color('Diffuse Color Map', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
 
     # Input Sockets: Roughness
-    sock_roughness_weight = socket_input_float('Roughness Weight', 0.0)
-    sock_roughness_map = socket_input_color('Roughness Map', (0.0, 0.0, 0.0, 1.0))
+    sock_roughness_weight = socket_input_float('Roughness Weight', 0.0, panel_pbr_and_opacity)
+    sock_roughness_map = socket_input_color('Roughness Map', (0.0, 0.0, 0.0, 1.0), panel_pbr_and_opacity)
 
     # Input Sockets: Metalic
-    sock_metallic_weight_value = socket_input_float('Metallic Weight Value', 0.0)
-    sock_metallic_weight_map = socket_input_color('Metallic Weight Map', (0.0, 0.0, 0.0, 1.0))
+    sock_metallic_weight_value = socket_input_float('Metallic Weight Value', 0.0, panel_pbr_and_opacity)
+    sock_metallic_weight_map = socket_input_color('Metallic Weight Map', (0.0, 0.0, 0.0, 1.0), panel_pbr_and_opacity)
 
     # Input Sockets: Opacity
-    sock_opacity_value = socket_input_float('Opacity Value', 1.0)
-    sock_opacity_map = socket_input_color('Opacity Map', (1.0, 1.0, 1.0, 1.0))
+    sock_opacity_value = socket_input_float('Opacity Value', 1.0, panel_pbr_and_opacity)
+    sock_opacity_map = socket_input_color('Opacity Map', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
 
     # Dual Lobe Specular
-    sock_dl_specular_weight_value = socket_input_float("Dual Lobe Specular Weight Value", 0.0)
-    sock_dl_specular_weight_map = socket_input_color("Dual Lobe Specular Weight Map", (1.0, 1.0, 1.0, 1.0))
-    sock_dl_specular_reflectivity_value = socket_input_float("Dual Lobe Specular Reflectivity Value", 0.5)
-    sock_dl_specular_reflectivity_map = socket_input_color("Dual Lobe Specular Reflectivity Map", (1.0, 1.0, 1.0, 1.0))
-    sock_dl_specular_roughness_mult = socket_input_float("Dual Lobe Specular Roughness Mult", 1.0)
-    sock_specular_l1_roughness_value = socket_input_float("Specular Lobe 1 Roughness Value", 0.6)
-    sock_specular_l1_roughness_map = socket_input_color("Specular Lobe 1 Roughness Map", (1.0, 1.0, 1.0, 1.0))
-    sock_specular_l2_roughness_mult_value = socket_input_float("Specular Lobe 2 Roughness Mult Value", 0.4)
-    sock_specular_l2_roughness_mult_map = socket_input_color("Specular Lobe 2 Roughness Mult Map", (1.0, 1.0, 1.0, 1.0))
-    sock_dl_specular_ratio_value = socket_input_float("Dual Lobe Specular Ratio Value", 0.15)
-    sock_dl_specular_ratio_map = socket_input_color("Dual Lobe Specular Ratio Map", (1.0, 1.0, 1.0, 1.0))
+    sock_dl_specular_weight_value = \
+        socket_input_float("Dual Lobe Specular Weight Value", 0.0, panel_dls)
+    sock_dl_specular_weight_map = \
+        socket_input_color("Dual Lobe Specular Weight Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
+    sock_dl_specular_reflectivity_value = \
+        socket_input_float("Dual Lobe Specular Reflectivity Value", 0.5, panel_dls)
+    sock_dl_specular_reflectivity_map = \
+        socket_input_color("Dual Lobe Specular Reflectivity Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
+    sock_dl_specular_roughness_mult = \
+        socket_input_float("Dual Lobe Specular Roughness Mult", 1.0, panel_dls)
+    sock_specular_l1_roughness_value = \
+        socket_input_float("Specular Lobe 1 Roughness Value", 0.6, panel_dls)
+    sock_specular_l1_roughness_map = \
+        socket_input_color("Specular Lobe 1 Roughness Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
+    sock_specular_l2_roughness_mult_value = \
+        socket_input_float("Specular Lobe 2 Roughness Mult Value", 0.4, panel_dls)
+    sock_specular_l2_roughness_mult_map = \
+        socket_input_color("Specular Lobe 2 Roughness Mult Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
+    sock_dl_specular_ratio_value = \
+        socket_input_float("Dual Lobe Specular Ratio Value", 0.15, panel_dls)
+    sock_dl_specular_ratio_map = \
+        socket_input_color("Dual Lobe Specular Ratio Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
 
     # Input Sockets: Translucency/SSS
-    sock_sss_weight = socket_input_float('SSS Weight', 0.8)
-    sock_sss_radius = socket_input_vector('SSS Radius', (1.0, 0.2, 0.1))
-    sock_sss_scale = socket_input_float('SSS Scale', 0.004)
+    sock_sss_weight = socket_input_float('SSS Weight', 0.8, panel_sss)
+    sock_sss_radius = socket_input_vector('SSS Radius', (1.0, 0.2, 0.1), panel_sss)
+    sock_sss_scale = socket_input_float('SSS Scale', 0.004, panel_sss)
     sock_sss_scale.subtype = 'DISTANCE'
-    sock_sss_direction = socket_input_float('SSS Direction', 0.8)
+    sock_sss_direction = socket_input_float('SSS Direction', 0.8, panel_sss)
 
     # Input Sockets: Normal
-    sock_normal_value = socket_input_float('Normal Value', 1.0)
-    sock_normal_map = socket_input_color('Normal Map', (0.5, 0.5, 1.0, 1.0))
+    sock_normal_value = socket_input_float('Normal Value', 1.0, panel_normal_and_bump)
+    sock_normal_map = socket_input_color('Normal Map', (0.5, 0.5, 1.0, 1.0), panel_normal_and_bump)
 
     # Input Sockets: Detail
-    sock_detail_weight_value = socket_input_float('Detail Weight Value', 0.0)
-    sock_detail_weight_map = socket_input_color('Detail Weight Map', (1.0, 1.0, 1.0, 1.0))
-    sock_detail_normal_map = socket_input_color('Detail Normal Map', (0.5, 0.5, 1.0, 1.0))
+    sock_detail_weight_value = socket_input_float('Detail Weight Value', 0.0, panel_normal_and_bump)
+    sock_detail_weight_map = socket_input_color('Detail Weight Map', (1.0, 1.0, 1.0, 1.0), panel_normal_and_bump)
+    sock_detail_normal_map = socket_input_color('Detail Normal Map', (0.5, 0.5, 1.0, 1.0), panel_normal_and_bump)
 
     # Input Sockets: Bump
-    sock_bump_strength_value = socket_input_float('Bump Strength Value', 0.0)
-    sock_bump_strength_map = socket_input_color('Bump Strength Map', (1.0, 1.0, 1.0, 1.0))
+    sock_bump_strength_value = socket_input_float('Bump Strength Value', 0.0, panel_normal_and_bump)
+    sock_bump_strength_map = socket_input_color('Bump Strength Map', (1.0, 1.0, 1.0, 1.0), panel_normal_and_bump)
 
     # Input Sockets: Top Coat
-    sock_top_coat_weight_value = socket_input_float('Top Coat Weight Value', 0.0)
-    sock_top_coat_weight_map = socket_input_color('Top Coat Weight Map', (1.0, 1.0, 1.0, 1.0))
-    sock_top_coat_roughness_value = socket_input_float('Top Coat Roughness Value', 0.7)
-    sock_top_coat_roughness_map = socket_input_color('Top Coat Roughness Map', (1.0, 1.0, 1.0, 1.0))
-    sock_top_coat_color_value = socket_input_color('Top Coat Color Value', (1.0, 1.0, 1.0, 1.0))
-    sock_top_coat_color_map = socket_input_color('Top Coat Color Map', (1.0, 1.0, 1.0, 1.0))
+    sock_top_coat_weight_value = socket_input_float('Top Coat Weight Value', 0.0, panel_top_coat)
+    sock_top_coat_weight_map = socket_input_color('Top Coat Weight Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
+    sock_top_coat_roughness_value = socket_input_float('Top Coat Roughness Value', 0.7, panel_top_coat)
+    sock_top_coat_roughness_map = socket_input_color('Top Coat Roughness Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
+    sock_top_coat_color_value = socket_input_color('Top Coat Color Value', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
+    sock_top_coat_color_map = socket_input_color('Top Coat Color Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
 
     # Output Sockets: Surface
-    node_group.interface.new_socket(name='Surface', in_out='OUTPUT', socket_type='NodeSocketShader')
+    sock_out_surface = node_group.interface.new_socket(name='Surface', in_out='OUTPUT', socket_type='NodeSocketShader')
 
     # Frames
-    frame_dual_lobe_specular = node_group.nodes.new("NodeFrame")
-    frame_dual_lobe_specular.label = "Dual Lobe Specular"
-    frame_dual_lobe_specular.name = 'frame_dual_lobe_specular'
-    frame_dual_lobe_specular.location = (-475, 1084)
-
     frame_pbr_and_opacity = node_group.nodes.new("NodeFrame")
     frame_pbr_and_opacity.label = "PBR and Opacity"
     frame_pbr_and_opacity.name = 'frame_pbr_and_opacity'
-    frame_pbr_and_opacity.location = (-151, 70)
+    frame_pbr_and_opacity.location = (-210, 601)
 
     frame_normal_and_bump = node_group.nodes.new("NodeFrame")
     frame_normal_and_bump.label = "Normal, Detail and Bump"
@@ -227,7 +237,7 @@ def create_node_group(node_trees: BlendDataNodeTrees, props: MaterialImportPrope
     node_principled_bsdf = node_group.nodes.new('ShaderNodeBsdfPrincipled')
     node_principled_bsdf.label = 'Principled BDSF'
     node_principled_bsdf.name = 'node_principled_bsdf'
-    node_principled_bsdf.location = (932, -95)
+    node_principled_bsdf.location = (776, 0)
     node_principled_bsdf.subsurface_method = 'RANDOM_WALK_SKIN'
     link_socket(node_combine_diffuse_value_and_map, node_principled_bsdf, 2, 0)
     link_socket(node_combine_metallic_value_and_map, node_principled_bsdf, 0, 1)
@@ -244,129 +254,39 @@ def create_node_group(node_trees: BlendDataNodeTrees, props: MaterialImportPrope
     link_socket(node_bump_map, node_principled_bsdf, 0, 23)
 
     # Nodes: Dual Lobe Specular
-    node_combine_dl_specular_weight = node_group.nodes.new('ShaderNodeHueSaturation')
-    node_combine_dl_specular_weight.label = 'Combine Dual Lobe Specular Weight'
-    node_combine_dl_specular_weight.name = 'node_combine_dl_specular_weight'
-    node_combine_dl_specular_weight.parent = frame_dual_lobe_specular
-    node_combine_dl_specular_weight.location = (28, -39)
-    link_socket(node_group_input, node_combine_dl_specular_weight, sock_dl_specular_weight_value, 2)
-    link_socket(node_group_input, node_combine_dl_specular_weight, sock_dl_specular_weight_map, 4)
-
-    node_combine_dl_specular_reflectivity = node_group.nodes.new('ShaderNodeHueSaturation')
-    node_combine_dl_specular_reflectivity.label = 'Combine Dual Lobe Specular Reflectivity'
-    node_combine_dl_specular_reflectivity.name = 'node_combine_dl_specular_reflectivity'
-    node_combine_dl_specular_reflectivity.parent = frame_dual_lobe_specular
-    node_combine_dl_specular_reflectivity.location = (32, -222)
-    link_socket(node_group_input, node_combine_dl_specular_reflectivity, sock_dl_specular_reflectivity_value, 2)
-    link_socket(node_group_input, node_combine_dl_specular_reflectivity, sock_dl_specular_reflectivity_map, 4)
-
-    node_combine_specular_l1_roughness = node_group.nodes.new('ShaderNodeHueSaturation')
-    node_combine_specular_l1_roughness.label = 'Combine Specular Lobe 1 Roughness'
-    node_combine_specular_l1_roughness.name = 'node_combine_specular_l1_roughness'
-    node_combine_specular_l1_roughness.parent = frame_dual_lobe_specular
-    node_combine_specular_l1_roughness.location = (36, -403)
-    link_socket(node_group_input, node_combine_specular_l1_roughness, sock_specular_l1_roughness_value, 2)
-    link_socket(node_group_input, node_combine_specular_l1_roughness, sock_specular_l1_roughness_map, 4)
-
-    node_combine_specular_l2_roughness_mult = node_group.nodes.new('ShaderNodeHueSaturation')
-    node_combine_specular_l2_roughness_mult.label = 'Combine Specular Lobe 2 Roughness'
-    node_combine_specular_l2_roughness_mult.name = 'node_combine_specular_l2_roughness_mult'
-    node_combine_specular_l2_roughness_mult.parent = frame_dual_lobe_specular
-    node_combine_specular_l2_roughness_mult.location = (34, -587)
-    link_socket(node_group_input, node_combine_specular_l2_roughness_mult, sock_specular_l2_roughness_mult_value, 2)
-    link_socket(node_group_input, node_combine_specular_l2_roughness_mult, sock_specular_l2_roughness_mult_map, 4)
-
-    node_combine_dl_specular_ratio = node_group.nodes.new('ShaderNodeHueSaturation')
-    node_combine_dl_specular_ratio.label = 'Combine Dual Lobe Specular Ratio'
-    node_combine_dl_specular_ratio.name = 'node_combine_dl_specular_ratio'
-    node_combine_dl_specular_ratio.parent = frame_dual_lobe_specular
-    node_combine_dl_specular_ratio.location = (30, -778)
-    link_socket(node_group_input, node_combine_dl_specular_ratio, sock_dl_specular_ratio_value, 2)
-    link_socket(node_group_input, node_combine_dl_specular_ratio, sock_dl_specular_ratio_map, 4)
-
-    node_dls_l1_multiply = node_group.nodes.new("ShaderNodeMix")
-    node_dls_l1_multiply.label = "Lobe 1 Multiply"
-    node_dls_l1_multiply.name = "node_dls_l1_multiply"
-    node_dls_l1_multiply.parent = frame_dual_lobe_specular
-    node_dls_l1_multiply.location = (362, -144)
-    node_dls_l1_multiply.data_type = 'RGBA'
-    node_dls_l1_multiply.blend_type = 'MULTIPLY'
-    node_dls_l1_multiply.inputs[0].default_value = 1
-    link_socket(node_combine_specular_l1_roughness, node_dls_l1_multiply, 0, 6)
-    link_socket(node_group_input, node_dls_l1_multiply, sock_dl_specular_roughness_mult, 7)
-
-    node_dls_l2_multiply = node_group.nodes.new("ShaderNodeMix")
-    node_dls_l2_multiply.label = "Lobe 2 Multiply"
-    node_dls_l2_multiply.name = "node_dls_l2_multiply"
-    node_dls_l2_multiply.parent = frame_dual_lobe_specular
-    node_dls_l2_multiply.location = (378, -469)
-    node_dls_l2_multiply.data_type = 'RGBA'
-    node_dls_l2_multiply.blend_type = 'MULTIPLY'
-    node_dls_l2_multiply.inputs[0].default_value = 1
-    link_socket(node_combine_specular_l1_roughness, node_dls_l2_multiply, 0, 6)
-    link_socket(node_combine_specular_l2_roughness_mult, node_dls_l2_multiply, 0, 7)
-
-    node_dls_l1_glossy = node_group.nodes.new("ShaderNodeBsdfGlossy")
-    node_dls_l1_glossy.label = "Lobe 1 Glossy"
-    node_dls_l1_glossy.name = "node_dls_l1_glossy"
-    node_dls_l1_glossy.parent = frame_dual_lobe_specular
-    node_dls_l1_glossy.location = (594, -51)
-    node_dls_l1_glossy.distribution = 'MULTI_GGX'
-    link_socket(node_combine_dl_specular_reflectivity, node_dls_l1_glossy, 0, 0)
-    link_socket(node_dls_l1_multiply, node_dls_l1_glossy, 2, 1)
-    link_socket(node_bump_map, node_dls_l1_glossy, 0, 4)
-
-    node_dls_l2_glossy = node_group.nodes.new("ShaderNodeBsdfGlossy")
-    node_dls_l2_glossy.label = "Lobe 2 Glossy"
-    node_dls_l2_glossy.name = "node_dls_l2_glossy"
-    node_dls_l2_glossy.parent = frame_dual_lobe_specular
-    node_dls_l2_glossy.location = (602, -368)
-    node_dls_l2_glossy.distribution = 'MULTI_GGX'
-    link_socket(node_combine_dl_specular_reflectivity, node_dls_l2_glossy, 0, 0)
-    link_socket(node_dls_l2_multiply, node_dls_l2_glossy, 2, 1)
-    link_socket(node_bump_map, node_dls_l2_glossy, 0, 4)
-
-    node_dls_layer_weight = node_group.nodes.new("ShaderNodeLayerWeight")
-    node_dls_layer_weight.label = "Layer Weight"
-    node_dls_layer_weight.name = "node_dls_layer_weight"
-    node_dls_layer_weight.parent = frame_dual_lobe_specular
-    node_dls_layer_weight.location = (604, -633)
-    node_dls_layer_weight.inputs[0].default_value = props.dls_layer_factor
-    link_socket(node_bump_map, node_dls_layer_weight, 0, 1)
-
-    node_dls_mix_glossies = node_group.nodes.new("ShaderNodeMixShader")
-    node_dls_mix_glossies.label = "Mix Glossies"
-    node_dls_mix_glossies.name = "node_dls_mix_glossies"
-    node_dls_mix_glossies.parent = frame_dual_lobe_specular
-    node_dls_mix_glossies.location = (891, -203)
-    link_socket(node_combine_dl_specular_ratio, node_dls_mix_glossies, 0, 0)
-    link_socket(node_dls_l1_glossy, node_dls_mix_glossies, 0, 1)
-    link_socket(node_dls_l2_glossy, node_dls_mix_glossies, 0, 2)
-
-    node_dls_layer_weight_factor = node_group.nodes.new("ShaderNodeMath")
-    node_dls_layer_weight_factor.label = "DLS Layer Weight Factor"
-    node_dls_layer_weight_factor.name = "node_dls_layer_weight_factor"
-    node_dls_layer_weight_factor.parent = frame_dual_lobe_specular
-    node_dls_layer_weight_factor.location = (860, -442)
-    node_dls_layer_weight_factor.operation = 'MULTIPLY'
-    link_socket(node_combine_dl_specular_weight, node_dls_layer_weight_factor, 0, 0)
-    link_socket(node_dls_layer_weight, node_dls_layer_weight_factor, 0, 1)
+    dls_group = node_group.nodes.new("ShaderNodeGroup")
+    dls_group.label = DLS_GROUP_NAME
+    dls_group.name = f'{GROUP_NAME}_${DLS_GROUP_NAME}'.replace(' ', '_').lower()
+    dls_group.location = (18, 218)
+    dls_group.width, dls_group.height = 400.0, 100.0
+    dls_group.node_tree = bpy.data.node_groups[DLS_GROUP_NAME]
+    link_socket(node_group_input, dls_group, sock_dl_specular_weight_value, 0)
+    link_socket(node_group_input, dls_group, sock_dl_specular_weight_map, 1)
+    link_socket(node_group_input, dls_group, sock_dl_specular_reflectivity_value, 2)
+    link_socket(node_group_input, dls_group, sock_dl_specular_reflectivity_map, 3)
+    link_socket(node_group_input, dls_group, sock_dl_specular_roughness_mult, 4)
+    link_socket(node_group_input, dls_group, sock_specular_l1_roughness_value, 5)
+    link_socket(node_group_input, dls_group, sock_specular_l1_roughness_map, 6)
+    link_socket(node_group_input, dls_group, sock_specular_l2_roughness_mult_value, 7)
+    link_socket(node_group_input, dls_group, sock_specular_l2_roughness_mult_map, 8)
+    link_socket(node_group_input, dls_group, sock_dl_specular_ratio_value, 9)
+    link_socket(node_group_input, dls_group, sock_dl_specular_ratio_map, 10)
+    link_socket(node_bump_map, dls_group, 0, 11)
 
     node_dls_mix_surfaces = node_group.nodes.new("ShaderNodeMixShader")
     node_dls_mix_surfaces.label = "Mix Surfaces"
     node_dls_mix_surfaces.name = "node_dls_mix_surfaces"
-    node_dls_mix_surfaces.parent = frame_dual_lobe_specular
-    node_dls_mix_surfaces.location = (1101, -383)
-    link_socket(node_dls_layer_weight_factor, node_dls_mix_surfaces, 0, 0)
+    node_dls_mix_surfaces.location = (1064, 161)
+    link_socket(dls_group, node_dls_mix_surfaces, 0, 0)
+    link_socket(dls_group, node_dls_mix_surfaces, 1, 2)
     link_socket(node_principled_bsdf, node_dls_mix_surfaces, 0, 1)
-    link_socket(node_dls_mix_glossies, node_dls_mix_surfaces, 0, 2)
 
     # Group Output
     node_group_output = node_group.nodes.new('NodeGroupOutput')
     node_group_output.name = 'Group Output'
     node_group_output.location = (1272, -5)
     node_group_output.is_active_output = True
-    link_socket(node_dls_mix_surfaces, node_group_output, 0, 0)
+    link_socket(node_dls_mix_surfaces, node_group_output, 0, sock_out_surface)
 
 
 def apply_material(
@@ -376,11 +296,11 @@ def apply_material(
         channels: dict,
         props: MaterialImportProperties):
     shader_group = node_tree.nodes.new("ShaderNodeGroup")
-    shader_group.label = DAZ_PBR_SKIN_GROUP_NAME
-    shader_group.name = DAZ_PBR_SKIN_GROUP_NAME
+    shader_group.label = GROUP_NAME
+    shader_group.name = GROUP_NAME
     shader_group.location = (-521.4857788085938, -1.3936055898666382)
     shader_group.width, shader_group.height = 400.0, 100.0
-    shader_group.node_tree = bpy.data.node_groups[DAZ_PBR_SKIN_GROUP_NAME]
+    shader_group.node_tree = bpy.data.node_groups[GROUP_NAME]
     node_tree.links.new(shader_group.outputs[0], node_material_output.inputs[0])
 
     tex_location_x = -1200

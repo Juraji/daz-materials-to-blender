@@ -1,27 +1,18 @@
-import bpy
-
-
 def register():
-    from bpy.props import PointerProperty
-    from .operators import OBJECT_OT_ImportMaterials
-    from .properties import MaterialImportProperties
-    from .ui import VIEW3D_PT_ImportMaterials
+    from .properties import register as register_properties
+    from .operators import register as register_operators
+    from .ui import register as register_ui
 
-    bpy.utils.register_class(OBJECT_OT_ImportMaterials)
-    bpy.utils.register_class(VIEW3D_PT_ImportMaterials)
-    bpy.utils.register_class(MaterialImportProperties)
-
-    bpy.types.Scene.daz_import__material_import_properties = PointerProperty(type=MaterialImportProperties)
+    register_properties()
+    register_operators()
+    register_ui()
 
 
 def unregister():
-    from .operators import OBJECT_OT_ImportMaterials
-    from .properties import MaterialImportProperties
-    from .ui import VIEW3D_PT_ImportMaterials
+    from .properties import unregister as unregister_properties
+    from .operators import unregister as unregister_operators
+    from .ui import unregister as unregister_ui
 
-    bpy.utils.unregister_class(OBJECT_OT_ImportMaterials)
-    bpy.utils.unregister_class(VIEW3D_PT_ImportMaterials)
-    bpy.utils.unregister_class(MaterialImportProperties)
-
-    # noinspection PyUnresolvedReferences
-    del bpy.types.Scene.daz_import__material_import_properties
+    unregister_properties()
+    unregister_operators()
+    unregister_ui()

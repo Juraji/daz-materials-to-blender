@@ -1,6 +1,6 @@
-import bpy
 from pathlib import Path
 
+import bpy
 from bpy.types import Operator, Object
 
 from ..daz.dson import read_daz_save_into_mats_per_object
@@ -9,9 +9,9 @@ from ..properties import MaterialImportProperties
 from ..shaders import pbr_skin, iray_uber, translucent_shader
 
 
-class OBJECT_OT_ImportMaterials(Operator):
-    bl_idname = "object.import_daz_materials"
-    bl_label = "Import Materials"
+class ImportMaterialsOperator(Operator):
+    bl_idname = "daz_import.import_all_materials"
+    bl_label = "Import All Materials"
     bl_description = "Import Materials from DAZ"
     bl_options = {"REGISTER", "UNDO", "BLOCKING"}
 
@@ -25,11 +25,11 @@ class OBJECT_OT_ImportMaterials(Operator):
         # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
-        # Create node groups
-        node_groups = bpy.data.node_groups
-        pbr_skin.create_node_group(node_groups, props)
-        iray_uber.create_node_group(node_groups, props)
-        translucent_shader.create_node_group(node_groups, props)
+        # Run shader group import op
+        create_groups_result = bpy.ops.daz_import.create_shader_groups()
+        if create_groups_result != {"FINISHED"}:
+            self.report({"ERROR"}, "Failed to create shader groups.")
+            return {"CANCELLED"}
 
         # Read and convert DAZ scene
         daz_save_file = Path(props.daz_scene_file)

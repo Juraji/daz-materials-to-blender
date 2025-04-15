@@ -1,590 +1,464 @@
-import os
-from datetime import datetime
-
 import bpy
-from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node
 
-from .material_shader import MaterialShader
-from .dls import DualLobeSpecularMaterialShader
+from .dls import DualLobeSpecularShaderGroupBuilder
+from .material_shader import ShaderGroupBuilder, ShaderGroupApplier
+
+__GROUP_NAME__ = "DAZ PBR Skin"
 
 
-class PBRSkinMaterialShader(MaterialShader):
-    group_name = "DAZ PBR Skin"
+class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
+    in_diffuse_color = "Diffuse Color"
+    in_diffuse_color_map = "Diffuse Color Map"
+    in_roughness_weight = "Roughness Weight"
+    in_roughness_weight_map = "Roughness Weight Map"
+    in_metallic_weight = "Metallic Weight"
+    in_metallic_weight_map = "Metallic Weight Map"
+    in_opacity = "Opacity"
+    in_opacity_map = "Opacity Map"
 
-    def create_node_group(self, node_trees: BlendDataNodeTrees):
-        node_group = node_trees.new(type='ShaderNodeTree', name=self.group_name)
-        node_group.color_tag = 'TEXTURE'
-        node_group.description = f'Created at {datetime.now()}'
-        node_group.default_group_node_width = 400
+    in_dls_weight = "DLS Weight"
+    in_dls_weight_map = "DLS Weight Map"
+    in_dls_reflectivity = "DLS Reflectivity"
+    in_dls_reflectivity_map = "DLS Reflectivity Map"
+    in_dls_roughness_mult = "DLS Roughness Mult"
+    in_dls_l1_roughness = "DLS Lobe 1 Roughness"
+    in_dls_l1_roughness_map = "DLS Lobe 1 Roughness Map"
+    in_dls_l2_roughness_mult = "DLS Lobe 2 Roughness Mult"
+    in_dls_l2_roughness_mult_map = "DLS Lobe 2 Roughness Mult Map"
+    in_dls_ratio = "DLS Ratio"
+    in_dls_ratio_map = "DLS Ratio Map"
 
-        color_input_socket = self.color_socket_input_generator(node_group)
-        float_input_socket = self.float_socket_input_generator(node_group)
-        vector_input_socket = self.vector_socket_input_generator(node_group)
-        link_socket = self.link_socket_generator(node_group)
+    in_sss_weight = "SSS Weight"
+    in_sss_radius = "SSS Radius"
+    in_sss_scale = "SSS Scale"
+    in_sss_direction = "SSS Direction"
+
+    in_normal_mult = "Normal"
+    in_normal_map = "Normal Map"
+    in_detail_weight = "Detail Weight"
+    in_detail_weight_map = "Detail Weight Map"
+    in_detail_normal_map = "Detail Normal Map"
+    in_bump_strength = "Bump Strength"
+    in_bump_strength_map = "Bump Strength Map"
+
+    in_top_coat_weight = "Top Coat Weight"
+    in_top_coat_weight_map = "Top Coat Weight Map"
+    in_top_coat_roughness = "Top Coat Roughness"
+    in_top_coat_roughness_map = "Top Coat Roughness Map"
+    in_top_coat_color = "Top Coat Color"
+    in_top_coat_color_map = "Top Coat Color Map"
+
+    in_makeup_weight = "Makeup Weight"
+    in_makeup_weight_map = "Makeup Weight Map"
+    in_makeup_base_color = "Makeup Base Color"
+    in_makeup_base_color_map = "Makeup Base Color Map"
+    in_makeup_roughness_mult = "Makeup Roughness Mult"
+    in_makeup_roughness_mult_map = "Makeup Roughness Mult Map"
+    in_makeup_metallic_weight = "Makeup Metallic Weight"
+    in_makeup_metallic_weight_map = "Makeup Metallic Weight Map"
+    in_makeup_reduce_normals = "Makeup Reduce Normals"
+
+    out_surface = "Surface"
+
+    @classmethod
+    def group_name(cls) -> str:
+        return __GROUP_NAME__
+
+    def setup_group(self):
+        super().setup_group()
 
         # Panels
-        panel_pbr_and_opacity = node_group.interface.new_panel("PBR and Opacity", default_closed=False)
-        panel_dls = node_group.interface.new_panel("Dual Lobe Specular", default_closed=True)
-        panel_sss = node_group.interface.new_panel("Sub Surface Scattering", default_closed=True)
-        panel_normal_and_bump = node_group.interface.new_panel("Normal and Bump", default_closed=True)
-        panel_top_coat = node_group.interface.new_panel("Top Coat", default_closed=True)
-        panel_makeup = node_group.interface.new_panel("Makeup", default_closed=True)
+        panel_pbr = self.add_panel("PBR", default_closed=False)
+        panel_dls = self.add_panel("Dual Lobe Specular")
+        panel_sss = self.add_panel("Sub Surface Scattering")
+        panel_normals_bump = self.add_panel("Normals and Bump")
+        panel_top_coat = self.add_panel("Top Coat")
+        panel_makeup = self.add_panel("Makeup")
 
-        # Input Sockets: Diffuse
-        sock_diffuse_color_value = color_input_socket('Diffuse Color Value', (1.0, 1.0, 1.0, 1.0),
-                                                      panel_pbr_and_opacity)
-        sock_diffuse_color_map = color_input_socket('Diffuse Color Map', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
+        # Input Sockets: PBR
+        sock_diffuse_color = self.color_socket(self.in_diffuse_color, parent=panel_pbr)
+        sock_diffuse_color_map = self.color_socket(self.in_diffuse_color_map, parent=panel_pbr)
+        sock_roughness_weight = self.float_socket(self.in_roughness_weight, 1.0, parent=panel_pbr)
+        in_roughness_weight_map = self.color_socket(self.in_roughness_weight_map, parent=panel_pbr)
+        sock_metallic_weight = self.float_socket(self.in_metallic_weight, parent=panel_pbr)
+        sock_metallic_weight_map = self.color_socket(self.in_metallic_weight_map, parent=panel_pbr)
+        sock_opacity = self.float_socket(self.in_opacity, 1.0, parent=panel_pbr)
+        sock_opacity_map = self.color_socket(self.in_opacity_map, parent=panel_pbr)
 
-        # Input Sockets: Roughness
-        sock_roughness_weight = float_input_socket('Roughness Weight', 0.0, panel_pbr_and_opacity)
-        sock_roughness_map = color_input_socket('Roughness Map', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
+        # Input Sockets: DLS
+        sock_dls_weight = self.float_socket(self.in_dls_weight, parent=panel_dls)
+        sock_dls_weight_map = self.color_socket(self.in_dls_weight_map, parent=panel_dls)
+        sock_dls_reflectivity = self.float_socket(self.in_dls_reflectivity, 0.5, parent=panel_dls)
+        sock_dls_reflectivity_map = self.color_socket(self.in_dls_reflectivity_map, parent=panel_dls)
+        sock_dls_roughness_mult = self.float_socket(self.in_dls_roughness_mult, 1.0, parent=panel_dls)
+        sock_dls_l1_roughness = self.float_socket(self.in_dls_l1_roughness, 0.6, parent=panel_dls)
+        sock_dls_l1_roughness_map = self.color_socket(self.in_dls_l1_roughness_map, parent=panel_dls)
+        sock_dls_l2_roughness_mult = self.float_socket(self.in_dls_l2_roughness_mult, 0.4, parent=panel_dls)
+        sock_dls_l2_roughness_mult_map = self.color_socket(self.in_dls_l2_roughness_mult_map, parent=panel_dls)
+        sock_dls_ratio = self.float_socket(self.in_dls_ratio, 0.15, parent=panel_dls)
+        sock_dls_ratio_map = self.color_socket(self.in_dls_ratio_map, parent=panel_dls)
 
-        # Input Sockets: Metalic
-        sock_metallic_weight_value = float_input_socket('Metallic Weight Value', 0.0, panel_pbr_and_opacity)
-        sock_metallic_weight_map = color_input_socket('Metallic Weight Map', (1.0, 1.0, 1.0, 1.0),
-                                                      panel_pbr_and_opacity)
+        # Input Sockets: SSS
+        sock_sss_weight = self.float_socket(self.in_sss_weight, 0.8, parent=panel_sss)
+        sock_sss_radius = self.vector_socket(self.in_sss_radius, (1.0, 0.2, 0.1), parent=panel_sss)
+        sock_sss_scale = self.float_socket(self.in_sss_scale, 0.004, parent=panel_sss, props={"subtype": "DISTANCE"})
+        sock_sss_direction = self.float_socket(self.in_sss_direction, 0.8, parent=panel_sss)
 
-        # Input Sockets: Opacity
-        sock_opacity_value = float_input_socket('Opacity Value', 1.0, panel_pbr_and_opacity)
-        sock_opacity_map = color_input_socket('Opacity Map', (1.0, 1.0, 1.0, 1.0), panel_pbr_and_opacity)
-
-        # Dual Lobe Specular
-        sock_dl_specular_weight_value = \
-            float_input_socket("Dual Lobe Specular Weight Value", 0.0, panel_dls)
-        sock_dl_specular_weight_map = \
-            color_input_socket("Dual Lobe Specular Weight Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
-        sock_dl_specular_reflectivity_value = \
-            float_input_socket("Dual Lobe Specular Reflectivity Value", 0.5, panel_dls)
-        sock_dl_specular_reflectivity_map = \
-            color_input_socket("Dual Lobe Specular Reflectivity Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
-        sock_dl_specular_roughness_mult = \
-            float_input_socket("Dual Lobe Specular Roughness Mult", 1.0, panel_dls)
-        sock_specular_l1_roughness_value = \
-            float_input_socket("Specular Lobe 1 Roughness Value", 0.6, panel_dls)
-        sock_specular_l1_roughness_map = \
-            color_input_socket("Specular Lobe 1 Roughness Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
-        sock_specular_l2_roughness_mult_value = \
-            float_input_socket("Specular Lobe 2 Roughness Mult Value", 0.4, panel_dls)
-        sock_specular_l2_roughness_mult_map = \
-            color_input_socket("Specular Lobe 2 Roughness Mult Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
-        sock_dl_specular_ratio_value = \
-            float_input_socket("Dual Lobe Specular Ratio Value", 0.15, panel_dls)
-        sock_dl_specular_ratio_map = \
-            color_input_socket("Dual Lobe Specular Ratio Map", (1.0, 1.0, 1.0, 1.0), panel_dls)
-
-        # Input Sockets: Translucency/SSS
-        sock_sss_weight = float_input_socket('SSS Weight', 0.8, panel_sss)
-        sock_sss_radius = vector_input_socket('SSS Radius', (1.0, 0.2, 0.1), panel_sss)
-        sock_sss_scale = float_input_socket('SSS Scale', 0.004, panel_sss)
-        sock_sss_scale.subtype = 'DISTANCE'
-        sock_sss_direction = float_input_socket('SSS Direction', 0.8, panel_sss)
-
-        # Input Sockets: Normal
-        sock_normal_value = float_input_socket('Normal Value', 1.0, panel_normal_and_bump)
-        sock_normal_map = color_input_socket('Normal Map', (0.5, 0.5, 1.0, 1.0), panel_normal_and_bump)
-
-        # Input Sockets: Detail
-        sock_detail_weight_value = float_input_socket('Detail Weight Value', 0.0, panel_normal_and_bump)
-        sock_detail_weight_map = color_input_socket('Detail Weight Map', (1.0, 1.0, 1.0, 1.0), panel_normal_and_bump)
-        sock_detail_normal_map = color_input_socket('Detail Normal Map', (0.5, 0.5, 1.0, 1.0), panel_normal_and_bump)
-
-        # Input Sockets: Bump
-        sock_bump_strength_value = float_input_socket('Bump Strength Value', 0.0, panel_normal_and_bump)
-        sock_bump_strength_map = color_input_socket('Bump Strength Map', (1.0, 1.0, 1.0, 1.0), panel_normal_and_bump)
+        # Input Sockets: Normal/Bump
+        sock_normal_mult = self.float_socket(self.in_normal_mult, 1.0, parent=panel_normals_bump)
+        sock_normal_map = self.color_socket(self.in_normal_map, (0.5, 0.5, 1.0, 1.0), parent=panel_normals_bump)
+        sock_detail_weight = self.float_socket(self.in_detail_weight, parent=panel_normals_bump)
+        sock_detail_weight_map = self.color_socket(self.in_detail_weight_map, parent=panel_normals_bump)
+        sock_detail_normal_map = self.color_socket(self.in_detail_normal_map, (0.5, 0.5, 1.0, 1.0),
+                                                   parent=panel_normals_bump)
+        sock_bump_strength = self.float_socket(self.in_bump_strength, parent=panel_normals_bump)
+        sock_bump_strength_map = self.color_socket(self.in_bump_strength_map, parent=panel_normals_bump)
 
         # Input Sockets: Top Coat
-        sock_top_coat_weight_value = float_input_socket('Top Coat Weight Value', 0.0, panel_top_coat)
-        sock_top_coat_weight_map = color_input_socket('Top Coat Weight Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
-        sock_top_coat_roughness_value = float_input_socket('Top Coat Roughness Value', 0.7, panel_top_coat)
-        sock_top_coat_roughness_map = color_input_socket('Top Coat Roughness Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
-        sock_top_coat_color_value = color_input_socket('Top Coat Color Value', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
-        sock_top_coat_color_map = color_input_socket('Top Coat Color Map', (1.0, 1.0, 1.0, 1.0), panel_top_coat)
+        sock_top_coat_weight = self.float_socket(self.in_top_coat_weight, parent=panel_top_coat)
+        sock_top_coat_weight_map = self.color_socket(self.in_top_coat_weight_map, parent=panel_top_coat)
+        sock_top_coat_roughness = self.float_socket(self.in_top_coat_roughness, 0.7, parent=panel_top_coat)
+        sock_top_coat_roughness_map = self.color_socket(self.in_top_coat_roughness_map, parent=panel_top_coat)
+        sock_top_coat_color = self.color_socket(self.in_top_coat_color, parent=panel_top_coat)
+        sock_top_coat_color_map = self.color_socket(self.in_top_coat_color_map, parent=panel_top_coat)
 
         # Input Sockets: Makeup
-        sock_makeup_weight = \
-            float_input_socket('Makeup Weight', 0.0, panel_makeup)
-        sock_makeup_weight_map = \
-            color_input_socket('Makeup Weight Map', (1.0, 1.0, 1.0, 1.0), panel_makeup)
-        sock_makeup_base_color = \
-            color_input_socket('Makeup Base Color', (1.0, 1.0, 1.0, 1.0), panel_makeup)
-        sock_makeup_base_color_map = \
-            color_input_socket('Makeup Base Color Map', (1.0, 1.0, 1.0, 1.0), panel_makeup)
-        sock_makeup_roughness_mult = \
-            float_input_socket('Makeup Roughness Mult', 0.0, panel_makeup)
-        sock_makeup_roughness_mult_map = \
-            color_input_socket('Makeup Roughness Mult Map', (1.0, 1.0, 1.0, 1.0), panel_makeup)
-        sock_makeup_metallic_weight = \
-            float_input_socket('Makeup Metallic Weight', 0.0, panel_makeup)
-        sock_makeup_metallic_weight_map = \
-            color_input_socket('Makeup Metallic Weight Map', (1.0, 1.0, 1.0, 1.0), panel_makeup)
-        sock_makeup_reduce_normals = \
-            float_input_socket('Makeup Reduce Normals', 0.0, panel_makeup)
+        sock_makeup_weight = self.float_socket(self.in_makeup_weight, parent=panel_makeup)
+        sock_makeup_weight_map = self.color_socket(self.in_makeup_weight_map, parent=panel_makeup)
+        sock_makeup_base_color = self.color_socket(self.in_makeup_base_color, parent=panel_makeup)
+        sock_makeup_base_color_map = self.color_socket(self.in_makeup_base_color_map, parent=panel_makeup)
+        sock_makeup_roughness_mult = self.float_socket(self.in_makeup_roughness_mult, parent=panel_makeup)
+        sock_makeup_roughness_mult_map = self.color_socket(self.in_makeup_roughness_mult_map, parent=panel_makeup)
+        sock_makeup_metallic_weight = self.float_socket(self.in_makeup_metallic_weight, parent=panel_makeup)
+        sock_makeup_metallic_weight_map = self.color_socket(self.in_makeup_metallic_weight_map, parent=panel_makeup)
+        sock_makeup_reduce_normals = self.float_socket(self.in_makeup_reduce_normals, parent=panel_makeup)
 
-        # Output Sockets: Surface
-        sock_out_surface = node_group.interface.new_socket(name='Surface', in_out='OUTPUT',
-                                                           socket_type='NodeSocketShader')
+        # Output Sockets:
+        sock_out_surface = self.shader_socket(self.out_surface, in_out="OUTPUT")
 
         # Frames
-        frame_pbr_and_opacity = node_group.nodes.new("NodeFrame")
-        frame_pbr_and_opacity.label = "PBR and Opacity"
-        frame_pbr_and_opacity.name = 'frame_pbr_and_opacity'
-        frame_pbr_and_opacity.location = (-210, 601)
-
-        frame_normal_and_bump = node_group.nodes.new("NodeFrame")
-        frame_normal_and_bump.label = "Normal, Detail and Bump"
-        frame_normal_and_bump.name = 'frame_normal_and_bump'
-        frame_normal_and_bump.location = (-188, -302)
-
-        frame_top_coat = node_group.nodes.new("NodeFrame")
-        frame_top_coat.label = "Top Coat"
-        frame_top_coat.name = 'frame_top_coat'
-        frame_top_coat.location = (5, -814)
-
-        frame_makeup_layer = node_group.nodes.new("NodeFrame")
-        frame_makeup_layer.label = "Makeup Layer"
-        frame_makeup_layer.name = 'frame_makeup'
-        frame_makeup_layer.location = (-1, -1326)
+        frame_pbr = self.add_frame("PBR and Opacity", (-210, 601))
+        frame_normal_and_bump = self.add_frame("Normal, Detail and Bump", (-188, -302))
+        frame_top_coat = self.add_frame("Top Coat", (5, -814))
+        frame_makeup_layer = self.add_frame("Makeup Layer", (-1, -1326))
 
         # Nodes: Group Input
-        node_group_input = node_group.nodes.new('NodeGroupInput')
-        node_group_input.name = 'Group Input'
-        node_group_input.location = (-1045, -90)
+        node_group_input = self.add_node__group_input("Group Input", (-1045, -90))
 
-        # Nodes: Diffuse
-        node_combine_diffuse_value_and_map = node_group.nodes.new('ShaderNodeMix')
-        node_combine_diffuse_value_and_map.label = 'Combine diffuse value and map'
-        node_combine_diffuse_value_and_map.name = 'node_combine_diffuse_value_and_map'
-        node_combine_diffuse_value_and_map.parent = frame_pbr_and_opacity
-        node_combine_diffuse_value_and_map.location = (-158, -39)
-        node_combine_diffuse_value_and_map.data_type = 'RGBA'
-        node_combine_diffuse_value_and_map.blend_type = 'MULTIPLY'
-        node_combine_diffuse_value_and_map.inputs[0].default_value = 1
-        link_socket(node_group_input, node_combine_diffuse_value_and_map, sock_diffuse_color_map, 6)
-        link_socket(node_group_input, node_combine_diffuse_value_and_map, sock_diffuse_color_value, 7)
+        # Nodes: PBR
+        node_combine_diffuse = self.add_node__mix("Combine diffuse", (-158, -39), parent=frame_pbr)
+        self.link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color_map, 6)
+        self.link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color, 7)
 
-        # Nodes: Roughness
-        node_combine_roughness_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_roughness_value_and_map.label = 'Combine roughness value and map'
-        node_combine_roughness_value_and_map.name = 'node_combine_roughness_value_and_map'
-        node_combine_roughness_value_and_map.parent = frame_pbr_and_opacity
-        node_combine_roughness_value_and_map.location = (28, -39)
-        link_socket(node_group_input, node_combine_roughness_value_and_map, sock_roughness_weight, 2)
-        link_socket(node_group_input, node_combine_roughness_value_and_map, sock_roughness_map, 4)
+        node_combine_roughness = self.add_node__hsv("Combine Roughness", (28, -39), frame_pbr)
+        self.link_socket(node_group_input, node_combine_roughness, sock_roughness_weight, 2)
+        self.link_socket(node_group_input, node_combine_roughness, in_roughness_weight_map, 4)
 
-        # Nodes: Metallic
-        node_combine_metallic_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_metallic_value_and_map.label = 'Combine metallic value and map'
-        node_combine_metallic_value_and_map.name = 'node_combine_metallic_value_and_map'
-        node_combine_metallic_value_and_map.parent = frame_pbr_and_opacity
-        node_combine_metallic_value_and_map.location = (240, -39)
-        link_socket(node_group_input, node_combine_metallic_value_and_map, sock_metallic_weight_value, 2)
-        link_socket(node_group_input, node_combine_metallic_value_and_map, sock_metallic_weight_map, 4)
+        node_combine_metallic = self.add_node__hsv("Combine Metallic", (240, -39), frame_pbr)
+        self.link_socket(node_group_input, node_combine_metallic, sock_metallic_weight, 2)
+        self.link_socket(node_group_input, node_combine_metallic, sock_metallic_weight_map, 4)
 
-        # Nodes: Opacity
-        node_combine_opacity_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_opacity_value_and_map.label = 'Combine opacity value and map'
-        node_combine_opacity_value_and_map.name = 'node_combine_opacity_value_and_map'
-        node_combine_opacity_value_and_map.parent = frame_pbr_and_opacity
-        node_combine_opacity_value_and_map.location = (446, -43)
-        link_socket(node_group_input, node_combine_opacity_value_and_map, sock_opacity_value, 2)
-        link_socket(node_group_input, node_combine_opacity_value_and_map, sock_opacity_map, 4)
+        node_combine_opacity = self.add_node__hsv("Combine Opacity", (446, -43), frame_pbr)
+        self.link_socket(node_group_input, node_combine_opacity, sock_opacity, 2)
+        self.link_socket(node_group_input, node_combine_opacity, sock_opacity_map, 4)
 
-        # Nodes: Normal/Detail/Bump
-        node_normal_map = node_group.nodes.new('ShaderNodeNormalMap')
-        node_normal_map.label = 'Normal Map'
-        node_normal_map.name = 'node_normal_map'
-        node_normal_map.parent = frame_normal_and_bump
-        node_normal_map.location = (248, -88)
-        link_socket(node_group_input, node_normal_map, sock_normal_value, 0)
-        link_socket(node_group_input, node_normal_map, sock_normal_map, 1)
+        # Nodes: Normal/Bump
+        node_normal_map = self.add_node__normal_map("Normal Map", (248, -88), frame_normal_and_bump)
+        self.link_socket(node_group_input, node_normal_map, sock_normal_mult, 0)
+        self.link_socket(node_group_input, node_normal_map, sock_normal_map, 1)
 
-        node_combine_detail_weight_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_detail_weight_value_and_map.label = 'Combine detail weight value and map'
-        node_combine_detail_weight_value_and_map.name = 'node_combine_detail_weight_value_and_map'
-        node_combine_detail_weight_value_and_map.parent = frame_normal_and_bump
-        node_combine_detail_weight_value_and_map.location = (28, -240)
-        link_socket(node_group_input, node_combine_detail_weight_value_and_map, sock_detail_weight_value, 2)
-        link_socket(node_group_input, node_combine_detail_weight_value_and_map, sock_detail_weight_map, 4)
+        node_combine_detail_weight = self.add_node__hsv(
+            "Combine Detail Weight", (28, -240), frame_normal_and_bump)
+        self.link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight, 2)
+        self.link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight_map, 4)
 
-        node_detail_normal_map = node_group.nodes.new('ShaderNodeNormalMap')
-        node_detail_normal_map.label = 'Detail normal map'
-        node_detail_normal_map.name = 'node_detail_normal_map'
-        node_detail_normal_map.parent = frame_normal_and_bump
-        node_detail_normal_map.location = (247, -266)
-        link_socket(node_combine_detail_weight_value_and_map, node_detail_normal_map, 0, 0)
-        link_socket(node_group_input, node_detail_normal_map, sock_detail_normal_map, 1)
+        node_detail_normal_map = self.add_node__normal_map(
+            "Detail Normal Map", (247, -266), frame_normal_and_bump)
+        self.link_socket(node_combine_detail_weight, node_detail_normal_map, 0, 0)
+        self.link_socket(node_group_input, node_detail_normal_map, sock_detail_normal_map, 1)
 
-        node_combine_normal_and_detail_vectors = node_group.nodes.new('ShaderNodeVectorMath')
-        node_combine_normal_and_detail_vectors.label = 'Combine normal and detail vectors'
-        node_combine_normal_and_detail_vectors.name = 'node_combine_normal_and_detail_vectors'
-        node_combine_normal_and_detail_vectors.operation = 'ADD'
-        node_combine_normal_and_detail_vectors.parent = frame_normal_and_bump
-        node_combine_normal_and_detail_vectors.location = (458, -151)
-        link_socket(node_normal_map, node_combine_normal_and_detail_vectors, 0, 0)
-        link_socket(node_detail_normal_map, node_combine_normal_and_detail_vectors, 0, 1)
+        node_combine_normal_and_detail_vectors = self.add_node__math_vector(
+            "Combine normal and detail vectors", (458, -151), frame_normal_and_bump, {"operation": "ADD"})
+        self.link_socket(node_normal_map, node_combine_normal_and_detail_vectors, 0, 0)
+        self.link_socket(node_detail_normal_map, node_combine_normal_and_detail_vectors, 0, 1)
 
-        node_bump_map = node_group.nodes.new('ShaderNodeBump')
-        node_bump_map.label = 'Bump map'
-        node_bump_map.name = 'node_bump_map'
-        node_bump_map.parent = frame_normal_and_bump
-        node_bump_map.location = (683, -39)
-        link_socket(node_group_input, node_bump_map, sock_bump_strength_value, 0)
-        link_socket(node_group_input, node_bump_map, sock_bump_strength_map, 2)
-        link_socket(node_combine_normal_and_detail_vectors, node_bump_map, 0, 3)
+        node_bump_map = self.add_node__bump("Bump map", (683, -39), frame_normal_and_bump)
+        self.link_socket(node_group_input, node_bump_map, sock_bump_strength, 0)
+        self.link_socket(node_group_input, node_bump_map, sock_bump_strength_map, 2)
+        self.link_socket(node_combine_normal_and_detail_vectors, node_bump_map, 0, 3)
 
         # Nodes: Top Coat
-        node_combine_top_coat_weight_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_top_coat_weight_value_and_map.label = 'Combine top coat weight value and map'
-        node_combine_top_coat_weight_value_and_map.name = 'node_combine_top_coat_weight_value_and_map'
-        node_combine_top_coat_weight_value_and_map.parent = frame_top_coat
-        node_combine_top_coat_weight_value_and_map.location = (36, -44)
-        link_socket(node_group_input, node_combine_top_coat_weight_value_and_map, sock_top_coat_weight_value, 2)
-        link_socket(node_group_input, node_combine_top_coat_weight_value_and_map, sock_top_coat_weight_map, 4)
+        node_combine_top_coat_weight = self.add_node__hsv(
+            "Combine Top Coat Weight", (36, -44), frame_top_coat)
+        self.link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight, 2)
+        self.link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight_map, 4)
 
-        node_combine_top_coat_roughness_value_and_map = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_top_coat_roughness_value_and_map.label = 'Combine top coat roughness value and map'
-        node_combine_top_coat_roughness_value_and_map.name = 'node_combine_top_coat_roughness_value_and_map'
-        node_combine_top_coat_roughness_value_and_map.parent = frame_top_coat
-        node_combine_top_coat_roughness_value_and_map.location = (232, -39)
-        link_socket(node_group_input, node_combine_top_coat_roughness_value_and_map, sock_top_coat_roughness_value, 2)
-        link_socket(node_group_input, node_combine_top_coat_roughness_value_and_map, sock_top_coat_roughness_map, 4)
+        node_combine_top_coat_roughness = self.add_node__hsv(
+            "Combine Top Coat Roughness", (232, -39), frame_top_coat)
+        self.link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness, 2)
+        self.link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness_map, 4)
 
-        node_combine_top_coat_color_value_and_map = node_group.nodes.new('ShaderNodeMix')
-        node_combine_top_coat_color_value_and_map.label = 'Combine top coat color value and map'
-        node_combine_top_coat_color_value_and_map.name = 'node_combine_top_coat_color_value_and_map'
-        node_combine_top_coat_color_value_and_map.parent = frame_top_coat
-        node_combine_top_coat_color_value_and_map.location = (31, -240)
-        node_combine_top_coat_color_value_and_map.data_type = 'RGBA'
-        node_combine_top_coat_color_value_and_map.blend_type = 'MULTIPLY'
-        node_combine_top_coat_color_value_and_map.inputs[0].default_value = 1
-        link_socket(node_group_input, node_combine_top_coat_color_value_and_map, sock_top_coat_color_map, 6)
-        link_socket(node_group_input, node_combine_top_coat_color_value_and_map, sock_top_coat_color_value, 7)
+        node_combine_top_coat_color = self.add_node__mix(
+            "Combine Top Coat Color", (31, -240), parent=frame_top_coat)
+        self.link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color_map, 6)
+        self.link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color, 7)
 
-        # Nodes: Bdsf Shader
-        node_base_layer_bdsf = node_group.nodes.new('ShaderNodeBsdfPrincipled')
-        node_base_layer_bdsf.label = 'Principled BDSF'
-        node_base_layer_bdsf.name = 'node_base_layer_bdsf'
-        node_base_layer_bdsf.location = (776, 0)
-        node_base_layer_bdsf.subsurface_method = 'RANDOM_WALK_SKIN'
-        link_socket(node_combine_diffuse_value_and_map, node_base_layer_bdsf, 2, 0)
-        link_socket(node_combine_metallic_value_and_map, node_base_layer_bdsf, 0, 1)
-        link_socket(node_combine_roughness_value_and_map, node_base_layer_bdsf, 0, 2)
-        link_socket(node_combine_opacity_value_and_map, node_base_layer_bdsf, 0, 4)
-        link_socket(node_bump_map, node_base_layer_bdsf, 0, 5)
-        link_socket(node_group_input, node_base_layer_bdsf, sock_sss_weight, 8)
-        link_socket(node_group_input, node_base_layer_bdsf, sock_sss_radius, 9)
-        link_socket(node_group_input, node_base_layer_bdsf, sock_sss_scale, 10)
-        link_socket(node_group_input, node_base_layer_bdsf, sock_sss_direction, 12)
-        link_socket(node_combine_top_coat_weight_value_and_map, node_base_layer_bdsf, 0, 19)
-        link_socket(node_combine_top_coat_roughness_value_and_map, node_base_layer_bdsf, 0, 20)
-        link_socket(node_combine_top_coat_color_value_and_map, node_base_layer_bdsf, 2, 22)
-        link_socket(node_bump_map, node_base_layer_bdsf, 0, 23)
+        # Nodes: Base Layer BDSF
+        node_base_layer_bdsf = self.add_node__princ_bdsf(
+            "Base Layer BDSF", (776, 0), props={"subsurface_method": "RANDOM_WALK_SKIN"})
+        self.link_socket(node_combine_diffuse, node_base_layer_bdsf, 2, 0)
+        self.link_socket(node_combine_metallic, node_base_layer_bdsf, 0, 1)
+        self.link_socket(node_combine_roughness, node_base_layer_bdsf, 0, 2)
+        self.link_socket(node_combine_opacity, node_base_layer_bdsf, 0, 4)
+        self.link_socket(node_bump_map, node_base_layer_bdsf, 0, 5)
+        self.link_socket(node_group_input, node_base_layer_bdsf, sock_sss_weight, 8)
+        self.link_socket(node_group_input, node_base_layer_bdsf, sock_sss_radius, 9)
+        self.link_socket(node_group_input, node_base_layer_bdsf, sock_sss_scale, 10)
+        self.link_socket(node_group_input, node_base_layer_bdsf, sock_sss_direction, 12)
+        self.link_socket(node_combine_top_coat_weight, node_base_layer_bdsf, 0, 19)
+        self.link_socket(node_combine_top_coat_roughness, node_base_layer_bdsf, 0, 20)
+        self.link_socket(node_combine_top_coat_color, node_base_layer_bdsf, 2, 22)
+        self.link_socket(node_bump_map, node_base_layer_bdsf, 0, 23)
 
-        # Nodes: Dual Lobe Specular
-        dls_group = node_group.nodes.new("ShaderNodeGroup")
-        dls_group.label = DualLobeSpecularMaterialShader.group_name
-        dls_group.name = (f'{self.group_name}_${DualLobeSpecularMaterialShader.group_name}'
-                          .replace(' ', '_').lower())
-        dls_group.location = (18, 218)
-        dls_group.width, dls_group.height = 400.0, 100.0
-        dls_group.node_tree = bpy.data.node_groups[DualLobeSpecularMaterialShader.group_name]
-        link_socket(node_group_input, dls_group, sock_dl_specular_weight_value, 0)
-        link_socket(node_group_input, dls_group, sock_dl_specular_weight_map, 1)
-        link_socket(node_group_input, dls_group, sock_dl_specular_reflectivity_value, 2)
-        link_socket(node_group_input, dls_group, sock_dl_specular_reflectivity_map, 3)
-        link_socket(node_group_input, dls_group, sock_dl_specular_roughness_mult, 4)
-        link_socket(node_group_input, dls_group, sock_specular_l1_roughness_value, 5)
-        link_socket(node_group_input, dls_group, sock_specular_l1_roughness_map, 6)
-        link_socket(node_group_input, dls_group, sock_specular_l2_roughness_mult_value, 7)
-        link_socket(node_group_input, dls_group, sock_specular_l2_roughness_mult_map, 8)
-        link_socket(node_group_input, dls_group, sock_dl_specular_ratio_value, 9)
-        link_socket(node_group_input, dls_group, sock_dl_specular_ratio_map, 10)
-        link_socket(node_bump_map, dls_group, 0, 11)
+        # Nodes: Dual Lobe Specular Layer
+        dls_builder = DualLobeSpecularShaderGroupBuilder
+        node_dls_group = self.add_node_shader_group("DLS", (18, 218), props={
+            "width": 400,
+            "node_tree": bpy.data.node_groups[dls_builder.group_name()]
+        })
+        self.link_socket(node_group_input, node_dls_group, sock_dls_weight, dls_builder.in_weight)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_weight_map, dls_builder.in_weight_map)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_reflectivity, dls_builder.in_reflectivity)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_reflectivity_map, dls_builder.in_reflectivity_map)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_roughness_mult, dls_builder.in_roughness_mult)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_l1_roughness, dls_builder.in_l1_roughness)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_l1_roughness_map, dls_builder.in_l1_roughness_map)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_l2_roughness_mult, dls_builder.in_l2_roughness_mult)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_l2_roughness_mult_map, dls_builder.in_l2_roughness_mult_map)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_ratio, dls_builder.in_ratio)
+        self.link_socket(node_group_input, node_dls_group, sock_dls_ratio_map, dls_builder.in_ratio_map)
+        self.link_socket(node_bump_map, node_dls_group, 0, dls_builder.in_normal)
 
         # Nodes: Makeup Layer
-        node_combine_makeup_weight = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_makeup_weight.label = "Combine Makeup Weight"
-        node_combine_makeup_weight.name = 'node_combine_makeup_weight'
-        node_combine_makeup_weight.parent = frame_makeup_layer
-        node_combine_makeup_weight.location = (29, -39)
-        link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight, 2)
-        link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight_map, 4)
+        node_combine_makeup_weight = self.add_node__hsv("Combine Makeup Weight", (29, -39), frame_makeup_layer)
+        self.link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight, 2)
+        self.link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight_map, 4)
 
-        node_combine_makeup_base_color = node_group.nodes.new('ShaderNodeMix')
-        node_combine_makeup_base_color.label = "Combine Makeup Base Color"
-        node_combine_makeup_base_color.name = 'node_combine_makeup_base_color'
-        node_combine_makeup_base_color.parent = frame_makeup_layer
-        node_combine_makeup_base_color.location = (33, -222)
-        node_combine_makeup_base_color.data_type = 'RGBA'
-        node_combine_makeup_base_color.blend_type = 'MULTIPLY'
-        node_combine_makeup_base_color.inputs[0].default_value = 1
-        link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color, 6)
-        link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color_map, 7)
+        node_combine_makeup_base_color = self.add_node__mix(
+            "Combine Makeup Base Color", (33, -222), parent=frame_makeup_layer)
+        self.link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color, 6)
+        self.link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color_map, 7)
 
-        node_combine_makeup_roughness_mult = node_group.nodes.new('ShaderNodeHueSaturation')
-        node_combine_makeup_roughness_mult.label = "Combine Makeup Roughness Mult"
-        node_combine_makeup_roughness_mult.name = "node_combine_makeup_roughness_mult"
-        node_combine_makeup_roughness_mult.parent = frame_makeup_layer
-        node_combine_makeup_roughness_mult.location = (32, -449)
-        link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult, 2)
-        link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult_map, 4)
+        node_combine_makeup_roughness_mult = self.add_node__hsv(
+            "Combine Makeup Roughness Mult", (32, -449), frame_makeup_layer)
+        self.link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult, 2)
+        self.link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult_map, 4)
 
-        node_combine_makeup_metalic_weight = node_group.nodes.new("ShaderNodeHueSaturation")
-        node_combine_makeup_metalic_weight.label = "Combine Makeup Metalic Weight"
-        node_combine_makeup_metalic_weight.name = "node_combine_makeup_metalic_weight"
-        node_combine_makeup_metalic_weight.parent = frame_makeup_layer
-        node_combine_makeup_metalic_weight.location = (38, -629)
-        link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight, 2)
-        link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight_map, 4)
+        node_combine_makeup_metalic_weight = self.add_node__hsv(
+            "Combine Makeup Metalic Weight", (38, -629), frame_makeup_layer)
+        self.link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight, 2)
+        self.link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight_map, 4)
 
-        node_combine_diff_dls_roughness_for_makeup = node_group.nodes.new('ShaderNodeMix')
-        node_combine_diff_dls_roughness_for_makeup.label = "Combine Diffuse and DLS Roughness Maps for Makeup"
-        node_combine_diff_dls_roughness_for_makeup.name = "node_combine_diff_dls_roughness_for_makeup"
-        node_combine_diff_dls_roughness_for_makeup.parent = frame_makeup_layer
-        node_combine_diff_dls_roughness_for_makeup.location = (307, -131)
-        node_combine_diff_dls_roughness_for_makeup.data_type = 'RGBA'
-        node_combine_diff_dls_roughness_for_makeup.blend_type = 'MULTIPLY'
-        node_combine_diff_dls_roughness_for_makeup.inputs[0].default_value = 1
-        link_socket(node_combine_roughness_value_and_map, node_combine_diff_dls_roughness_for_makeup, 0, 6)
-        link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_specular_l1_roughness_map, 7)
+        node_combine_diff_dls_roughness_for_makeup = self.add_node__mix(
+            "Combine Diffuse and DLS Roughness Maps for Makeup", (307, -131), parent=frame_makeup_layer)
+        self.link_socket(node_combine_roughness, node_combine_diff_dls_roughness_for_makeup, 0, 6)
+        self.link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_dls_l1_roughness_map,
+                         7)
 
-        node_multiply_makeup_base_roughness = node_group.nodes.new('ShaderNodeMix')
-        node_multiply_makeup_base_roughness.label = "Multiply Makeup Base Roughness"
-        node_multiply_makeup_base_roughness.name = "node_multiply_makeup_base_roughness"
-        node_multiply_makeup_base_roughness.parent = frame_makeup_layer
-        node_multiply_makeup_base_roughness.location = (543, -135)
-        node_multiply_makeup_base_roughness.data_type = 'RGBA'
-        node_multiply_makeup_base_roughness.blend_type = 'MULTIPLY'
-        node_multiply_makeup_base_roughness.inputs[0].default_value = 1
-        link_socket(node_combine_diff_dls_roughness_for_makeup, node_multiply_makeup_base_roughness, 2, 6)
-        link_socket(node_combine_makeup_roughness_mult, node_multiply_makeup_base_roughness, 0, 7)
+        node_multiply_makeup_base_roughness = self.add_node__mix(
+            "Multiply Makeup Base Roughness", (543, -135), parent=frame_makeup_layer)
+        self.link_socket(node_combine_diff_dls_roughness_for_makeup, node_multiply_makeup_base_roughness, 2, 6)
+        self.link_socket(node_combine_makeup_roughness_mult, node_multiply_makeup_base_roughness, 0, 7)
 
-        node_makeup_normal_interpolation_base_value = node_group.nodes.new("ShaderNodeNormalMap")
-        node_makeup_normal_interpolation_base_value.label = "Makeup Normal Interpolation Base Value"
-        node_makeup_normal_interpolation_base_value.name = "node_makeup_normal_interpolation_base_value"
-        node_makeup_normal_interpolation_base_value.parent = frame_makeup_layer
-        node_makeup_normal_interpolation_base_value.location = (384, -617)
+        node_makeup_normal_interpolation_base_value = self.add_node__normal_map(
+            "Makeup Normal Interpolation Base Value", (384, -617), frame_makeup_layer)
 
-        node_interpolate_makeup_normal = node_group.nodes.new("ShaderNodeMix")
-        node_interpolate_makeup_normal.label = "Interpolate Makeup Normal"
-        node_interpolate_makeup_normal.name = "node_interpolate_makeup_normal"
-        node_interpolate_makeup_normal.parent = frame_makeup_layer
-        node_interpolate_makeup_normal.location = (615, -407)
-        node_interpolate_makeup_normal.data_type = 'VECTOR'
-        link_socket(node_group_input, node_interpolate_makeup_normal, sock_makeup_reduce_normals, 0)
-        link_socket(node_bump_map, node_interpolate_makeup_normal, 0, 4)
-        link_socket(node_makeup_normal_interpolation_base_value, node_interpolate_makeup_normal, 0, 5)
+        node_interpolate_makeup_normal = self.add_node__mix(
+            "Interpolate Makeup Normal", (615, -407), data_type="VECTOR", parent=frame_makeup_layer)
+        self.link_socket(node_group_input, node_interpolate_makeup_normal, sock_makeup_reduce_normals, 0)
+        self.link_socket(node_bump_map, node_interpolate_makeup_normal, 0, 4)
+        self.link_socket(node_makeup_normal_interpolation_base_value, node_interpolate_makeup_normal, 0, 5)
 
-        node_makeup_layer_bsdf = node_group.nodes.new('ShaderNodeBsdfPrincipled')
-        node_makeup_layer_bsdf.label = "Makeup Layer"
-        node_makeup_layer_bsdf.name = 'node_makeup_layer_bsdf'
-        node_makeup_layer_bsdf.parent = frame_makeup_layer
-        node_makeup_layer_bsdf.location = (811, -201)
-        link_socket(node_combine_makeup_base_color, node_makeup_layer_bsdf, 2, 0)
-        link_socket(node_combine_makeup_metalic_weight, node_makeup_layer_bsdf, 0, 1)
-        link_socket(node_multiply_makeup_base_roughness, node_makeup_layer_bsdf, 2, 2)
-        link_socket(node_interpolate_makeup_normal, node_makeup_layer_bsdf, 1, 5)
+        node_makeup_layer_bsdf = self.add_node__princ_bdsf("Makeup Layer BSDF", (811, -201), frame_makeup_layer)
+        self.link_socket(node_combine_makeup_base_color, node_makeup_layer_bsdf, 2, 0)
+        self.link_socket(node_combine_makeup_metalic_weight, node_makeup_layer_bsdf, 0, 1)
+        self.link_socket(node_multiply_makeup_base_roughness, node_makeup_layer_bsdf, 2, 2)
+        self.link_socket(node_interpolate_makeup_normal, node_makeup_layer_bsdf, 1, 5)
 
-        node_mix_makeup_shader = node_group.nodes.new('ShaderNodeMixShader')
-        node_mix_makeup_shader.label = "Makeup Mix Surface"
-        node_mix_makeup_shader.name = 'node_mix_makeup_shader'
-        node_mix_makeup_shader.location =(1141, -85)
-        link_socket(node_combine_makeup_weight, node_mix_makeup_shader, 0, 0)
-        link_socket(node_base_layer_bdsf, node_mix_makeup_shader, 0, 1)
-        link_socket(node_makeup_layer_bsdf, node_mix_makeup_shader, 0, 2)
+        # Nodes: Mix Layers
+        node_mix_makeup_shader = self.add_node__mix_shader("Mix Makeup Shader", (1141, -85))
+        self.link_socket(node_combine_makeup_weight, node_mix_makeup_shader, 0, 0)
+        self.link_socket(node_base_layer_bdsf, node_mix_makeup_shader, 0, 1)
+        self.link_socket(node_makeup_layer_bsdf, node_mix_makeup_shader, 0, 2)
 
-        node_mix_dls_shader = node_group.nodes.new("ShaderNodeMixShader")
-        node_mix_dls_shader.label = "Mix DLS Surface"
-        node_mix_dls_shader.name = "node_mix_dls_shader"
-        node_mix_dls_shader.location = (1348, 52)
-        link_socket(dls_group, node_mix_dls_shader, 0, 0)
-        link_socket(node_mix_makeup_shader, node_mix_dls_shader, 0, 1)
-        link_socket(dls_group, node_mix_dls_shader, 1, 2)
+        node_mix_dls_shader = self.add_node__mix_shader("Mix DLS Shader", (1348, 52))
+        self.link_socket(node_dls_group, node_mix_dls_shader, 0, 0)
+        self.link_socket(node_mix_makeup_shader, node_mix_dls_shader, 0, 1)
+        self.link_socket(node_dls_group, node_mix_dls_shader, 1, 2)
 
         # Group Output
-        node_group_output = node_group.nodes.new('NodeGroupOutput')
-        node_group_output.name = 'Group Output'
-        node_group_output.location = (1612, 9)
-        node_group_output.is_active_output = True
-        link_socket(node_mix_dls_shader, node_group_output, 0, sock_out_surface)
+        node_group_output = self.add_node__group_output("NodeGroupOutput", (1612, 9))
+        self.link_socket(node_mix_dls_shader, node_group_output, 0, sock_out_surface)
 
-    def apply_material(self,
-                       node_tree: ShaderNodeTree,
-                       node_mapping: Node,
-                       node_material_output: Node,
-                       channels: dict):
-        shader_group = node_tree.nodes.new("ShaderNodeGroup")
-        shader_group.label = self.group_name
-        shader_group.name = self.group_name
-        shader_group.location = (-521.4857788085938, -1.3936055898666382)
-        shader_group.width, shader_group.height = 400.0, 100.0
-        shader_group.node_tree = bpy.data.node_groups[self.group_name]
-        node_tree.links.new(shader_group.outputs[0], node_material_output.inputs[0])
 
-        tex_location_x = -1200
+class PBRSkinShaderGroupApplier(ShaderGroupApplier):
+    @classmethod
+    def group_name(cls) -> str:
+        return __GROUP_NAME__
 
-        def tex_location_y_gen():
-            location = 400
-            while True:
-                yield location
-                location -= 300
+    def add_shader_group(self, location: tuple[float, float], channels: dict):
+        super().add_shader_group(location, channels)
 
-        tex_location_y = tex_location_y_gen()
-
-        def image_texture(path: str, non_color: bool, tile: int) -> Node:
-            tex_image = node_tree.nodes.new(type='ShaderNodeTexImage')
-            tex_image.image = bpy.data.images.load(path)
-            # noinspection PyTypeChecker
-            tex_image.image.colorspace_settings.name = 'Non-Color' if non_color else 'sRGB'
-            tex_image.location = (tex_location_x, next(tex_location_y))
-            tex_image.image_user.tile = tile
-
-            img_name = os.path.basename(path)
-            if img_name in bpy.data.images:
-                tex_image.image = bpy.data.images[img_name]
-            else:
-                tex_image.image = bpy.data.images.load(img_name)
-
-            node_tree.links.new(node_mapping.outputs[0], tex_image.inputs[0])
-            return tex_image
+        builder = PBRSkinShaderGroupBuilder
 
         if 'Diffuse' in channels:
-            shader_group.inputs['Diffuse Color Value'].default_value = channels['Diffuse']['value']
+            self.set_socket(self.shader_group_node, builder.in_diffuse_color, channels['Diffuse']['value'])
             if channels['Diffuse']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Diffuse']['image_file'], False, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Diffuse Color Map'])
+                node_image_texture = self.add_image_texture(channels['Diffuse']['image_file'], False)
+                self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_diffuse_color_map)
 
         if 'Diffuse_Roughness' in channels:
-            shader_group.inputs['Roughness Weight'].default_value = channels['Diffuse_Roughness']['value']
-            if channels['Diffuse_Roughness']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Diffuse_Roughness']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Roughness Map'])
+            diffuse_roughness = channels['Diffuse_Roughness']['value']
+            if diffuse_roughness != 0:
+                self.set_socket(self.shader_group_node, builder.in_roughness_weight, diffuse_roughness)
+                if channels['Diffuse_Roughness']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Diffuse_Roughness']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_roughness_weight_map)
 
         if 'Metallic_Weight' in channels:
-            shader_group.inputs['Metallic Weight Value'].default_value = channels['Metallic_Weight']['value']
+            self.set_socket(self.shader_group_node, builder.in_metallic_weight, channels['Metallic_Weight']['value'])
             if channels['Metallic_Weight']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Metallic_Weight']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Metallic Weight Map'])
+                node_image_texture = self.add_image_texture(channels['Metallic_Weight']['image_file'], True)
+                self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_metallic_weight_map)
 
         if 'Cutout_Opacity' in channels:
-            shader_group.inputs['Opacity Value'].default_value = channels['Cutout_Opacity']['value']
+            self.set_socket(self.shader_group_node, builder.in_opacity, channels['Cutout_Opacity']['value'])
             if channels['Cutout_Opacity']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Cutout_Opacity']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Opacity Map'])
+                node_image_texture = self.add_image_texture(channels['Cutout_Opacity']['image_file'], True)
+                self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_opacity_map)
 
         if 'Dual_Lobe_Specular_Enable' in channels and channels['Dual_Lobe_Specular_Enable']['value']:
             if 'Dual_Lobe_Specular_Weight' in channels:
-                shader_group.inputs['Dual Lobe Specular Weight Value'].default_value = \
-                    channels['Dual_Lobe_Specular_Weight']['value']
+                self.set_socket(self.shader_group_node, builder.in_dls_weight,
+                                channels['Dual_Lobe_Specular_Weight']['value'])
                 if channels['Dual_Lobe_Specular_Weight']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Dual_Lobe_Specular_Weight']['image_file'], True, 1)
-                    node_tree.links.new(node_image_texture.outputs[0],
-                                        shader_group.inputs['Dual Lobe Specular Weight Map'])
+                    node_image_texture = self.add_image_texture(channels['Dual_Lobe_Specular_Weight']['image_file'],
+                                                                True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_dls_weight_map)
 
             if 'Dual_Lobe_Specular_Reflectivity' in channels:
-                shader_group.inputs['Dual Lobe Specular Reflectivity Value'].default_value = \
-                    channels['Dual_Lobe_Specular_Reflectivity']['value']
+                self.set_socket(self.shader_group_node, builder.in_dls_reflectivity,
+                                channels['Dual_Lobe_Specular_Reflectivity']['value'])
                 if channels['Dual_Lobe_Specular_Reflectivity']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Dual_Lobe_Specular_Reflectivity']['image_file'], True,
-                                                       1)
-                    node_tree.links.new(node_image_texture.outputs[0],
-                                        shader_group.inputs['Dual Lobe Specular Reflectivity Map'])
+                    node_image_texture = self.add_image_texture(
+                        channels['Dual_Lobe_Specular_Reflectivity']['image_file'], True, 1)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_dls_reflectivity_map)
 
             if 'Dual_Lobe_Specular_Roughness_Mult' in channels:
-                shader_group.inputs['Dual Lobe Specular Roughness Mult'].default_value = \
-                    channels['Dual_Lobe_Specular_Roughness_Mult']['value']
+                self.set_socket(self.shader_group_node, builder.in_dls_roughness_mult,
+                                channels['Dual_Lobe_Specular_Roughness_Mult']['value'])
 
             if 'Specular_Lobe_1_Roughness' in channels:
-                shader_group.inputs['Specular Lobe 1 Roughness Value'].default_value = \
-                    channels['Specular_Lobe_1_Roughness']['value']
+                self.set_socket(self.shader_group_node, builder.in_dls_l1_roughness,
+                                channels['Specular_Lobe_1_Roughness']['value'])
                 if channels['Specular_Lobe_1_Roughness']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Specular_Lobe_1_Roughness']['image_file'], True, 1)
-                    node_tree.links.new(node_image_texture.outputs[0],
-                                        shader_group.inputs['Specular Lobe 1 Roughness Map'])
+                    node_image_texture = self.add_image_texture(channels['Specular_Lobe_1_Roughness']['image_file'],
+                                                                True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_dls_l1_roughness_map)
 
             if 'Specular_Lobe_2_Roughness_Mult' in channels:
-                shader_group.inputs['Specular Lobe 2 Roughness Mult Value'].default_value = \
-                    channels['Specular_Lobe_2_Roughness_Mult']['value']
+                self.set_socket(self.shader_group_node, builder.in_dls_l2_roughness_mult,
+                                channels['Specular_Lobe_2_Roughness_Mult']['value'])
                 if channels['Specular_Lobe_2_Roughness_Mult']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Specular_Lobe_2_Roughness_Mult']['image_file'], True,
-                                                       1)
-                    node_tree.links.new(node_image_texture.outputs[0],
-                                        shader_group.inputs['Specular Lobe 2 Roughness Mult Map'])
+                    node_image_texture = self.add_image_texture(
+                        channels['Specular_Lobe_2_Roughness_Mult']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0,
+                                     builder.in_dls_l2_roughness_mult_map)
 
             if 'Dual_Lobe_Specular_Ratio' in channels:
-                shader_group.inputs['Dual Lobe Specular Ratio Value'].default_value = \
-                    channels['Dual_Lobe_Specular_Ratio'][
-                        'value']
+                self.set_socket(self.shader_group_node, builder.in_dls_ratio,
+                                channels['Dual_Lobe_Specular_Ratio']['value'])
                 if channels['Dual_Lobe_Specular_Ratio']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Dual_Lobe_Specular_Ratio']['image_file'], True, 1)
-                    node_tree.links.new(node_image_texture.outputs[0],
-                                        shader_group.inputs['Dual Lobe Specular Ratio Map'])
-
-        if 'Translucency_Weight' in channels:
-            shader_group.inputs['SSS Weight'].default_value = abs(channels['Translucency_Weight']['value'])
+                    node_image_texture = self.add_image_texture(channels['Dual_Lobe_Specular_Ratio']['image_file'],
+                                                                True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_dls_ratio_map)
 
         if 'Sub_Surface_Enable' in channels and channels['Sub_Surface_Enable']['value']:
+            if 'Translucency_Weight' in channels:
+                self.set_socket(self.shader_group_node, builder.in_sss_weight, channels['Translucency_Weight']['value'])
             if 'SSS_Color' in channels:
                 # It's a color, but we need the rgb vector, just omit alpha
-                shader_group.inputs['SSS Radius'].default_value = channels['SSS_Color']['value'][:3]
+                self.set_socket(self.shader_group_node, builder.in_sss_radius, channels['SSS_Color']['value'][:3])
             if 'SSS Direction' in channels:
                 # DAZ Value is negative, we need positive
-                shader_group.inputs['SSS Direction'].default_value = abs(channels['SSS_Direction']['value'])
+                self.set_socket(self.shader_group_node, builder.in_sss_direction,
+                                abs(channels['SSS Direction']['value']))
 
         if 'Normal_Map' in channels:
-            shader_group.inputs['Normal Value'].default_value = (
-                    channels['Normal_Map']['value'] * self.properties.normal_factor)
+            normal_mult = channels['Normal_Map']['value'] * self.properties.normal_factor
+            self.set_socket(self.shader_group_node, builder.in_normal_mult, normal_mult)
             if channels['Normal_Map']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Normal_Map']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Normal Map'])
+                node_image_texture = self.add_image_texture(channels['Normal_Map']['image_file'], True)
+                self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_normal_map)
 
         if 'Detail_Enable' in channels and channels['Detail_Enable']['value']:
-            shader_group.inputs['Detail Weight Value'].default_value = (
-                    channels['Detail_Weight']['value'] * self.properties.normal_factor)
-            if channels['Detail_Weight']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Detail_Weight']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Detail Weight Map'])
-            if channels['Detail_Normal_Map']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Detail_Normal_Map']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Detail Normal Map'])
+            if 'Detail_Weight' in channels:
+                self.set_socket(self.shader_group_node, builder.in_detail_weight, channels['Detail_Weight']['value'])
+                if channels['Detail_Weight']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Detail_Weight']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_detail_weight_map)
+            if 'Detail_Normal_Map' in channels:
+                normal_mult = channels['Detail_Normal_Map']['value'] * self.properties.normal_factor
+                self.set_socket(self.shader_group_node, builder.in_normal_mult, normal_mult)
+                if channels['Detail_Normal_Map']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Detail_Normal_Map']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_detail_normal_map)
 
         if 'Bump_Enable' in channels and channels['Bump_Enable']['value']:
-            shader_group.inputs['Bump Strength Value'].default_value = channels['Bump_Strength']['value']
-            if channels['Bump_Strength']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Bump_Strength']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Bump Strength Map'])
+            if 'Bump_Strength' in channels:
+                self.set_socket(self.shader_group_node, builder.in_bump_strength, channels['Bump_Strength']['value'])
+                if channels['Bump_Strength']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Bump_Strength']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_bump_strength_map)
 
         if 'Top_Coat_Enable' in channels and channels['Top_Coat_Enable']['value']:
-            shader_group.inputs['Top Coat Weight Value'].default_value = channels['Top_Coat_Weight']['value']
-            if channels['Top_Coat_Weight']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Top_Coat_Weight']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Top Coat Weight Map'])
+            if 'Top_Coat_Weight' in channels:
+                self.set_socket(self.shader_group_node, builder.in_top_coat_weight,
+                                channels['Top_Coat_Weight']['value'])
+                if channels['Top_Coat_Weight']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Top_Coat_Weight']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_top_coat_weight_map)
 
-            shader_group.inputs['Top Coat Roughness Value'].default_value = channels['Top_Coat_Roughness']['value']
-            if channels['Top_Coat_Roughness']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Top_Coat_Roughness']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Top Coat Roughness Map'])
+            if 'Top_Coat_Roughness' in channels:
+                self.set_socket(self.shader_group_node, builder.in_top_coat_roughness,
+                                channels['Top_Coat_Roughness']['value'])
+                if channels['Top_Coat_Roughness']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Top_Coat_Roughness']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_top_coat_roughness_map)
 
-            shader_group.inputs['Top Coat Color Value'].default_value = channels['Top_Coat_Color']['value']
-            if channels['Top_Coat_Color']['image_file'] is not None:
-                node_image_texture = image_texture(channels['Top_Coat_Color']['image_file'], True, 1)
-                node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Top Coat Color Map'])
+            if 'Top_Coat_Color' in channels:
+                self.set_socket(self.shader_group_node, builder.in_top_coat_color, channels['Top_Coat_Color']['value'])
+                if channels['Top_Coat_Color']['image_file'] is not None:
+                    node_image_texture = self.add_image_texture(channels['Top_Coat_Color']['image_file'], False)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_top_coat_color_map)
 
         if 'Makeup_Enable' in channels and channels['Makeup_Enable']['value']:
             if 'Makeup_Weight' in channels:
-                shader_group.inputs['Makeup Weight'].default_value = channels['Makeup_Weight']['value']
+                self.set_socket(self.shader_group_node, builder.in_makeup_weight, channels['Makeup_Weight']['value'])
                 if channels['Makeup_Weight']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Makeup_Weight']['image_file'], True, 1)
-                    node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Makeup Weight Map'])
+                    node_image_texture = self.add_image_texture(channels['Makeup_Weight']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_makeup_weight_map)
 
             if 'Makeup_Base_Color' in channels:
-                shader_group.inputs['Makeup Base Color'].default_value = channels['Makeup_Base_Color']['value']
+                self.set_socket(self.shader_group_node, builder.in_makeup_base_color,
+                                channels['Makeup_Base_Color']['value'])
                 if channels['Makeup_Base_Color']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Makeup_Base_Color']['image_file'], False, 1)
-                    node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Makeup Base Color Map'])
+                    node_image_texture = self.add_image_texture(channels['Makeup_Base_Color']['image_file'], False)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_makeup_base_color_map)
 
             if 'Makeup_Roughness_Mult' in channels:
-                shader_group.inputs['Makeup Roughness Mult'].default_value = channels['Makeup_Roughness_Mult']['value']
+                self.set_socket(self.shader_group_node, builder.in_makeup_roughness_mult,
+                                channels['Makeup_Roughness_Mult']['value'])
                 if channels['Makeup_Roughness_Mult']['image_file'] is not None:
-                    node_image_texture = image_texture(channels['Makeup_Roughness_Mult']['image_file'], True, 1)
-                    node_tree.links.new(node_image_texture.outputs[0], shader_group.inputs['Makeup Roughness Mult Map'])
+                    node_image_texture = self.add_image_texture(channels['Makeup_Roughness_Mult']['image_file'], True)
+                    self.link_socket(node_image_texture, self.shader_group_node, 0, builder.in_makeup_roughness_mult)

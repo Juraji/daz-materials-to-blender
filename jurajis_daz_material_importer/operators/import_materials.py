@@ -1,10 +1,12 @@
 from pathlib import Path
+from typing import Type
 
 import bpy
 from bpy.types import Operator, Object
 
-from ..daz.dson import DazDsonMaterialReader
-from ..daz.utilities import translate_node_id_to_blender_name
+from ..shaders.material_shader import ShaderGroupApplier
+from ..utils.dson import DazDsonMaterialReader
+from ..utils.utilities import translate_node_id_to_blender_name
 from ..properties import MaterialImportProperties
 
 
@@ -16,12 +18,10 @@ class ImportMaterialsOperator(Operator):
 
     @classmethod
     def poll(cls, context):
-        # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
         return props.daz_scene_file != "" and props.daz_scene_file.endswith(".duf")
 
     def execute(self, context):
-        # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
         # Run shader group import op
@@ -99,42 +99,39 @@ class ImportMaterialsOperator(Operator):
             node_material_output.name = "Material Output"
             node_material_output.is_active_output = True
             node_material_output.target = 'ALL'
-            node_material_output.location = (382.0, 300.0)
-            node_material_output.inputs[2].default_value = (0.0, 0.0, 0.0)
-            node_material_output.inputs[3].default_value = 0.0
+            node_material_output.location = (125, 0)
 
             node_mapping = node_tree.nodes.new("ShaderNodeMapping")
             node_mapping.name = "Mapping"
             node_mapping.vector_type = 'POINT'
-            node_mapping.location = (-2027.8983154296875, -149.8998260498047)
-            node_mapping.inputs[1].default_value = (0.0, 0.0, 0.0)
-            node_mapping.inputs[2].default_value = (0.0, 0.0, 0.0)
-            node_mapping.inputs[3].default_value = (1.0, 1.0, 1.0)
+            node_mapping.location = (-1230, 0)
 
             # node UV Map
             node_uv_map = node_tree.nodes.new("ShaderNodeUVMap")
             node_uv_map.name = "UV Map"
             node_uv_map.from_instancer = False
             node_uv_map.uv_map = "UVMap"
-            node_uv_map.location = (-2384.600341796875, -272.91583251953125)
+            node_uv_map.location = (-1505, 0)
             node_tree.links.new(node_uv_map.outputs[0], node_mapping.inputs[0])
 
-            material_shader = None
+            material_shader_cls: Type[ShaderGroupApplier] | None = None
             if mat_type == 'pbrskin':
-                from ..shaders.pbr_skin import PBRSkinMaterialShader
-                material_shader = PBRSkinMaterialShader(props)
+                from ..shaders.pbr_skin import PBRSkinShaderGroupApplier
+                material_shader_cls = PBRSkinShaderGroupApplier
             elif mat_type == 'iray_uber':
-                from ..shaders.iray_uber import IrayUberMaterialShader
-                material_shader = IrayUberMaterialShader(props)
+                from ..shaders.iray_uber import IrayUberShaderGroupApplier
+                material_shader_cls = IrayUberShaderGroupApplier
             elif mat_type == 'translucent_fabric':
-                from ..shaders.iwave_translucent_fabric import IWaveTranslucentFabricMaterialShader
-                material_shader = IWaveTranslucentFabricMaterialShader(props)
+                from ..shaders.iwave_translucent_fabric import IWaveTranslucentFabricShaderGroupApplier
+                material_shader_cls = IWaveTranslucentFabricShaderGroupApplier
 
-            if material_shader is None:
+            if material_shader_cls is None:
                 self.report_error(f"Unknown Material Type {mat_type} for {b_object.name}[{mat_name}].")
                 return
 
-            material_shader.apply_material(node_tree, node_mapping, node_material_output, channels)
+            material_shader: ShaderGroupApplier = material_shader_cls(props, node_tree, node_mapping, node_material_output)
+            material_shader.add_shader_group((-415, 0), channels)
+            material_shader.align_image_nodes(-915, 0)
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

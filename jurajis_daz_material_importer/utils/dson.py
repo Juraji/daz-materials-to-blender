@@ -1,6 +1,7 @@
 import gzip
 import json
 import winreg
+from collections import defaultdict
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
@@ -101,6 +102,30 @@ class DazDsonMaterialReader:
 
         return [*mats_per_object.values()]
 
+    @staticmethod
+    def create_dson_id_conversion_table(nodes: list[DsonSceneNode]) -> dict[str, str]:
+        """
+        :param nodes: The result from read_materials
+        :return: A dict of DAZ node id to expected node name in Blender.
+        """
+        node_ids = map(lambda x: x.id, nodes)
+        conversion_table = {}
+        suffix_groups = defaultdict(list)
+
+        for name in node_ids:
+            if "-" in name:
+                base_part, suffix_part = name.rsplit('-', 1)
+                if suffix_part.isdigit():
+                    suffix_groups[base_part].append(name)
+                    continue
+
+        for base, variants in suffix_groups.items():
+            for i, variant in enumerate(sorted(variants)):
+                new_suffix = f"{i + 1:03d}"
+                conversion_table[variant] = f"{base}.{new_suffix}"
+
+        return conversion_table
+
     @classmethod
     def _read_dson_file(cls, dson_file: PathLike) -> dict:
         # Check if the file starts with the GZIP magic number (0x1f, 0x8b)
@@ -137,8 +162,8 @@ class DazDsonMaterialReader:
                         scene_node_id = scene_node['id']
                         scene_node_label = scene_node['label']
 
-                        if 'parents' in scene_node:
-                            scene_node_parent = self._unquote_daz_ref(geometry['parent'])
+                        if 'parent' in scene_node:
+                            scene_node_parent = self._unquote_daz_ref(scene_node['parent'])
                         else:
                             scene_node_parent = None
 

@@ -243,7 +243,8 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_dls_group, sock_dls_roughness_mult, dls_builder.in_roughness_mult)
         self._link_socket(node_group_input, node_dls_group, sock_dls_l1_roughness, dls_builder.in_l1_roughness)
         self._link_socket(node_group_input, node_dls_group, sock_dls_l1_roughness_map, dls_builder.in_l1_roughness_map)
-        self._link_socket(node_group_input, node_dls_group, sock_dls_l2_roughness_mult, dls_builder.in_l2_roughness_mult)
+        self._link_socket(node_group_input, node_dls_group, sock_dls_l2_roughness_mult,
+                          dls_builder.in_l2_roughness_mult)
         self._link_socket(node_group_input, node_dls_group, sock_dls_l2_roughness_mult_map,
                           dls_builder.in_l2_roughness_mult_map)
         self._link_socket(node_group_input, node_dls_group, sock_dls_ratio, dls_builder.in_ratio)
@@ -326,10 +327,14 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
 
         builder = PBRSkinShaderGroupBuilder
 
+        self._set_material_mapping(channels,
+                                   "horizontal_tiles2", "horizontal_offset2",
+                                   "vertical_tiles2", "vertical_offset2")
+
         self._channel_values(channels, 'diffuse',
                              builder.in_diffuse_color, builder.in_diffuse_color_map, True)
 
-        if self._channel_feat_enabled(channels, 'diffuse_roughness'):
+        if self._channel_enabled(channels, 'diffuse_roughness'):
             # For some reason the diffuse roughness is set to 0 for some material presets.
             # This makes the shader very glossy in Blender, hence we only set it if it's non-zero.
             self._channel_values(channels, 'diffuse_roughness',
@@ -341,7 +346,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
         self._channel_values(channels, 'cutout_opacity',
                              builder.in_opacity, builder.in_opacity_map)
 
-        if self._channel_feat_enabled(channels, 'dual_lobe_specular_enable'):
+        if self._channel_enabled(channels, 'dual_lobe_specular_enable'):
             self._channel_values(channels, 'dual_lobe_specular_weight',
                                  builder.in_dls_weight, builder.in_dls_weight_map)
 
@@ -360,7 +365,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             self._channel_values(channels, 'dual_lobe_specular_ratio',
                                  builder.in_dls_ratio, builder.in_dls_ratio_map)
 
-        if self._channel_feat_enabled(channels, 'sub_surface_enable'):
+        if self._channel_enabled(channels, 'sub_surface_enable'):
             self._channel_values(channels, 'translucency_weight', builder.in_sss_weight, None)
             self._channel_values(channels, 'sss_color', builder.in_sss_radius, None)
             self._channel_values(channels, 'sss_direction', builder.in_sss_direction, None)
@@ -368,17 +373,28 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
         self._channel_values(channels, 'normal_map',
                              builder.in_normal_weight, builder.in_normal_map)
 
-        if self._channel_feat_enabled(channels, 'detail_enable'):
+        if self._channel_enabled(channels, 'detail_enable'):
             self._channel_values(channels, 'detail_weight',
                                  builder.in_detail_weight, builder.in_detail_weight_map)
-            self._channel_values(channels, 'detail_normal_map',
-                                 None, builder.in_detail_normal_map)
+            detail_map_tex_node = self._channel_values(channels, 'detail_normal_map',
+                                                       None, builder.in_detail_normal_map)
 
-        if self._channel_feat_enabled(channels, 'bump_enable'):
+            detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset",
+                                  "detail_vertical_tiles", "detail_vertical_offset"]
+            if detail_map_tex_node and self._channel_enabled(channels, *detail_mapping_ids):
+                detail_mapping_node = self.node_tree.nodes.new("ShaderNodeMapping")
+                detail_mapping_node.name = "Detail Mapping"
+                detail_mapping_node.vector_type = 'POINT'
+                detail_mapping_node.location = (self.mapping_node.location[0], -300)
+                self._link_socket(self.uv_map_node, detail_mapping_node, 0, 0)
+                self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
+                self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)
+
+        if self._channel_enabled(channels, 'bump_enable'):
             self._channel_values(channels, 'bump_strength',
                                  builder.in_bump_strength, builder.in_bump_strength_map)
 
-        if self._channel_feat_enabled(channels, 'top_coat_enable'):
+        if self._channel_enabled(channels, 'top_coat_enable'):
             self._channel_values(channels, 'top_coat_weight',
                                  builder.in_top_coat_weight, builder.in_top_coat_weight_map)
             self._channel_values(channels, 'top_coat_roughness',
@@ -386,7 +402,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             self._channel_values(channels, 'top_coat_color',
                                  builder.in_top_coat_color, builder.in_top_coat_color_map, False)
 
-        if self._channel_feat_enabled(channels, 'makeup_enable'):
+        if self._channel_enabled(channels, 'makeup_enable'):
             self._channel_values(channels, 'makeup_weight',
                                  builder.in_detail_weight, builder.in_detail_weight_map)
             self._channel_values(channels, 'makeup_base_color',

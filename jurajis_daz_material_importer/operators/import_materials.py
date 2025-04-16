@@ -4,7 +4,6 @@ from typing import Type
 import bpy
 from bpy.types import Operator, Object
 
-from jurajis_daz_material_importer.shaders import ShaderGroupApplier
 from .operator_report_mixin import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
@@ -116,15 +115,15 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             node_uv_map.location = (-1505, 0)
             node_tree.links.new(node_uv_map.outputs[0], node_mapping.inputs[0])
 
-            material_shader_cls = self._find_applier_by_type_id(mat_type_id)
-            if material_shader_cls is None:
+            applier_cls = self._find_applier_by_type_id(mat_type_id)
+            if applier_cls is None:
                 self.report_error("No shader group available for material type "
                                   f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
                 return
 
-            material_shader = material_shader_cls(props, node_tree, node_mapping, node_material_output)
-            material_shader.add_shader_group((-415, 0), channels)
-            material_shader.align_image_nodes(-915, 0)
+            applier = applier_cls(props, node_tree, node_uv_map, node_mapping, node_material_output)
+            applier.add_shader_group((-415, 0), channels)
+            applier.align_image_nodes(-915, 0)
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

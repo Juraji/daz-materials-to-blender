@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Literal, Any, cast, Type
+from typing import Literal, Any, cast
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
@@ -222,12 +222,14 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     def __init__(self,
                  properties: MaterialImportProperties,
                  node_tree: ShaderNodeTree,
+                 node_uv_map: Node,
                  mapping_node: Node,
                  material_ouput_node: Node):
         super().__init__()
         self.shader_group_node: Node | None = None
         self.properties = properties
         self.node_tree = node_tree
+        self.uv_map_node = node_uv_map
         self.mapping_node = mapping_node
         self.material_ouput_node = material_ouput_node
 
@@ -250,17 +252,19 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             current_y -= offset
 
     @staticmethod
-    def _channel_feat_enabled(channels: dict[str, DsonMaterialChannel], feat_switch: str) -> bool:
-        return feat_switch in channels and channels[feat_switch].value
+    def _channel_enabled(channels: dict[str, DsonMaterialChannel], *feat_names: str) -> bool:
+        for feat_name in feat_names:
+            return feat_name in channels and channels[feat_name].value
+        return False
 
     def _channel_values(self,
                         channels: dict[str, DsonMaterialChannel],
                         channel_id: str,
                         value_socket_name: str | None,
                         map_socket_name: str | None,
-                        non_color_map: bool = True):
+                        non_color_map: bool = True) -> ShaderNodeTexImage | None:
         if not channel_id in channels:
-            return
+            return None
 
         channel = channels[channel_id]
 
@@ -277,11 +281,14 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             else:
                 raise Exception(f"Unsupported channel type: {type(channel)} for socket {value_socket_name}")
 
+        image_texture: ShaderNodeTexImage | None = None
         if map_socket_name is not None and channel.has_image():
             image_texture = self._add_image_texture(channel.image_file, non_color_map)
             self._link_socket(image_texture, self.shader_group_node, 0, map_socket_name)
 
-    def _add_image_texture(self, path: str, non_color: bool, tile: int = 1):
+        return image_texture
+
+    def _add_image_texture(self, path: str, non_color: bool, tile: int = 1) -> ShaderNodeTexImage:
         tex_image: ShaderNodeTexImage = cast(ShaderNodeTexImage, self.node_tree.nodes.new(type="ShaderNodeTexImage"))
         tex_image.hide = True
         tex_image.image = bpy.data.images.load(path)
@@ -297,6 +304,34 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         self._link_socket(self.mapping_node, tex_image, 0, 0)
         return tex_image
+
+    def _set_material_mapping(self,
+                              channels: dict[str, DsonMaterialChannel],
+                              horizontal_tiling_channel_id: str,
+                              horizontal_offset_channel_id: str,
+                              vertical_tiling_channel_id: str,
+                              vertical_offset_channel_id: str,
+                              mapping_node: Node | None = None):
+
+        mapping_node = mapping_node or self.mapping_node
+
+        if horizontal_tiling_channel_id in channels:
+            scale = 1 / channels[horizontal_tiling_channel_id].value
+            mapping_node.inputs[3].default_value[0] = scale
+
+        if horizontal_offset_channel_id in channels:
+            scale = channels[horizontal_offset_channel_id].value
+            mapping_node.inputs[1].default_value[0] = scale
+
+        if vertical_tiling_channel_id in channels:
+            scale = 1 / channels[vertical_tiling_channel_id].value
+            mapping_node.inputs[3].default_value[1] = scale
+
+        if vertical_offset_channel_id in channels:
+            scale = channels[vertical_offset_channel_id].value
+            mapping_node.inputs[1].default_value[1] = scale
+
+        pass
 
     @staticmethod
     def _set_socket(node: Node, socket: NodeSocket | int | str, value: Any):

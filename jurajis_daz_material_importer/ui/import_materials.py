@@ -21,9 +21,7 @@ class ImportMaterialsPanelBase(Panel):
             options_panel.prop(props, "replace_node_groups")
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
-            options_panel.label(text="Corrections")
-            options_panel.prop(props, "normal_factor")
-            options_panel.prop(props, "dls_layer_factor")
+
             options_panel.label(text="Utilities")
             options_panel.operator("daz_import.create_shader_groups")
 

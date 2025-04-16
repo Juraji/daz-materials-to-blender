@@ -2,15 +2,16 @@ def slugify(*parts: str) -> str:
     result = []
     prev_was_underscore = False
 
-    for s in parts:
-        for c in s.lower():
-            if c.isalnum():
-                result.append(c)
-                prev_was_underscore = False
-            else:
-                if not prev_was_underscore:
-                    result.append("_")
-                    prev_was_underscore = True
+    merged_parts = str.join('_', parts).lower()
+
+    for c in merged_parts:
+        if c.isalnum():
+            result.append(c)
+            prev_was_underscore = False
+        else:
+            if not prev_was_underscore:
+                result.append("_")
+                prev_was_underscore = True
 
     # Remove leading/trailing underscore if present
     if result and result[0] == "_":

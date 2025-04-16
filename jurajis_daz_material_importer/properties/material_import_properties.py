@@ -1,4 +1,4 @@
-from bpy.props import StringProperty, BoolProperty, FloatProperty
+from bpy.props import StringProperty, BoolProperty
 from bpy.types import PropertyGroup
 
 
@@ -25,16 +25,4 @@ class MaterialImportProperties(PropertyGroup):
         name="Replace Shader Groups",
         description="Replace shader node groups created by an earlier import.",
         default=False,
-    )
-
-    normal_factor: FloatProperty(
-        name="Normal Factor",
-        description="Normal mulitplication factor.",
-        default=2.0,
-    )
-
-    dls_layer_factor: FloatProperty(
-        name="DLS Layer Factor",
-        description="Dual Lobe Specular layer factor.",
-        default=0.7,
     )

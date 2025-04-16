@@ -1,6 +1,8 @@
-from .material_shader import ShaderGroupApplier, ShaderGroupBuilder
+from .base import ShaderGroupApplier, ShaderGroupBuilder
 
 __GROUP_NAME__ = "iWave Translucent Fabric"
+
+from ..utils.dson import DsonMaterialChannel
 
 
 class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
@@ -10,7 +12,8 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         return __GROUP_NAME__
 
     def setup_group(self):
-        pass  # TODO: Implement builder
+        super().setup_group()
+        # TODO: Implement builder
 
 
 class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
@@ -18,5 +21,5 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
     def group_name(cls) -> str:
         return __GROUP_NAME__
 
-    def add_shader_group(self, location: tuple[float, float], channels: dict):
+    def add_shader_group(self, location: tuple[float, float], channels: dict[str, DsonMaterialChannel]):
         pass  # TODO: Implement applier

@@ -4,13 +4,14 @@ from typing import Type
 import bpy
 from bpy.types import Operator, Object
 
-from ..shaders.material_shader import ShaderGroupApplier
-from ..utils.dson import DazDsonMaterialReader
-from ..utils.utilities import translate_node_id_to_blender_name
+from .operator_report_mixin import OperatorReportMixin
 from ..properties import MaterialImportProperties
+from ..shaders.base import ShaderGroupApplier
+from ..utils.dson import DazDsonMaterialReader, DsonMaterial
+from ..utils.utilities import translate_node_id_to_blender_name
 
 
-class ImportMaterialsOperator(Operator):
+class ImportMaterialsOperator(OperatorReportMixin, Operator):
     bl_idname = "daz_import.import_all_materials"
     bl_label = "Import All Materials"
     bl_description = "Import Materials from DAZ"
@@ -18,13 +19,16 @@ class ImportMaterialsOperator(Operator):
 
     @classmethod
     def poll(cls, context):
+        # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
         return props.daz_scene_file != "" and props.daz_scene_file.endswith(".duf")
 
     def execute(self, context):
+        # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
         # Run shader group import op
+        # noinspection PyUnresolvedReferences
         create_groups_result = bpy.ops.daz_import.create_shader_groups()
         if create_groups_result != {"FINISHED"}:
             self.report({"ERROR"}, "Failed to create shader groups.")
@@ -36,46 +40,42 @@ class ImportMaterialsOperator(Operator):
             self.report_error(f"File {daz_save_file} does not exist")
             return {"CANCELLED"}
 
-        reader = DazDsonMaterialReader()
-        mats_per_object = reader.read_materials(daz_save_file)
-        self.report_info(f"Found {len(mats_per_object)} objects in {daz_save_file}!")
+        dson_reader = DazDsonMaterialReader()
+        dson_scene_nodes = dson_reader.read_materials(daz_save_file)
+        self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
 
-        for node_id, mat_def in mats_per_object.items():
-            node_label: str = mat_def['label']
-            node_parent_id = mat_def['parent_id']
-            node_materials: dict = mat_def['materials']
-            b_obj_name = translate_node_id_to_blender_name(node_id)
+        for mat_def in dson_scene_nodes:
+            dson_id = mat_def.id
+            dson_label: str = mat_def.label
+            dson_parent_id = mat_def.parent_id
+            dson_materials = mat_def.materials
+            b_obj_name = translate_node_id_to_blender_name(dson_id)
 
             b_object = bpy.data.objects.get(b_obj_name)
-            if b_object is None and not node_parent_id is None:
-                node_parent_name = translate_node_id_to_blender_name(node_parent_id)
+            if b_object is None and not dson_parent_id is None:
+                node_parent_name = translate_node_id_to_blender_name(dson_parent_id)
                 b_object = bpy.data.objects.get(node_parent_name)
             if b_object is None:
-                self.report_warning(f"Object {node_id} ({node_label}) not found!")
+                self.report_warning(f"Object {dson_id} ({dson_label}) not found!")
                 continue
 
-            self.report_info(f"Importing Materials for {node_id}...")
-            self.apply_material_to_object(b_object, node_materials, props)
+            self.report_info(f"Importing Materials for {dson_id}...")
+            self.apply_material_to_object(b_object, dson_materials, props)
 
-            if props.rename_objects and b_obj_name != node_label:
-                b_object.name = node_label
+            if props.rename_objects and b_obj_name != dson_label:
+                b_object.name = dson_label
 
         self.report_info("Materials import finished!")
         return {"FINISHED"}
 
-    def report_info(self, message: str):
-        self.report({"INFO"}, f"DAZ Material Import: {message}")
-
-    def report_warning(self, message: str):
-        self.report({"WARNING"}, f"DAZ Material Import: {message}")
-
-    def report_error(self, message: str):
-        self.report({"ERROR"}, f"DAZ Material Import: {message}")
-
-    def apply_material_to_object(self, b_object: Object, node_materials: dict, props: MaterialImportProperties):
-        for mat_name, mat_def in node_materials.items():
-            mat_type = mat_def['type']
-            channels = mat_def['channels']
+    def apply_material_to_object(self,
+                                 b_object: Object,
+                                 node_materials: list[DsonMaterial],
+                                 props: MaterialImportProperties):
+        for mat_def in node_materials:
+            mat_name = mat_def.material_name
+            mat_type = mat_def.type
+            channels = mat_def.channels
 
             material = None
             if mat_name in b_object.data.materials:

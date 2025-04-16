@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Literal, Any, cast
+from typing import Literal, Any, cast, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
@@ -11,10 +11,23 @@ from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColo
 from ..utils.slugify import slugify
 
 
-class ShaderGroupBuilder:
+class _GroupNameMixin:
     @staticmethod
     def group_name() -> str:
         raise NotImplementedError()
+
+
+class _MaterialTypeIdMixin:
+    @staticmethod
+    def material_type_id() -> str:
+        raise NotImplementedError()
+
+
+class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
+
+    @staticmethod
+    def depends_on() -> set[str]:
+        return set()
 
     def __init__(self, properties: MaterialImportProperties, node_trees: BlendDataNodeTrees):
         super().__init__()
@@ -55,10 +68,10 @@ class ShaderGroupBuilder:
         return self._add_socket("NodeSocketVector", name, default_value, in_out, parent, props)
 
     def _shader_socket(self,
-                      name: str,
-                      in_out: Literal["INPUT", "OUTPUT"] = "INPUT",
-                      parent: NodeTreeInterfacePanel = None,
-                      props: dict[str, Any] = {}) -> NodeTreeInterfaceSocket:
+                       name: str,
+                       in_out: Literal["INPUT", "OUTPUT"] = "INPUT",
+                       parent: NodeTreeInterfacePanel = None,
+                       props: dict[str, Any] = {}) -> NodeTreeInterfaceSocket:
         return self._add_socket("NodeSocketShader", name, None, in_out, parent, props)
 
     @staticmethod
@@ -68,10 +81,10 @@ class ShaderGroupBuilder:
         setattr(socket_input, "default_value", value)
 
     def _link_socket(self,
-                    source: Node,
-                    target: Node,
-                    source_socket: NodeTreeInterfaceSocket | int,
-                    target_socket: NodeTreeInterfaceSocket | int):
+                     source: Node,
+                     target: Node,
+                     source_socket: NodeTreeInterfaceSocket | int,
+                     target_socket: NodeTreeInterfaceSocket | int):
         if isinstance(source_socket, NodeTreeInterfaceSocket):
             source_socket = source.outputs[source_socket.name]
         else:
@@ -109,30 +122,30 @@ class ShaderGroupBuilder:
         return self._add_node("NodeFrame", label, location)
 
     def _add_node__group_input(self,
-                              label: str,
-                              location: tuple[float, float]):
+                               label: str,
+                               location: tuple[float, float]):
         return self._add_node("NodeGroupInput", label, location)
 
     def _add_node__group_output(self,
-                               label: str,
-                               location: tuple[float, float]):
+                                label: str,
+                                location: tuple[float, float]):
         out = self._add_node("NodeGroupOutput", label, location)
         out.is_active_output = True
         return out
 
     def _add_node__hsv(self,
-                      label: str,
-                      location: tuple[float, float],
-                      parent: Node = None) -> Node:
+                       label: str,
+                       location: tuple[float, float],
+                       parent: Node = None) -> Node:
         return self._add_node("ShaderNodeHueSaturation", label, location, parent)
 
     def _add_node__mix(self,
-                      label: str,
-                      location: tuple[float, float],
-                      data_type: str = "RGBA",
-                      blend_type: str = "MULTIPLY",
-                      default_factor: float = 1,
-                      parent: Node = None) -> Node:
+                       label: str,
+                       location: tuple[float, float],
+                       data_type: str = "RGBA",
+                       blend_type: str = "MULTIPLY",
+                       default_factor: float = 1,
+                       parent: Node = None) -> Node:
         mix = self._add_node("ShaderNodeMix", label, location, parent, {
             "data_type": data_type,
             "blend_type": blend_type
@@ -142,53 +155,53 @@ class ShaderGroupBuilder:
         return mix
 
     def _add_node__mix_shader(self,
-                             label: str,
-                             location: tuple[float, float],
-                             parent: Node = None,
-                             props: dict[str, Any] = {}) -> Node:
-        return self._add_node("ShaderNodeMixShader", label, location, parent, props)
-
-    def _add_node__math_vector(self,
                               label: str,
                               location: tuple[float, float],
                               parent: Node = None,
                               props: dict[str, Any] = {}) -> Node:
+        return self._add_node("ShaderNodeMixShader", label, location, parent, props)
+
+    def _add_node__math_vector(self,
+                               label: str,
+                               location: tuple[float, float],
+                               parent: Node = None,
+                               props: dict[str, Any] = {}) -> Node:
         return self._add_node("ShaderNodeVectorMath", label, location, parent, props=props)
 
     def _add_node__normal_map(self,
-                             label: str,
-                             location: tuple[float, float],
-                             parent: Node = None,
-                             props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeNormalMap", label, location, parent, props)
-
-    def _add_node__bump(self,
-                       label: str,
-                       location: tuple[float, float],
-                       parent: Node = None,
-                       props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeBump", label, location, parent, props)
-
-    def _add_node__princ_bdsf(self,
-                             label: str,
-                             location: tuple[float, float],
-                             parent: Node = None,
-                             props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeBsdfPrincipled", label, location, parent, props)
-
-    def _add_node_shader_group(self,
                               label: str,
                               location: tuple[float, float],
                               parent: Node = None,
                               props: dict[str, Any] = {}):
+        return self._add_node("ShaderNodeNormalMap", label, location, parent, props)
+
+    def _add_node__bump(self,
+                        label: str,
+                        location: tuple[float, float],
+                        parent: Node = None,
+                        props: dict[str, Any] = {}):
+        return self._add_node("ShaderNodeBump", label, location, parent, props)
+
+    def _add_node__princ_bdsf(self,
+                              label: str,
+                              location: tuple[float, float],
+                              parent: Node = None,
+                              props: dict[str, Any] = {}):
+        return self._add_node("ShaderNodeBsdfPrincipled", label, location, parent, props)
+
+    def _add_node_shader_group(self,
+                               label: str,
+                               location: tuple[float, float],
+                               parent: Node = None,
+                               props: dict[str, Any] = {}):
         return self._add_node("ShaderNodeGroup", label, location, parent, props)
 
     def _add_node(self,
-                 node_type: str,
-                 label: str,
-                 location: tuple[float, float],
-                 parent: Node = None,
-                 props: dict[str, Any] = {}) -> Node:
+                  node_type: str,
+                  label: str,
+                  location: tuple[float, float],
+                  parent: Node = None,
+                  props: dict[str, Any] = {}) -> Node:
         node = self.node_group.nodes.new(node_type)
         node.label = label
         node.name = slugify(self.group_name(), node_type, label)
@@ -202,13 +215,9 @@ class ShaderGroupBuilder:
         return node
 
 
-class ShaderGroupApplier:
+class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     __group_node_width: float = 400
     __texture_node_location_y_offset: float = 300
-
-    @staticmethod
-    def group_name() -> str:
-        raise NotImplementedError()
 
     def __init__(self,
                  properties: MaterialImportProperties,

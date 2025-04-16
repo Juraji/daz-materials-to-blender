@@ -1,10 +1,11 @@
 from bpy.types import Panel
 
 from ..properties import MaterialImportProperties
+from ..shaders import SHADER_GROUP_BUILDERS
 
 
 class ImportMaterialsPanelBase(Panel):
-    bl_category = "Juraji's DAZ Import"
+    bl_category = "Juraji's Tools"
     bl_region_type = "UI"
     bl_label = "Import DAZ Materials"
 
@@ -14,6 +15,16 @@ class ImportMaterialsPanelBase(Panel):
         # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
+        shader_groups_header, shader_groups_panel = layout.panel("shader_groups")
+        shader_groups_header.label(text="Shader Groups")
+        if shader_groups_panel:
+            shader_groups_panel.prop(props, "replace_node_groups")
+            for builder in SHADER_GROUP_BUILDERS:
+                op = shader_groups_panel.operator(
+                    "daz_import.create_shader_group",
+                    text=f"Create {builder.group_name()}")
+                op.group_name = builder.group_name()
+
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Options")
         if options_panel:
@@ -22,17 +33,16 @@ class ImportMaterialsPanelBase(Panel):
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
 
-            options_panel.label(text="Utilities")
-            options_panel.operator("daz_import.create_shader_groups")
-
         layout.prop(props, "daz_scene_file")
         layout.operator("daz_import.import_all_materials")
+
 
 class ImportMaterialsPanel3D(ImportMaterialsPanelBase):
     bl_space_type = "VIEW_3D"
     bl_context = "objectmode"
     bl_idname = "VIEW3D_PT_daz_import_materials"
     bl_label = ImportMaterialsPanelBase.bl_label
+
 
 class ImportMaterialsPanelShaderEditor(ImportMaterialsPanelBase):
     bl_space_type = "NODE_EDITOR"

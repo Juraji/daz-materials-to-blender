@@ -47,7 +47,7 @@ class DsonStringMaterialChannel(DsonMaterialChannel):
 @dataclass
 class DsonMaterial:
     material_name: str
-    type: str
+    type_id: str
     channels: dict[str, DsonMaterialChannel]
 
 

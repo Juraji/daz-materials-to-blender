@@ -4,6 +4,7 @@ from .base import ShaderGroupBuilder, ShaderGroupApplier
 from .dls import DualLobeSpecularShaderGroupBuilder
 
 __GROUP_NAME__ = "DAZ PBR Skin"
+__MATERIAL_TYPE_ID__ = "pbrskin"
 
 from ..utils.dson import DsonMaterialChannel
 
@@ -62,9 +63,17 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
 
     out_surface = "Surface"
 
-    @classmethod
-    def group_name(cls) -> str:
+    @staticmethod
+    def group_name() -> str:
         return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    @staticmethod
+    def depends_on() -> set[str]:
+        return {DualLobeSpecularShaderGroupBuilder.group_name()}
 
     def setup_group(self):
         super().setup_group()
@@ -304,9 +313,13 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
 
 
 class PBRSkinShaderGroupApplier(ShaderGroupApplier):
-    @classmethod
-    def group_name(cls) -> str:
+    @staticmethod
+    def group_name() -> str:
         return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
 
     def add_shader_group(self, location: tuple[float, float], channels: dict[str, DsonMaterialChannel]):
         super().add_shader_group(location, channels)

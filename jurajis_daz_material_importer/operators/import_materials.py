@@ -4,10 +4,11 @@ from typing import Type
 import bpy
 from bpy.types import Operator, Object
 
+from jurajis_daz_material_importer.shaders import ShaderGroupApplier
 from .operator_report_mixin import OperatorReportMixin
 from ..properties import MaterialImportProperties
-from ..shaders.base import ShaderGroupApplier
-from ..utils.dson import DazDsonMaterialReader, DsonMaterial
+from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
+from ..utils.dson import DazDsonMaterialReader, DsonMaterial, DsonSceneNode
 
 
 class ImportMaterialsOperator(OperatorReportMixin, Operator):
@@ -26,13 +27,6 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
         # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
-        # Run shader group import op
-        # noinspection PyUnresolvedReferences
-        # create_groups_result = bpy.ops.daz_import.create_shader_groups()
-        # if create_groups_result != {"FINISHED"}:
-        #     self.report({"ERROR"}, "Failed to create shader groups.")
-        #     return {"CANCELLED"}
-
         # Read and convert DAZ scene
         daz_save_file = Path(props.daz_scene_file)
         if not daz_save_file.exists():
@@ -50,6 +44,9 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             else:
                 return nid
 
+        self._create_missing_shader_groups(dson_scene_nodes)
+
+        # Apply materials
         for mat_def in dson_scene_nodes:
             dson_id = mat_def.id
             dson_label: str = mat_def.label
@@ -65,8 +62,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
                 self.report_warning(f"Object {b_obj_name} ({dson_label}) not found!")
                 continue
 
-            self.report_info(f"Importing Materials for {dson_id} ({b_obj_name})...")
-            self.apply_material_to_object(b_object, dson_materials, props)
+            self._apply_material_to_object(b_object, dson_materials, props)
 
             if props.rename_objects and b_obj_name != dson_label:
                 b_object.name = dson_label
@@ -74,13 +70,13 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
         self.report_info("Materials import finished!")
         return {"FINISHED"}
 
-    def apply_material_to_object(self,
-                                 b_object: Object,
-                                 node_materials: list[DsonMaterial],
-                                 props: MaterialImportProperties):
+    def _apply_material_to_object(self,
+                                  b_object: Object,
+                                  node_materials: list[DsonMaterial],
+                                  props: MaterialImportProperties):
         for mat_def in node_materials:
             mat_name = mat_def.material_name
-            mat_type = mat_def.type
+            mat_type_id = mat_def.type_id
             channels = mat_def.channels
 
             material = None
@@ -120,25 +116,34 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             node_uv_map.location = (-1505, 0)
             node_tree.links.new(node_uv_map.outputs[0], node_mapping.inputs[0])
 
-            material_shader_cls: Type[ShaderGroupApplier] | None = None
-            if mat_type == 'pbrskin':
-                from ..shaders.pbr_skin import PBRSkinShaderGroupApplier
-                material_shader_cls = PBRSkinShaderGroupApplier
-            elif mat_type == 'iray_uber':
-                from ..shaders.iray_uber import IrayUberShaderGroupApplier
-                material_shader_cls = IrayUberShaderGroupApplier
-            elif mat_type == 'translucent_fabric':
-                from ..shaders.iwave_translucent_fabric import IWaveTranslucentFabricShaderGroupApplier
-                material_shader_cls = IWaveTranslucentFabricShaderGroupApplier
-
+            material_shader_cls = self._find_applier_by_type_id(mat_type_id)
             if material_shader_cls is None:
-                self.report_error(f"Unknown Material Type {mat_type} for {b_object.name}[{mat_name}].")
+                self.report_error("No shader group available for material type "
+                                  f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
                 return
 
-            material_shader: ShaderGroupApplier = material_shader_cls(props, node_tree, node_mapping,
-                                                                      node_material_output)
+            material_shader = material_shader_cls(props, node_tree, node_mapping, node_material_output)
             material_shader.add_shader_group((-415, 0), channels)
             material_shader.align_image_nodes(-915, 0)
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'
+
+    @staticmethod
+    def _create_missing_shader_groups(nodes: list[DsonSceneNode]):
+        used_mat_types = set()
+        for node in nodes:
+            for mat_def in node.materials:
+                used_mat_types.add(mat_def.type_id)
+
+        for builder in SHADER_GROUP_BUILDERS:
+            if builder.material_type_id() in used_mat_types:
+                # noinspection PyUnresolvedReferences
+                bpy.ops.daz_import.create_shader_group(group_name=builder.group_name(), silent=True)
+
+    @staticmethod
+    def _find_applier_by_type_id(mat_type_id: str) -> Type[ShaderGroupApplier] | None:
+        for applier in SHADER_GROUP_APPLIERS:
+            if applier.material_type_id() == mat_type_id:
+                return applier
+        return None

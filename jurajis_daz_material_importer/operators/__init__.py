@@ -1,19 +1,19 @@
 def register():
     import bpy
     from .import_materials import ImportMaterialsOperator
-    from .create_shader_groups import CreateShaderGroupsOperator
+    from .create_shader_group import CreateShaderGroupOperator
 
     bpy.utils.register_class(ImportMaterialsOperator)
-    bpy.utils.register_class(CreateShaderGroupsOperator)
+    bpy.utils.register_class(CreateShaderGroupOperator)
 
 
 def unregister():
     import bpy
     from .import_materials import ImportMaterialsOperator
-    from .create_shader_groups import CreateShaderGroupsOperator
+    from .create_shader_group import CreateShaderGroupOperator
 
     bpy.utils.unregister_class(ImportMaterialsOperator)
-    bpy.utils.unregister_class(CreateShaderGroupsOperator)
+    bpy.utils.unregister_class(CreateShaderGroupOperator)
 
     try:
         # noinspection PyUnresolvedReferences

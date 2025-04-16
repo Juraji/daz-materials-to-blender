@@ -1,6 +1,7 @@
 from .base import ShaderGroupBuilder
 
 __GROUP_NAME__ = "Dual Lobe Specular"
+__MATERIAL_TYPE_ID__ = "dls"
 
 
 class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
@@ -21,6 +22,10 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
     @staticmethod
     def group_name() -> str:
         return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
 
     def setup_group(self):
         super().setup_group()

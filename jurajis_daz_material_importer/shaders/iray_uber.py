@@ -1,15 +1,20 @@
 from .base import ShaderGroupApplier, ShaderGroupBuilder
 
-__GROUP_NAME__ = "DAZ Iray Uber"
-
 from ..utils.dson import DsonMaterialChannel
+
+__GROUP_NAME__ = "DAZ Iray Uber"
+__MATERIAL_TYPE_ID__ = "iray_uber"
 
 
 class IrayUberShaderGroupBuilder(ShaderGroupBuilder):
 
-    @classmethod
-    def group_name(cls) -> str:
+    @staticmethod
+    def group_name() -> str:
         return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
 
     def setup_group(self):
         super().setup_group()
@@ -17,9 +22,13 @@ class IrayUberShaderGroupBuilder(ShaderGroupBuilder):
 
 
 class IrayUberShaderGroupApplier(ShaderGroupApplier):
-    @classmethod
-    def group_name(cls) -> str:
+    @staticmethod
+    def group_name() -> str:
         return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
 
     def add_shader_group(self, location: tuple[float, float], channels: dict[str, DsonMaterialChannel]):
         pass  # TODO: Implement applier

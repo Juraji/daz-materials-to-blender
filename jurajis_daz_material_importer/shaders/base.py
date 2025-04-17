@@ -7,7 +7,8 @@ from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTr
     NodeTreeInterfaceSocket, ShaderNodeTexImage
 
 from ..properties import MaterialImportProperties
-from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel
+from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
+    DsonBoolMaterialChannel
 from ..utils.slugify import slugify
 
 
@@ -124,11 +125,8 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
     # Nodes
     def _add_panel(self, name: str,
-                   default_closed: bool = True,
-                   parent: NodeTreeInterfacePanel | None = None) -> NodeTreeInterfacePanel:
-        panel = self.node_group.interface.new_panel(name, default_closed=default_closed)
-        panel.parent = parent
-        return panel
+                   default_closed: bool = True) -> NodeTreeInterfacePanel:
+        return self.node_group.interface.new_panel(name, default_closed=default_closed)
 
     def add_frame(self, label: str, location: tuple[float, float]) -> Node:
         return self._add_node("NodeFrame", label, location)
@@ -244,6 +242,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._mapping: Node | None = None
         self._material_ouput: Node | None = None
         self._shader_group: Node | None = None
+        self._channels: dict[str, DsonMaterialChannel] = {}
 
     def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         mapping = self._node_tree.nodes.new("ShaderNodeMapping")
@@ -277,6 +276,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._link_socket(shader_group, self._material_ouput, 0, 0)
         self._shader_group = shader_group
 
+        self._channels = channels
+
     def align_image_nodes(self):
         tex_nodes = filter(lambda n: n.type == "TEX_IMAGE", self._node_tree.nodes)
 
@@ -285,27 +286,36 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             node.location = (-915, current_y)
             current_y -= self.__texture_node_location_y_offset
 
-    @staticmethod
-    def _channel_enabled(channels: dict[str, DsonMaterialChannel], *feat_names: str) -> bool:
+    def _channel_enabled(self, *feat_names: str) -> bool:
         for feat_name in feat_names:
-            return feat_name in channels and channels[feat_name].value
+            channel = self._channels.get(feat_name)
+            if not channel:
+                continue
+            val = channel.value
+            if isinstance(val, tuple):
+                # Enabled if any of the first 3 components are not zero
+                if val[:3] != (0.0, 0.0, 0.0):
+                    return True
+            elif val:
+                return True
         return False
 
     def _channel_to_inputs(self,
-                           channels: dict[str, DsonMaterialChannel],
                            channel_id: str,
                            value_socket_name: str | None,
                            map_socket_name: str | None,
                            non_color_map: bool = True) -> ShaderNodeTexImage | None:
-        if not channel_id in channels:
+        if not channel_id in self._channels:
             return None
 
-        channel = channels[channel_id]
+        channel = self._channels[channel_id]
 
         if not value_socket_name is None and value_socket_name in self._shader_group.inputs:
             value_socket = self._shader_group.inputs[value_socket_name]
 
             if isinstance(channel, DsonFloatMaterialChannel):
+                value_socket.default_value = channel.value
+            elif isinstance(channel, DsonBoolMaterialChannel):
                 value_socket.default_value = channel.value
             elif isinstance(channel, DsonColorMaterialChannel):
                 if value_socket.type == "VECTOR":

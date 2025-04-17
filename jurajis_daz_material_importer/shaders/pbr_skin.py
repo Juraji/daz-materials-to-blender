@@ -314,54 +314,54 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
         # @formatter:off
         self._set_material_mapping(channels, "horizontal_tiles2", "horizontal_offset2", "vertical_tiles2", "vertical_offset2")
 
-        self._channel_to_inputs(channels, 'diffuse', builder.in_diffuse_color, builder.in_diffuse_color_map, True)
+        self._channel_to_inputs('diffuse', builder.in_diffuse_color, builder.in_diffuse_color_map, False)
 
-        if self._channel_enabled(channels, 'diffuse_roughness'):
-            # For some reason the diffuse roughness is set to 0 for some material presets.
+        if self._channel_enabled('diffuse_roughness'):
+            # For some reason the diffuse roughness is set to 0 by default.
             # This makes the shader very glossy in Blender, hence we only set it if it's non-zero.
-            self._channel_to_inputs(channels, 'diffuse_roughness', builder.in_roughness_weight, builder.in_roughness_weight_map)
+            self._channel_to_inputs('diffuse_roughness', builder.in_roughness_weight, builder.in_roughness_weight_map)
 
-        self._channel_to_inputs(channels, 'metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
+        self._channel_to_inputs('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
 
-        self._channel_to_inputs(channels, 'cutout_opacity', builder.in_opacity, builder.in_opacity_map)
+        self._channel_to_inputs('cutout_opacity', builder.in_opacity, builder.in_opacity_map)
 
-        if self._channel_enabled(channels, 'dual_lobe_specular_enable'):
-            self._channel_to_inputs(channels, 'dual_lobe_specular_weight', builder.in_dls_weight, builder.in_dls_weight_map)
-            self._channel_to_inputs(channels, 'dual_lobe_specular_reflectivity', builder.in_dls_reflectivity, builder.in_dls_reflectivity_map)
-            self._channel_to_inputs(channels, 'dual_lobe_specular_roughness_mult', builder.in_dls_roughness_mult, None)
-            self._channel_to_inputs(channels, 'specular_lobe_1_roughness', builder.in_dls_l1_roughness, builder.in_dls_l1_roughness_map)
-            self._channel_to_inputs(channels, 'specular_lobe_2_roughness_mult', builder.in_dls_l2_roughness_mult, builder.in_dls_l2_roughness_mult_map)
-            self._channel_to_inputs(channels, 'dual_lobe_specular_ratio', builder.in_dls_ratio, builder.in_dls_ratio_map)
+        if self._channel_enabled('dual_lobe_specular_enable'):
+            self._channel_to_inputs('dual_lobe_specular_weight', builder.in_dls_weight, builder.in_dls_weight_map)
+            self._channel_to_inputs('dual_lobe_specular_reflectivity', builder.in_dls_reflectivity, builder.in_dls_reflectivity_map)
+            self._channel_to_inputs('dual_lobe_specular_roughness_mult', builder.in_dls_roughness_mult, None)
+            self._channel_to_inputs('specular_lobe_1_roughness', builder.in_dls_l1_roughness, builder.in_dls_l1_roughness_map)
+            self._channel_to_inputs('specular_lobe_2_roughness_mult', builder.in_dls_l2_roughness_mult, builder.in_dls_l2_roughness_mult_map)
+            self._channel_to_inputs('dual_lobe_specular_ratio', builder.in_dls_ratio, builder.in_dls_ratio_map)
 
-        if self._channel_enabled(channels, 'sub_surface_enable'):
-            self._channel_to_inputs(channels, 'translucency_weight', builder.in_sss_weight, None)
-            self._channel_to_inputs(channels, 'sss_color', builder.in_sss_radius, None)
-            self._channel_to_inputs(channels, 'sss_direction', builder.in_sss_direction, None)
+        if self._channel_enabled('sub_surface_enable'):
+            self._channel_to_inputs('translucency_weight', builder.in_sss_weight, None)
+            self._channel_to_inputs('sss_color', builder.in_sss_radius, None)
+            self._channel_to_inputs('sss_direction', builder.in_sss_direction, None)
 
-        self._channel_to_inputs(channels, 'normal_map', builder.in_normal_weight, builder.in_normal_map)
+        self._channel_to_inputs('normal_map', builder.in_normal_weight, builder.in_normal_map)
 
-        if self._channel_enabled(channels, 'detail_enable'):
-            self._channel_to_inputs(channels, 'detail_weight', builder.in_detail_weight, builder.in_detail_weight_map)
-            detail_map_tex_node = self._channel_to_inputs(channels, 'detail_normal_map', None, builder.in_detail_normal_map)
+        if self._channel_enabled('detail_enable'):
+            self._channel_to_inputs('detail_weight', builder.in_detail_weight, builder.in_detail_weight_map)
+            detail_map_tex_node = self._channel_to_inputs('detail_normal_map', None, builder.in_detail_normal_map)
 
             # Only apply mapping if tiling is enabled for this node
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset", "detail_vertical_tiles", "detail_vertical_offset"]
-            if detail_map_tex_node and self._channel_enabled(channels, *detail_mapping_ids):
+            if detail_map_tex_node and self._channel_enabled(*detail_mapping_ids):
                 detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", (self._mapping.location[0], -300), props={"vector_type": "POINT"})
                 self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
                 self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)
 
-        if self._channel_enabled(channels, 'bump_enable'):
-            self._channel_to_inputs(channels, 'bump_strength', builder.in_bump_strength, builder.in_bump_strength_map)
+        if self._channel_enabled('bump_enable'):
+            self._channel_to_inputs('bump_strength', builder.in_bump_strength, builder.in_bump_strength_map)
 
-        if self._channel_enabled(channels, 'top_coat_enable'):
-            self._channel_to_inputs(channels, 'top_coat_weight', builder.in_top_coat_weight, builder.in_top_coat_weight_map)
-            self._channel_to_inputs(channels, 'top_coat_roughness', builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
-            self._channel_to_inputs(channels, 'top_coat_color', builder.in_top_coat_color, builder.in_top_coat_color_map, False)
+        if self._channel_enabled('top_coat_enable'):
+            self._channel_to_inputs('top_coat_weight', builder.in_top_coat_weight, builder.in_top_coat_weight_map)
+            self._channel_to_inputs('top_coat_roughness', builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
+            self._channel_to_inputs('top_coat_color', builder.in_top_coat_color, builder.in_top_coat_color_map, False)
 
-        if self._channel_enabled(channels, 'makeup_enable'):
-            self._channel_to_inputs(channels, 'makeup_weight', builder.in_detail_weight, builder.in_detail_weight_map)
-            self._channel_to_inputs(channels, 'makeup_base_color', builder.in_makeup_base_color, builder.in_makeup_base_color_map, False)
-            self._channel_to_inputs(channels, 'makeup_roughness_mult', builder.in_makeup_roughness_mult, builder.in_makeup_roughness_mult_map)
+        if self._channel_enabled('makeup_enable'):
+            self._channel_to_inputs('makeup_weight', builder.in_detail_weight, builder.in_detail_weight_map)
+            self._channel_to_inputs('makeup_base_color', builder.in_makeup_base_color, builder.in_makeup_base_color_map, False)
+            self._channel_to_inputs('makeup_roughness_mult', builder.in_makeup_roughness_mult, builder.in_makeup_roughness_mult_map)
         # @formatter:on

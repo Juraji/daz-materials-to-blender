@@ -3,53 +3,70 @@
         {
             "id": "diffuse",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         }
     ],
     "/Bump": [
         {
             "id": "Bump Strength",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Normal Map",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Crumple Normal Map",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         }
     ],
     "/Fiber Layer/Diffuse/Reflection": [
         {
             "id": "Metallic Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Diffuse Overlay Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Diffuse Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Fiber Layer/Diffuse/Translucency": [
         {
             "id": "Translucency Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Base Color Effect",
             "type": "enum",
             "uses_map": false,
+            "default_value": 0,
             "enum_opts": [
                 "Scatter Only",
                 "Scatter & Transmit"
@@ -58,53 +75,66 @@
         {
             "id": "Translucency Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         }
     ],
     "/Fiber Layer/General": [
         {
             "id": "Fiber Layer Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Fiber Layer/Tiling": [
         {
             "id": "Fiber Layer Weight Map Horizontal Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Fiber Layer Weight Map Horizontal Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Fiber Layer Weight Map Vertical Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Fiber Layer Weight Map Vertical Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Fine Detail/Bump": [
         {
             "id": "Fine Detail Normal Map",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Fine Detail and Crumple Normal Map Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Fine Detail and Crumple Bump Mode",
             "type": "enum",
             "uses_map": false,
+            "default_value": 1,
             "enum_opts": [
                 "Height Map",
                 "Normal Map"
@@ -115,180 +145,224 @@
         {
             "id": "Fine Detail Blend Weight",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Fine Detail",
             "type": "image",
-            "uses_map": false
+            "uses_map": true,
+            "default_value": null
         },
         {
             "id": "Fine Detail Blend Mode",
-            "type": "int",
-            "uses_map": false
+            "type": "float",
+            "uses_map": false,
+            "default_value": 2
         },
         {
             "id": "Fine Detail Glossy Reflectivity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0.5
         }
     ],
     "/Fine Detail/Tiling": [
         {
             "id": "Fine Detail Horizontal Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Fine Detail Horizontal Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Fine Detail Vertical Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Fine Detail Vertical Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/General": [
         {
             "id": "Tags",
             "type": "string",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": ""
         }
     ],
     "/General/Material ID": [
         {
             "id": "OutlineColorID",
             "type": "color",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": [
+                0,
+                0,
+                0
+            ]
         }
     ],
     "/Geometry/Cutout": [
         {
             "id": "Cutout Opacity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         }
     ],
     "/Geometry/Displacement": [
         {
             "id": "Displacement Strength",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Minimum Displacement",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": -0.1
         },
         {
             "id": "Maximum Displacement",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0.1
         },
         {
             "id": "SubD Displacement Level",
-            "type": "int",
-            "uses_map": false
+            "type": "float",
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Geometry/Tiling": [
         {
             "id": "Horizontal Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Horizontal Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Vertical Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Vertical Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Cutout Opacity Horizontal Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Cutout Opacity Horizontal Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Cutout Opacity Vertical Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Cutout Opacity Vertical Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Glossy/Anisotropy": [
         {
             "id": "Glossy Anisotropy Rotations",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Glossy/Backscattering": [
         {
             "id": "Backscattering Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Backscattering Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Backscattering Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Backscattering Anisotropy",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Glossy/Reflection": [
         {
             "id": "Glossy Layered Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Share Glossy Inputs",
             "type": "bool",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": true
         },
         {
             "id": "Glossy Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Glossy Color Effect",
             "type": "enum",
             "uses_map": false,
+            "default_value": 0,
             "enum_opts": [
                 "Scatter Only",
                 "Scatter & Transmit"
@@ -297,146 +371,192 @@
         {
             "id": "Glossy Reflectivity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0.5
         },
         {
             "id": "Glossy Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Glossy Anisotropy",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Glossy/Refraction": [
         {
             "id": "Refraction Index",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Refraction Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Refraction Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Refraction Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Abbe",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Gradient Layer/Diffuse": [
         {
             "id": "Gradient Layer Grazing Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                0,
+                0,
+                0
+            ]
         },
         {
             "id": "Gradient Layer Normal Tint",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                0,
+                0,
+                0
+            ]
         },
         {
             "id": "Gradient Layer Normal Tint Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Gradient Layer/Hidden": [
         {
             "id": "Gradient Layer Metallic Weight",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Gradient Layer Glossy Layered Weight",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Gradient Layer Refraction Index",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Gradient Layer Refraction Weight",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         }
     ],
     "/Gradient Layer/Reflection": [
         {
             "id": "Gradient Layer Normal Reflectivity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Gradient Layer Grazing Reflectivity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Gradient Layer Exponent",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         },
         {
             "id": "Gradient Layer Strength",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         }
     ],
     "/Lines": [
         {
             "id": "Line Preview Color",
             "type": "color",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": [
+                0,
+                0,
+                0
+            ]
         }
     ],
     "/Lines/Generation": [
         {
             "id": "Line Start Width",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0.1
         },
         {
             "id": "Line End Width",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0.1
         },
         {
             "id": "Line UV Width",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Metallic Flakes/Flakes": [
         {
             "id": "Metallic Flakes Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Metallic Flakes Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Metallic Flakes Color Effect",
             "type": "enum",
             "uses_map": false,
+            "default_value": 0,
             "enum_opts": [
                 "Scatter Only",
                 "Scatter & Transmit",
@@ -446,22 +566,26 @@
         {
             "id": "Metallic Flakes Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Metallic Flakes Size",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0.001
         },
         {
             "id": "Metallic Flakes Strength",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Metallic Flakes Density",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         }
     ],
     "/Render Priority": [
@@ -469,6 +593,7 @@
             "id": "Render Priority",
             "type": "enum",
             "uses_map": false,
+            "default_value": 3,
             "enum_opts": [
                 "Lowest",
                 "Low",
@@ -482,82 +607,96 @@
         {
             "id": "Propagate Priority",
             "type": "bool",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": false
         }
     ],
     "/Settings": [
         {
             "id": "Roughness Squared",
             "type": "bool",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": true
         },
         {
             "id": "Constant 1",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Constant 2",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 2
         }
     ],
     "/Smoothing": [
         {
             "id": "Smooth On",
             "type": "bool",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": true
         },
         {
             "id": "Smooth Angle",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 89.9
         }
     ],
     "/Thin Film": [
         {
             "id": "Thin Film Thickness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Thin Film IOR",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1.5
         }
     ],
     "/Thin Film/Tiling": [
         {
             "id": "Thin Film Horizontal Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Thin Film Horizontal Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         },
         {
             "id": "Thin Film Vertical Tiles",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 1
         },
         {
             "id": "Thin Film Vertical Offset",
             "type": "float",
-            "uses_map": false
+            "uses_map": false,
+            "default_value": 0
         }
     ],
     "/Top Coat/Anisotropy": [
         {
             "id": "Top Coat Anisotropy",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Top Coat Rotations",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         }
     ],
     "/Top Coat/Bump": [
@@ -565,6 +704,7 @@
             "id": "Top Coat Bump Mode",
             "type": "enum",
             "uses_map": false,
+            "default_value": 0,
             "enum_opts": [
                 "Height Map",
                 "Normal Map"
@@ -573,24 +713,32 @@
         {
             "id": "Top Coat Bump",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 1
         }
     ],
     "/Top Coat/General": [
         {
             "id": "Top Coat Weight",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Top Coat Color",
             "type": "color",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": [
+                1,
+                1,
+                1
+            ]
         },
         {
             "id": "Top Coat Color Effect",
             "type": "enum",
             "uses_map": false,
+            "default_value": 0,
             "enum_opts": [
                 "Scatter Only",
                 "Scatter & Transmit",
@@ -600,12 +748,14 @@
         {
             "id": "Top Coat Roughness",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0
         },
         {
             "id": "Top Coat Reflectivity",
             "type": "float",
-            "uses_map": true
+            "uses_map": true,
+            "default_value": 0.5
         }
     ]
 }

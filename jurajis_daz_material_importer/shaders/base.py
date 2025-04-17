@@ -74,6 +74,14 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                        props: dict[str, Any] = {}) -> NodeTreeInterfaceSocket:
         return self._add_socket("NodeSocketShader", name, None, in_out, parent, props)
 
+    def _bool_socket(self,
+                     name: str,
+                     default_value: bool = False,
+                     in_out: Literal["INPUT", "OUTPUT"] = "INPUT",
+                     parent: NodeTreeInterfacePanel = None,
+                     props: dict[str, Any] = {}) -> NodeTreeInterfaceSocket:
+        return self._add_socket("NodeSocketBool", name, default_value, in_out, parent, props)
+
     @staticmethod
     def _set_socket(node: Node, socket: NodeSocket | int, value: Any):
         socket_key = socket.name if isinstance(socket, NodeSocket) else socket
@@ -115,8 +123,12 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
         return sock
 
     # Nodes
-    def _add_panel(self, name: str, default_closed: bool = True) -> NodeTreeInterfacePanel:
-        return self.node_group.interface.new_panel(name, default_closed=default_closed)
+    def _add_panel(self, name: str,
+                   default_closed: bool = True,
+                   parent: NodeTreeInterfacePanel | None = None) -> NodeTreeInterfacePanel:
+        panel = self.node_group.interface.new_panel(name, default_closed=default_closed)
+        panel.parent = parent
+        return panel
 
     def add_frame(self, label: str, location: tuple[float, float]) -> Node:
         return self._add_node("NodeFrame", label, location)

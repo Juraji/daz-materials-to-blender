@@ -1,7 +1,8 @@
 import json
 from collections import defaultdict, OrderedDict
 
-# PBRSkin: \\data\\DAZ 3D\\Built-in Content\\Daz Iray PBRSkin\\PBRSkin.dsf
+# PBRSkin from lib: \\data\\DAZ 3D\\Built-in Content\\Daz Iray PBRSkin\\PBRSkin.dsf
+# Iray Uber and Translucent shader from scene save file (using said shaders)
 
 SOURCE_FILE = ""
 TARGET_FILE = ""
@@ -21,10 +22,16 @@ if __name__ == '__main__':
             "id": channel["channel"]["id"],
             "type": channel["channel"]["type"],
             "uses_map": "mappable" in channel["channel"] and channel["channel"]["mappable"],
+            "default_value": None if not "value" in channel["channel"] else channel["channel"]["value"],
         }
 
-        if mapped_channel["type"] == "float_color":  # Same thing in Python
+        # We are all just floats
+        if mapped_channel["type"] == "float_color":
             mapped_channel["type"] = "color"
+        elif mapped_channel["type"] == "int":
+            mapped_channel["type"] = "float"
+        elif mapped_channel["type"] == "image":
+            mapped_channel["uses_map"] = True
 
         if mapped_channel["type"] == "enum":
             mapped_channel["enum_opts"] = channel["channel"]["enum_values"]
@@ -37,6 +44,7 @@ if __name__ == '__main__':
             "id": "diffuse",
             "type": "color",
             "uses_map": True,
+            "default_value": [1, 1, 1],
         })
 
     sorted_channels = OrderedDict(sorted(mapped_channels.items()))

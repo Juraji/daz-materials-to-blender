@@ -30,5 +30,5 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
-    def add_shader_group(self, location: tuple[float, float], channels: dict[str, DsonMaterialChannel]):
-        pass  # TODO: Implement applier
+    def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        pass # TODO: Implement applier

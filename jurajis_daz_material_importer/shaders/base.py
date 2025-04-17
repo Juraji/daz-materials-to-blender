@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Literal, Any, cast
+from typing import Literal, Any, cast, Self, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
@@ -191,9 +191,11 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
     def _add_node_shader_group(self,
                                label: str,
+                               builder: Type[Self],
                                location: tuple[float, float],
                                parent: Node = None,
                                props: dict[str, Any] = {}):
+        props = {**props, "node_tree": bpy.data.node_groups[builder.group_name()]}
         return self._add_node("ShaderNodeGroup", label, location, parent, props)
 
     def _add_node(self,
@@ -277,12 +279,12 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             return feat_name in channels and channels[feat_name].value
         return False
 
-    def _channel_values(self,
-                        channels: dict[str, DsonMaterialChannel],
-                        channel_id: str,
-                        value_socket_name: str | None,
-                        map_socket_name: str | None,
-                        non_color_map: bool = True) -> ShaderNodeTexImage | None:
+    def _channel_to_inputs(self,
+                           channels: dict[str, DsonMaterialChannel],
+                           channel_id: str,
+                           value_socket_name: str | None,
+                           map_socket_name: str | None,
+                           non_color_map: bool = True) -> ShaderNodeTexImage | None:
         if not channel_id in channels:
             return None
 
@@ -325,6 +327,24 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._link_socket(self._mapping, tex_image, 0, 0)
         return tex_image
 
+    def _add_node(self,
+                  node_type: str,
+                  label: str,
+                  location: tuple[float, float],
+                  parent: Node = None,
+                  props: dict[str, Any] = {}) -> Node:
+        node = self._node_tree.nodes.new(node_type)
+        node.label = label
+        node.name = slugify(self.group_name(), node_type, label)
+        node.parent = parent
+        node.location = location
+
+        for prop, value in props.items():
+            if hasattr(node, prop):
+                setattr(node, prop, value)
+
+        return node
+
     def _set_material_mapping(self,
                               channels: dict[str, DsonMaterialChannel],
                               horizontal_tiling_channel_id: str,
@@ -335,21 +355,25 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         mapping_node = mapping_node or self._mapping
 
-        if horizontal_tiling_channel_id in channels:
-            scale = 1 / channels[horizontal_tiling_channel_id].value
-            mapping_node.inputs[3].default_value[0] = scale
-
         if horizontal_offset_channel_id in channels:
             scale = channels[horizontal_offset_channel_id].value
+            # noinspection PyUnresolvedReferences
             mapping_node.inputs[1].default_value[0] = scale
-
-        if vertical_tiling_channel_id in channels:
-            scale = 1 / channels[vertical_tiling_channel_id].value
-            mapping_node.inputs[3].default_value[1] = scale
 
         if vertical_offset_channel_id in channels:
             scale = channels[vertical_offset_channel_id].value
+            # noinspection PyUnresolvedReferences
             mapping_node.inputs[1].default_value[1] = scale
+
+        if horizontal_tiling_channel_id in channels:
+            scale = 1 / channels[horizontal_tiling_channel_id].value
+            # noinspection PyUnresolvedReferences
+            mapping_node.inputs[3].default_value[0] = scale
+
+        if vertical_tiling_channel_id in channels:
+            scale = 1 / channels[vertical_tiling_channel_id].value
+            # noinspection PyUnresolvedReferences
+            mapping_node.inputs[3].default_value[1] = scale
 
         pass
 

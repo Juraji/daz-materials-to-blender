@@ -90,40 +90,21 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             if material is None:
                 continue
 
-            material.use_nodes = True
-            node_tree = material.node_tree
-
-            # Setup defaults
-            node_tree.nodes.clear()
-
-            node_material_output = node_tree.nodes.new("ShaderNodeOutputMaterial")
-            node_material_output.name = "Material Output"
-            node_material_output.is_active_output = True
-            node_material_output.target = 'ALL'
-            node_material_output.location = (125, 0)
-
-            node_mapping = node_tree.nodes.new("ShaderNodeMapping")
-            node_mapping.name = "Mapping"
-            node_mapping.vector_type = 'POINT'
-            node_mapping.location = (-1230, 0)
-
-            # node UV Map
-            node_uv_map = node_tree.nodes.new("ShaderNodeUVMap")
-            node_uv_map.name = "UV Map"
-            node_uv_map.from_instancer = False
-            node_uv_map.uv_map = "UVMap"
-            node_uv_map.location = (-1505, 0)
-            node_tree.links.new(node_uv_map.outputs[0], node_mapping.inputs[0])
-
             applier_cls = self._find_applier_by_type_id(mat_type_id)
             if applier_cls is None:
                 self.report_error("No shader group available for material type "
                                   f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
                 return
 
-            applier = applier_cls(props, node_tree, node_uv_map, node_mapping, node_material_output)
-            applier.add_shader_group((-415, 0), channels)
-            applier.align_image_nodes(-915, 0)
+            material.use_nodes = True
+            node_tree = material.node_tree
+
+            # Setup defaults
+            node_tree.nodes.clear()
+
+            applier = applier_cls(props, node_tree)
+            applier.add_shader_group(channels)
+            applier.align_image_nodes()
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

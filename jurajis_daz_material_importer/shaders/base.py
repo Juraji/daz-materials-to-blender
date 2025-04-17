@@ -217,39 +217,59 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
 class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     __group_node_width: float = 400
-    __texture_node_location_y_offset: float = 300
+    __texture_node_location_y_offset: float = 50
 
     def __init__(self,
                  properties: MaterialImportProperties,
-                 node_tree: ShaderNodeTree,
-                 node_uv_map: Node,
-                 mapping_node: Node,
-                 material_ouput_node: Node):
+                 node_tree: ShaderNodeTree):
         super().__init__()
-        self.shader_group_node: Node | None = None
-        self.properties = properties
-        self.node_tree = node_tree
-        self.uv_map_node = node_uv_map
-        self.mapping_node = mapping_node
-        self.material_ouput_node = material_ouput_node
+        self._properties = properties
+        self._node_tree = node_tree
 
-    def add_shader_group(self, location: tuple[float, float], channels: dict[str, DsonMaterialChannel]):
-        shader_group = self.node_tree.nodes.new("ShaderNodeGroup")
+        self._uv_map: Node | None = None
+        self._mapping: Node | None = None
+        self._material_ouput: Node | None = None
+        self._shader_group: Node | None = None
+
+    def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        mapping = self._node_tree.nodes.new("ShaderNodeMapping")
+        mapping.name = "Mapping"
+        mapping.vector_type = 'POINT'
+        mapping.location = (-1230, 0)
+        self._mapping = mapping
+
+        # node UV Map
+        uv_map = self._node_tree.nodes.new("ShaderNodeUVMap")
+        uv_map.name = "UV Map"
+        uv_map.from_instancer = False
+        uv_map.uv_map = "UVMap"
+        uv_map.location = (-1505, 0)
+        self._link_socket(uv_map, mapping, 0, 0)
+        self._uv_map = uv_map
+
+        material_output = self._node_tree.nodes.new("ShaderNodeOutputMaterial")
+        material_output.name = "Material Output"
+        material_output.is_active_output = True
+        material_output.target = 'ALL'
+        material_output.location = (125, 0)
+        self._material_ouput = material_output
+
+        shader_group = self._node_tree.nodes.new("ShaderNodeGroup")
         shader_group.label = self.group_name()
         shader_group.name = slugify(self.group_name())
-        shader_group.location = location
+        shader_group.location = (-415, 0)
         shader_group.width = self.__group_node_width
         shader_group.node_tree = bpy.data.node_groups[self.group_name()]
-        self._link_socket(shader_group, self.material_ouput_node, 0, 0)
-        self.shader_group_node = shader_group
+        self._link_socket(shader_group, self._material_ouput, 0, 0)
+        self._shader_group = shader_group
 
-    def align_image_nodes(self, start_x: float, start_y: float, offset: float = 50):
-        tex_nodes = filter(lambda n: n.type == "TEX_IMAGE", self.node_tree.nodes)
+    def align_image_nodes(self):
+        tex_nodes = filter(lambda n: n.type == "TEX_IMAGE", self._node_tree.nodes)
 
-        current_y = start_y
+        current_y = 0
         for node in tex_nodes:
-            node.location = (start_x, current_y)
-            current_y -= offset
+            node.location = (-915, current_y)
+            current_y -= self.__texture_node_location_y_offset
 
     @staticmethod
     def _channel_enabled(channels: dict[str, DsonMaterialChannel], *feat_names: str) -> bool:
@@ -268,8 +288,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         channel = channels[channel_id]
 
-        if not value_socket_name is None and value_socket_name in self.shader_group_node.inputs:
-            value_socket = self.shader_group_node.inputs[value_socket_name]
+        if not value_socket_name is None and value_socket_name in self._shader_group.inputs:
+            value_socket = self._shader_group.inputs[value_socket_name]
 
             if isinstance(channel, DsonFloatMaterialChannel):
                 value_socket.default_value = channel.value
@@ -284,12 +304,12 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         image_texture: ShaderNodeTexImage | None = None
         if map_socket_name is not None and channel.has_image():
             image_texture = self._add_image_texture(channel.image_file, non_color_map)
-            self._link_socket(image_texture, self.shader_group_node, 0, map_socket_name)
+            self._link_socket(image_texture, self._shader_group, 0, map_socket_name)
 
         return image_texture
 
     def _add_image_texture(self, path: str, non_color: bool, tile: int = 1) -> ShaderNodeTexImage:
-        tex_image: ShaderNodeTexImage = cast(ShaderNodeTexImage, self.node_tree.nodes.new(type="ShaderNodeTexImage"))
+        tex_image: ShaderNodeTexImage = cast(ShaderNodeTexImage, self._node_tree.nodes.new(type="ShaderNodeTexImage"))
         tex_image.hide = True
         tex_image.image = bpy.data.images.load(path)
         # noinspection PyTypeChecker
@@ -302,7 +322,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         else:
             tex_image.image = bpy.data.images.load(img_name)
 
-        self._link_socket(self.mapping_node, tex_image, 0, 0)
+        self._link_socket(self._mapping, tex_image, 0, 0)
         return tex_image
 
     def _set_material_mapping(self,
@@ -313,7 +333,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
                               vertical_offset_channel_id: str,
                               mapping_node: Node | None = None):
 
-        mapping_node = mapping_node or self.mapping_node
+        mapping_node = mapping_node or self._mapping
 
         if horizontal_tiling_channel_id in channels:
             scale = 1 / channels[horizontal_tiling_channel_id].value
@@ -353,4 +373,4 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         else:
             target_socket = target.inputs[target_socket]
 
-        self.node_tree.links.new(source_socket, target_socket)
+        self._node_tree.links.new(source_socket, target_socket)

@@ -327,8 +327,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
 
         builder = PBRSkinShaderGroupBuilder
 
-        self._set_material_mapping(channels,
-                                   "horizontal_tiles2", "horizontal_offset2",
+        self._set_material_mapping(channels, "horizontal_tiles2", "horizontal_offset2",
                                    "vertical_tiles2", "vertical_offset2")
 
         self._channel_values(channels, 'diffuse',
@@ -382,11 +381,11 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset",
                                   "detail_vertical_tiles", "detail_vertical_offset"]
             if detail_map_tex_node and self._channel_enabled(channels, *detail_mapping_ids):
-                detail_mapping_node = self.node_tree.nodes.new("ShaderNodeMapping")
+                detail_mapping_node = self._node_tree.nodes.new("ShaderNodeMapping")
                 detail_mapping_node.name = "Detail Mapping"
                 detail_mapping_node.vector_type = 'POINT'
-                detail_mapping_node.location = (self.mapping_node.location[0], -300)
-                self._link_socket(self.uv_map_node, detail_mapping_node, 0, 0)
+                detail_mapping_node.location = (self._mapping.location[0], -300)
+                self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
                 self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)
 

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Type
 
@@ -8,6 +9,7 @@ from .operator_report_mixin import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
 from ..utils.dson import DazDsonMaterialReader, DsonMaterial, DsonSceneNode
+from ..utils.json import json_dump_dataclasses
 
 
 class ImportMaterialsOperator(OperatorReportMixin, Operator):

@@ -28,6 +28,9 @@ class DsonColorMaterialChannel(DsonMaterialChannel):
     def as_rgba(self) -> tuple[float, float, float, float]:
         return self.value[0], self.value[1], self.value[2], self.alpha
 
+    def as_float(self):
+        return (sum(self.value) / 3) * self.alpha
+
 
 @dataclass
 class DsonFloatMaterialChannel(DsonMaterialChannel):
@@ -177,7 +180,8 @@ class DazDsonMaterialReader:
         extra = mat_data['extra']
         if extra[0]['type'] == 'studio/material/uber_iray':
             if len(extra) == 2:
-                base_mixing = next((ch['channel']['current_value'] for ch in extra[1]['channels'] if ch['channel']['id'] == 'Base Mixing'), 0)
+                base_mixing = next((ch['channel']['current_value'] for ch in extra[1]['channels'] if
+                                    ch['channel']['id'] == 'Base Mixing'), 0)
                 return {
                     0: "iray_uber__pbr_mr",
                     1: "iray_uber__pbr_sg",
@@ -251,4 +255,3 @@ class DazDsonMaterialReader:
                 for k, value, t in enum_values(key)
                 if k.startswith('ContentDir') and t == winreg.REG_SZ
             ]
-

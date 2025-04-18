@@ -4,7 +4,7 @@ from typing import Literal, Any, cast, Self, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
-    NodeTreeInterfaceSocket, ShaderNodeTexImage
+    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketFloat, NodeSocketVector, NodeSocketColor
 
 from ..properties import MaterialImportProperties
 from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
@@ -305,28 +305,29 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
                            value_socket_name: str | None,
                            map_socket_name: str | None,
                            non_color_map: bool = True) -> ShaderNodeTexImage | None:
-        if not channel_id in self._channels:
+        channel = self._channels.get(channel_id)
+        if channel is None:
             return None
 
-        channel = self._channels[channel_id]
-
-        if not value_socket_name is None and value_socket_name in self._shader_group.inputs:
+        if value_socket_name and value_socket_name in self._shader_group.inputs:
             value_socket = self._shader_group.inputs[value_socket_name]
 
-            if isinstance(channel, DsonFloatMaterialChannel):
-                value_socket.default_value = channel.value
-            elif isinstance(channel, DsonBoolMaterialChannel):
-                value_socket.default_value = channel.value
-            elif isinstance(channel, DsonColorMaterialChannel):
-                if value_socket.type == "VECTOR":
+            match channel:
+                case DsonFloatMaterialChannel() | DsonBoolMaterialChannel():
                     value_socket.default_value = channel.value
-                else:
-                    value_socket.default_value = channel.as_rgba()
-            else:
-                raise Exception(f"Unsupported channel type: {type(channel)} for socket {value_socket_name}")
+                case DsonColorMaterialChannel() as c:
+                    match value_socket:
+                        case NodeSocketColor():
+                            value_socket.default_value = c.as_rgba()
+                        case NodeSocketVector():
+                            value_socket.default_value = c.value
+                        case _:
+                            value_socket.default_value = c.as_float()
+                case _:
+                    raise Exception(f"Unsupported channel type: {type(channel)} for socket '{value_socket_name}'")
 
         image_texture: ShaderNodeTexImage | None = None
-        if map_socket_name is not None and channel.has_image():
+        if map_socket_name and channel.has_image():
             image_texture = self._add_image_texture(channel.image_file, non_color_map)
             self._link_socket(image_texture, self._shader_group, 0, map_socket_name)
 
@@ -361,9 +362,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         node.parent = parent
         node.location = location
 
-        for prop, value in props.items():
-            if hasattr(node, prop):
-                setattr(node, prop, value)
+        # Set props
+        [setattr(node, prop, value) for prop, value in props.items() if hasattr(node, prop)]
 
         return node
 

@@ -290,6 +290,13 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         self._channel_to_inputs('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
         self._channel_to_inputs('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
 
+        if self._channel_enabled("glossy_roughness"):
+            # Often the glossy roughness is used as diffuse roughness, override if it is.
+            self._channel_to_inputs('glossy_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+        elif self._channel_enabled("glossy_color"):
+            # Often the glossy roughness is used as diffuse roughness, override if it is.
+            self._channel_to_inputs('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+
         # Base Bump
         self._channel_to_inputs("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
         self._channel_to_inputs("normal_map", builder.in_normal_map, builder.in_normal_map_map)

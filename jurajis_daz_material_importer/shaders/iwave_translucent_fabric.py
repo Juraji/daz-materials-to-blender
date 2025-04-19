@@ -1,4 +1,4 @@
-from .base import ShaderGroupApplier, ShaderGroupBuilder
+from .support.base import ShaderGroupApplier, ShaderGroupBuilder
 
 from ..utils.dson import DsonMaterialChannel
 

@@ -6,10 +6,10 @@ import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
     NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketFloat, NodeSocketVector, NodeSocketColor
 
-from ..properties import MaterialImportProperties
-from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
+from ...properties import MaterialImportProperties
+from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
     DsonBoolMaterialChannel
-from ..utils.slugify import slugify
+from ...utils.slugify import slugify
 
 
 class _GroupNameMixin:
@@ -29,6 +29,10 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
     @staticmethod
     def depends_on() -> set[str]:
         return set()
+
+    @staticmethod
+    def is_support() -> bool:
+        return False
 
     def __init__(self, properties: MaterialImportProperties, node_trees: BlendDataNodeTrees):
         super().__init__()
@@ -84,9 +88,15 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
         return self._add_socket("NodeSocketBool", name, default_value, in_out, parent, props)
 
     @staticmethod
-    def _set_socket(node: Node, socket: NodeSocket | int, value: Any):
+    def _set_socket(node: Node,
+                    socket: NodeSocket | int,
+                    value: Any,
+                    in_out: Literal["INPUT", "OUTPUT"] = "INPUT", ):
         socket_key = socket.name if isinstance(socket, NodeSocket) else socket
-        socket_input = node.inputs[socket_key]
+        if in_out == "INPUT":
+            socket_input = node.inputs[socket_key]
+        else:
+            socket_input = node.outputs[socket_key]
         setattr(socket_input, "default_value", value)
 
     def _link_socket(self,
@@ -155,13 +165,17 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                        data_type: str = "RGBA",
                        blend_type: str = "MULTIPLY",
                        default_factor: float = 1,
-                       parent: Node = None) -> Node:
-        mix = self._add_node("ShaderNodeMix", label, location, parent, {
+                       parent: Node = None,
+                       props: dict[str, Any] = {}) -> Node:
+        props = {
+            **props,
             "data_type": data_type,
-            "blend_type": blend_type
-        })
-        # noinspection PyUnresolvedReferences
-        mix.inputs[0].default_value = default_factor
+            "blend_type": blend_type,
+            "clamp_factor": True,
+            "clamp_result": False,
+        }
+        mix = self._add_node("ShaderNodeMix", label, location, parent, props)
+        self._set_socket(mix, 0, default_factor)
         return mix
 
     def _add_node__mix_shader(self,
@@ -171,11 +185,22 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                               props: dict[str, Any] = {}) -> Node:
         return self._add_node("ShaderNodeMixShader", label, location, parent, props)
 
+    def _add_node__math(self,
+                        label: str,
+                        location: tuple[float, float],
+                        operation: str = "ADD",
+                        parent: Node = None,
+                        props: dict[str, Any] = {}) -> Node:
+        props = {**props, "operation": operation}
+        return self._add_node("ShaderNodeMath", label, location, parent, props)
+
     def _add_node__math_vector(self,
                                label: str,
                                location: tuple[float, float],
+                               operation: str = "ADD",
                                parent: Node = None,
                                props: dict[str, Any] = {}) -> Node:
+        props = {**props, "operation": operation}
         return self._add_node("ShaderNodeVectorMath", label, location, parent, props=props)
 
     def _add_node__normal_map(self,
@@ -226,6 +251,10 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
         return node
 
+class SupportShaderGroupBuilder(ShaderGroupBuilder):
+    @staticmethod
+    def is_support() -> bool:
+        return True
 
 class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     __group_node_width: float = 400
@@ -314,7 +343,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
             match channel:
                 case DsonFloatMaterialChannel() | DsonBoolMaterialChannel():
-                    value_socket.default_value = channel.value
+                    value_socket.default_value = channel.value or 0.0
                 case DsonColorMaterialChannel() as c:
                     match value_socket:
                         case NodeSocketColor():

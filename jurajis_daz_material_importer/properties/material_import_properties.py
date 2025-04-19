@@ -24,5 +24,5 @@ class MaterialImportProperties(PropertyGroup):
     replace_node_groups: BoolProperty(
         name="Replace Existing Shader Groups",
         description="Replace shader node groups created by an earlier import.",
-        default=False,
+        default=True,
     )

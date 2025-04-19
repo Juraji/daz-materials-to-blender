@@ -1,7 +1,5 @@
-import bpy
-
-from .base import ShaderGroupBuilder, ShaderGroupApplier
-from .dls import DualLobeSpecularShaderGroupBuilder
+from .support.base import ShaderGroupBuilder, ShaderGroupApplier
+from .support.dls import DualLobeSpecularShaderGroupBuilder
 
 __GROUP_NAME__ = "DAZ PBR Skin"
 __MATERIAL_TYPE_ID__ = "pbrskin"
@@ -187,7 +185,7 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_combine_detail_weight, node_detail_normal_map, 0, 0)
         self._link_socket(node_group_input, node_detail_normal_map, sock_detail_normal_map, 1)
 
-        node_combine_normal_and_detail_vectors = self._add_node__math_vector("Combine normal and detail vectors", (458, -151), frame_normal_and_bump, {"operation": "ADD"})
+        node_combine_normal_and_detail_vectors = self._add_node__math_vector("Combine normal and detail vectors", (458, -151), parent=frame_normal_and_bump)
         self._link_socket(node_normal_map, node_combine_normal_and_detail_vectors, 0, 0)
         self._link_socket(node_detail_normal_map, node_combine_normal_and_detail_vectors, 0, 1)
 
@@ -260,8 +258,7 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
 
         node_combine_diff_dls_roughness_for_makeup = self._add_node__mix("Combine Diffuse and DLS Roughness Maps for Makeup", (307, -131), parent=frame_makeup_layer)
         self._link_socket(node_combine_roughness, node_combine_diff_dls_roughness_for_makeup, 0, 6)
-        self._link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_dls_l1_roughness_map,
-                          7)
+        self._link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_dls_l1_roughness_map,7)
 
         node_multiply_makeup_base_roughness = self._add_node__mix("Multiply Makeup Base Roughness", (543, -135), parent=frame_makeup_layer)
         self._link_socket(node_combine_diff_dls_roughness_for_makeup, node_multiply_makeup_base_roughness, 2, 6)
@@ -361,7 +358,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs('top_coat_color', builder.in_top_coat_color, builder.in_top_coat_color_map, False)
 
         if self._channel_enabled('makeup_enable'):
-            self._channel_to_inputs('makeup_weight', builder.in_detail_weight, builder.in_detail_weight_map)
+            self._channel_to_inputs('makeup_weight', builder.in_makeup_weight, builder.in_makeup_weight_map)
             self._channel_to_inputs('makeup_base_color', builder.in_makeup_base_color, builder.in_makeup_base_color_map, False)
             self._channel_to_inputs('makeup_roughness_mult', builder.in_makeup_roughness_mult, builder.in_makeup_roughness_mult_map)
         # @formatter:on

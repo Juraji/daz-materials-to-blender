@@ -1,5 +1,8 @@
-from .base import ShaderGroupApplier, ShaderGroupBuilder
-from .dls import DualLobeSpecularShaderGroupBuilder
+from .support.displacement import AsymmetricalDisplacementShaderGroupBuilder
+from .support.transmission import WeightedTransmissonShaderGroupBuilder
+from .support.base import ShaderGroupApplier, ShaderGroupBuilder
+from .support.dls import DualLobeSpecularShaderGroupBuilder
+from .support.translucency import WeightedTranslucencyShaderGroupBuilder
 from ..utils.dson import DsonMaterialChannel
 
 __GROUP_NAME__ = "DAZ Iray Uber (PBR Metallicity/Roughness)"
@@ -46,7 +49,6 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_translucency_color = "Translucency Color"
     in_translucency_color_map = "Translucency Color Map"
     in_invert_transmission_normal = "Invert Transmission Normal"
-    in_sss_reflectance_tint = "SSS Reflectance Tint"
 
     # Base Dual Lobe Specular
     in_dual_lobe_specular_weight = "Dual Lobe Specular Weight"
@@ -94,12 +96,6 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_metallic_flakes_strength = "Metallic Flakes Strength"
     in_metallic_flakes_density = "Metallic Flakes Density"
 
-    # Metallic Flakes Thin Film
-    in_metallic_flakes_thin_film = "Metallic Flakes Thin Film"
-    in_metallic_flakes_thin_film_map = "Metallic Flakes Thin Film Map"
-    in_metallic_flakes_thin_film_ior = "Metallic Flakes Thin Film IOR"
-    in_metallic_flakes_thin_film_ior_map = "Metallic Flakes Thin Film IOR Map"
-
     # Top Coat
     in_top_coat_weight = "Top Coat Weight"
     in_top_coat_weight_map = "Top Coat Weight Map"
@@ -132,7 +128,12 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
     @staticmethod
     def depends_on() -> set[str]:
-        return {DualLobeSpecularShaderGroupBuilder.group_name()}
+        return {
+            DualLobeSpecularShaderGroupBuilder.group_name(),
+            AsymmetricalDisplacementShaderGroupBuilder.group_name(),
+            WeightedTranslucencyShaderGroupBuilder.group_name(),
+            WeightedTransmissonShaderGroupBuilder.group_name(),
+        }
 
     def setup_group(self):
         super().setup_group()
@@ -182,7 +183,6 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_translucency_color = self._color_socket(self.in_translucency_color, parent=panel_base_diffuse_translucency)
         sock_translucency_color_map = self._color_socket(self.in_translucency_color_map, parent=panel_base_diffuse_translucency)
         sock_invert_transmission_normal = self._bool_socket(self.in_invert_transmission_normal, True, parent=panel_base_diffuse_translucency)
-        sock_sss_reflectance_tint = self._color_socket(self.in_sss_reflectance_tint, parent=panel_base_diffuse_translucency)
 
         # Sockets: Base Dual Lobe Specular
         sock_dual_lobe_specular_weight = self._float_socket(self.in_dual_lobe_specular_weight, parent=panel_base_dual_lobe_specular)
@@ -215,7 +215,7 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
         # Sockets: Geometry Displacement
         sock_displacement_strength = self._float_socket(self.in_displacement_strength, parent=panel_geometry_displacement)
-        sock_displacement_strength_map = self._color_socket(self.in_displacement_strength_map, parent=panel_geometry_displacement)
+        sock_displacement_strength_map = self._color_socket(self.in_displacement_strength_map, (0.5, 0.5, 0.5, 1.0), parent=panel_geometry_displacement)
         sock_minimum_displacement = self._float_socket(self.in_minimum_displacement, -0.1, parent=panel_geometry_displacement)
         sock_maximum_displacement = self._float_socket(self.in_maximum_displacement, 0.1, parent=panel_geometry_displacement)
 
@@ -229,12 +229,6 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_metallic_flakes_size = self._float_socket(self.in_metallic_flakes_size, 0.001, parent=panel_metallic_flakes_flakes)
         sock_metallic_flakes_strength = self._float_socket(self.in_metallic_flakes_strength, 1, parent=panel_metallic_flakes_flakes)
         sock_metallic_flakes_density = self._float_socket(self.in_metallic_flakes_density, 1, parent=panel_metallic_flakes_flakes)
-
-        # Sockets: Metallic Flakes Thin Film
-        sock_metallic_flakes_thin_film = self._float_socket(self.in_metallic_flakes_thin_film, parent=panel_metallic_flakes_flakes)
-        sock_metallic_flakes_thin_film_map = self._color_socket(self.in_metallic_flakes_thin_film_map, parent=panel_metallic_flakes_flakes)
-        sock_metallic_flakes_thin_film_ior = self._float_socket(self.in_metallic_flakes_thin_film_ior, 1.5, parent=panel_metallic_flakes_flakes)
-        sock_metallic_flakes_thin_film_ior_map = self._color_socket(self.in_metallic_flakes_thin_film_ior_map, parent=panel_metallic_flakes_flakes)
 
         # Sockets: Top Coat General
         sock_top_coat_weight = self._float_socket(self.in_top_coat_weight, parent=panel_top_coat_general)
@@ -313,7 +307,6 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs("translucency_weight", builder.in_translucency_weight, builder.in_translucency_weight_map)
             self._channel_to_inputs("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map)
             self._channel_to_inputs("invert_transmission_normal", builder.in_invert_transmission_normal, None)
-            self._channel_to_inputs("sss_reflectance_tint", builder.in_sss_reflectance_tint, None)
 
         # Base Dual Lobe Specular
         if self._channel_enabled('sock_dual_lobe_specular_weight'):
@@ -355,10 +348,6 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs("metallic_flakes_size", builder.in_metallic_flakes_size, None)
             self._channel_to_inputs("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
             self._channel_to_inputs("metallic_flakes_density", builder.in_metallic_flakes_density, None)
-
-            # Metallic Flakes Thin Film
-            self._channel_to_inputs("metallic_flakes_thin_film", builder.in_metallic_flakes_thin_film, builder.in_metallic_flakes_thin_film_map)
-            self._channel_to_inputs("metallic_flakes_thin_film_ior", builder.in_metallic_flakes_thin_film_ior, builder.in_metallic_flakes_thin_film_ior_map)
 
         # Top Coat General
         if self._channel_enabled("top_coat_weight"):

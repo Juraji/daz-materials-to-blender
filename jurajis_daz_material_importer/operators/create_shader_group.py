@@ -2,12 +2,11 @@ from typing import Type
 
 import bpy
 from bpy.props import StringProperty
-from bpy.types import Operator
+from bpy.types import Operator, Context
 
 from .operator_report_mixin import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupBuilder, SHADER_GROUP_BUILDERS
-from ..utils.arrange_nodes import NodeTreeArranger
 
 
 class CreateShaderGroupOperator(OperatorReportMixin, Operator):
@@ -21,7 +20,7 @@ class CreateShaderGroupOperator(OperatorReportMixin, Operator):
         description="The name of the shader group to create.",
     )
 
-    def execute(self, context):
+    def execute(self, context: Context):
         # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
         node_groups = bpy.data.node_groups

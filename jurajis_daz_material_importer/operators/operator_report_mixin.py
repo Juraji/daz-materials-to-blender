@@ -19,5 +19,4 @@ class OperatorReportMixin(Operator):
             self.report({"WARNING"}, f"{self.message_prefix}{message}")
 
     def report_error(self, message: str):
-        if not self.silent:
-            self.report({"ERROR"}, f"{self.message_prefix}{message}")
+        self.report({"ERROR"}, f"{self.message_prefix}{message}")

@@ -20,9 +20,3 @@ class MaterialImportProperties(PropertyGroup):
         description="Rename objects to their DAZ label equivalent. Note that enabling this will prevent rerunning imports!",
         default=False,
     )
-
-    replace_node_groups: BoolProperty(
-        name="Replace Existing Shader Groups",
-        description="Replace shader node groups created by an earlier import.",
-        default=True,
-    )

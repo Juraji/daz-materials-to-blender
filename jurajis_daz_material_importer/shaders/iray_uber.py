@@ -270,8 +270,8 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
-    def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        super().add_shader_group(channels)
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        super().apply_shader_group(channels)
 
         builder = IrayUberPBRMRShaderGroupBuilder
 

@@ -303,8 +303,8 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
-    def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        super().add_shader_group(channels)
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        super().apply_shader_group(channels)
 
         builder = PBRSkinShaderGroupBuilder
 
@@ -344,7 +344,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             # Only apply mapping if tiling is enabled for this node
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset", "detail_vertical_tiles", "detail_vertical_offset"]
             if detail_map_tex_node and self._channel_enabled(*detail_mapping_ids):
-                detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", (self._mapping.location[0], -300), props={"vector_type": "POINT"})
+                detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", (self._mapping.location[0], -400), props={"vector_type": "POINT"})
                 self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
                 self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)

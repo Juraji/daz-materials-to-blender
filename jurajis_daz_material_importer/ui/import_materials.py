@@ -21,8 +21,6 @@ class ImportMaterialsPanelBase(Panel):
         shader_groups_header, shader_groups_panel = layout.panel("shader_groups", default_closed=True)
         shader_groups_header.label(text="Shader Groups")
         if shader_groups_panel:
-            shader_groups_panel.prop(props, "replace_node_groups")
-
             shader_groups_panel.label(text="Support")
             for builder in self._support_builders:
                 op = shader_groups_panel.operator(
@@ -40,7 +38,6 @@ class ImportMaterialsPanelBase(Panel):
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Import Options")
         if options_panel:
-            options_panel.prop(props, "replace_node_groups")
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
 

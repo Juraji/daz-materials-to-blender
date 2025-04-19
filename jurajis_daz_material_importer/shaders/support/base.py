@@ -4,7 +4,7 @@ from typing import Literal, Any, cast, Self, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
-    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketFloat, NodeSocketVector, NodeSocketColor
+    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor
 
 from ...properties import MaterialImportProperties
 from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
@@ -36,8 +36,8 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
     def __init__(self, properties: MaterialImportProperties, node_trees: BlendDataNodeTrees):
         super().__init__()
-        self.properties = properties
-        self.node_trees = node_trees
+        self.properties: MaterialImportProperties = properties
+        self.node_trees: BlendDataNodeTrees = node_trees
         self.node_group: NodeTree | None = None
 
     def setup_group(self):
@@ -230,7 +230,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                                location: tuple[float, float],
                                parent: Node = None,
                                props: dict[str, Any] = {}):
-        props = {**props, "node_tree": bpy.data.node_groups[builder.group_name()]}
+        props = {**props, "node_tree": self.node_trees[builder.group_name()]}
         return self._add_node("ShaderNodeGroup", label, location, parent, props)
 
     def _add_node(self,
@@ -251,10 +251,12 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
         return node
 
+
 class SupportShaderGroupBuilder(ShaderGroupBuilder):
     @staticmethod
     def is_support() -> bool:
         return True
+
 
 class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     __group_node_width: float = 400
@@ -273,7 +275,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._shader_group: Node | None = None
         self._channels: dict[str, DsonMaterialChannel] = {}
 
-    def add_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         mapping = self._node_tree.nodes.new("ShaderNodeMapping")
         mapping.name = "Mapping"
         mapping.vector_type = 'POINT'

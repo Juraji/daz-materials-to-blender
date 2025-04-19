@@ -35,17 +35,15 @@ class CreateShaderGroupOperator(OperatorReportMixin, Operator):
             return {"CANCELLED"}
 
         if builder_cls.group_name() in node_groups:
-            if not props.replace_node_groups:
-                self.report_warning(f"Shader Group \"{self.group_name}\" already exists!")
-                return {"CANCELLED"}
-
-            existing = node_groups[builder_cls.group_name()]
-            node_groups.remove(existing)
+            self.report_warning(f"Shader Group \"{self.group_name}\" already exists!")
+            return {"FINISHED"}
 
         # Also create dependencies
         for dep in builder_cls.depends_on():
             # noinspection PyUnresolvedReferences
-            bpy.ops.daz_import.create_shader_group(group_name=dep, silent=self.silent)
+            res = bpy.ops.daz_import.create_shader_group(group_name=dep, silent=self.silent)
+            if not res == {"FINISHED"}:
+                return {"FINISHED"}
 
         builder = builder_cls(props, node_groups)
         builder.setup_group()

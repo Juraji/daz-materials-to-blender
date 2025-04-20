@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from datetime import datetime
-from typing import Literal, Any, cast, Self, Type
+from typing import Literal, Any, cast, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
@@ -27,7 +29,7 @@ class _MaterialTypeIdMixin:
 class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
     @staticmethod
-    def depends_on() -> set[str]:
+    def depends_on() -> set[Type[ShaderGroupBuilder]]:
         return set()
 
     @staticmethod
@@ -138,8 +140,8 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                    default_closed: bool = True) -> NodeTreeInterfacePanel:
         return self.node_group.interface.new_panel(name, default_closed=default_closed)
 
-    def add_frame(self, label: str, location: tuple[float, float]) -> Node:
-        return self._add_node("NodeFrame", label, location)
+    def add_frame(self, label: str) -> Node:
+        return self._add_node("NodeFrame", label, (0, 0))
 
     def _add_node__group_input(self,
                                label: str,
@@ -226,7 +228,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
     def _add_node_shader_group(self,
                                label: str,
-                               builder: Type[Self],
+                               builder: Type[ShaderGroupBuilder],
                                location: tuple[float, float],
                                parent: Node = None,
                                props: dict[str, Any] = {}):
@@ -304,7 +306,16 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         shader_group.location = (-415, 0)
         shader_group.width = self.__group_node_width
         shader_group.node_tree = bpy.data.node_groups[self.group_name()]
-        self._link_socket(shader_group, self._material_ouput, 0, 0)
+
+        for out_sock in shader_group.outputs:
+            match out_sock.name:
+                case "Surface":
+                    self._link_socket(shader_group, self._material_ouput, out_sock, 0)
+                case "Volume":
+                    self._link_socket(shader_group, self._material_ouput, out_sock, 1)
+                case "Displacement":
+                    self._link_socket(shader_group, self._material_ouput, out_sock, 2)
+
         self._shader_group = shader_group
 
         self._channels = channels

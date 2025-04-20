@@ -1,7 +1,9 @@
+from typing import Type
+
 from .support.base import ShaderGroupBuilder, ShaderGroupApplier
 from .support.dls import DualLobeSpecularShaderGroupBuilder
 
-__GROUP_NAME__ = "DAZ PBR Skin"
+__GROUP_NAME__ = "PBR Skin"
 __MATERIAL_TYPE_ID__ = "pbrskin"
 
 from ..utils.dson import DsonMaterialChannel
@@ -70,8 +72,8 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         return __MATERIAL_TYPE_ID__
 
     @staticmethod
-    def depends_on() -> set[str]:
-        return {DualLobeSpecularShaderGroupBuilder.group_name()}
+    def depends_on() -> set[Type[ShaderGroupBuilder]]:
+        return {DualLobeSpecularShaderGroupBuilder}
 
     def setup_group(self):
         super().setup_group()

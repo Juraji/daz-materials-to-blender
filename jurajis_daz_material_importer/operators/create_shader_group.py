@@ -25,10 +25,8 @@ class CreateShaderGroupOperator(OperatorReportMixin, Operator):
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
         node_groups = bpy.data.node_groups
 
-        builder_cls: Type[ShaderGroupBuilder] | None = None
-        for cls in SHADER_GROUP_BUILDERS:
-            if cls.group_name() == self.group_name:
-                builder_cls = cls
+        builder_cls: Type[ShaderGroupBuilder] | None = next(
+            (c for c in SHADER_GROUP_BUILDERS if c.group_name() == self.group_name), None)
 
         if builder_cls is None:
             self.report_error(f"Builder not found for name \"{self.group_name}\"!")
@@ -41,7 +39,7 @@ class CreateShaderGroupOperator(OperatorReportMixin, Operator):
         # Also create dependencies
         for dep in builder_cls.depends_on():
             # noinspection PyUnresolvedReferences
-            res = bpy.ops.daz_import.create_shader_group(group_name=dep, silent=self.silent)
+            res = bpy.ops.daz_import.create_shader_group(group_name=dep.group_name(), silent=self.silent)
             if not res == {"FINISHED"}:
                 return {"FINISHED"}
 

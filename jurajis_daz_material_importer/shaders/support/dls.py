@@ -35,16 +35,16 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
         super().setup_group()
 
         # Input sockets
-        sock_weight = self._float_socket(self.in_weight)
+        sock_weight = self._float_socket(self.in_weight, 0.35)
         sock_weight_map = self._color_socket(self.in_weight_map)
-        sock_reflectivity = self._float_socket(self.in_reflectivity)
+        sock_reflectivity = self._float_socket(self.in_reflectivity, 0.25)
         sock_reflectivity_map = self._color_socket(self.in_reflectivity_map)
-        sock_roughness_mult = self._float_socket(self.in_roughness_mult)
-        sock_l1_roughness = self._float_socket(self.in_l1_roughness)
+        sock_roughness_mult = self._float_socket(self.in_roughness_mult, 1)
+        sock_l1_roughness = self._float_socket(self.in_l1_roughness, 0.7)
         sock_l1_roughness_map = self._color_socket(self.in_l1_roughness_map)
-        sock_l2_roughness_mult = self._float_socket(self.in_l2_roughness_mult)
+        sock_l2_roughness_mult = self._float_socket(self.in_l2_roughness_mult, 0.45)
         sock_l2_roughness_mult_map = self._color_socket(self.in_l2_roughness_mult_map)
-        sock_ratio = self._float_socket(self.in_ratio)
+        sock_ratio = self._float_socket(self.in_ratio ,0.15)
         sock_ratio_map = self._color_socket(self.in_ratio_map)
         sock_normal = self._vector_socket(self.in_normal)
 

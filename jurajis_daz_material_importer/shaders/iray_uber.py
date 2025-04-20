@@ -1,11 +1,16 @@
-from .support.displacement import AsymmetricalDisplacementShaderGroupBuilder
-from .support.transmission import WeightedTransmissonShaderGroupBuilder
+from typing import Type
+
+from bpy.types import NodeSocket
+
 from .support.base import ShaderGroupApplier, ShaderGroupBuilder
+from .support.displacement import AsymmetricalDisplacementShaderGroupBuilder
 from .support.dls import DualLobeSpecularShaderGroupBuilder
+from .support.emission import BlackbodyEmissionShaderGroupBuilder
+from .support.metallic_flakes import MetallicFlakesShaderGroupBuilder
 from .support.translucency import WeightedTranslucencyShaderGroupBuilder
 from ..utils.dson import DsonMaterialChannel
 
-__GROUP_NAME__ = "DAZ Iray Uber (PBR Metallicity/Roughness)"
+__GROUP_NAME__ = "Iray Uber (Metallicity/Roughness)"
 __MATERIAL_TYPE_ID__ = "iray_uber__pbr_mr"
 
 
@@ -111,11 +116,15 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_sss_direction = "SSS Direction"
 
     # Volume Transmission
+    in_refraction_weight = "Refraction Weight"
+    in_refraction_weight_map = "Refraction Weight Map"
+    in_ior = "IOR"
     in_transmitted_measurement_distance = "Transmitted Measurement Distance"
     in_transmitted_color = "Transmitted Color"
     in_transmitted_color_map = "Transmitted Color Map"
 
     out_surface = "Surface"
+    out_volume = "Volume"
     out_displacement = "Displacement"
 
     @staticmethod
@@ -127,12 +136,13 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         return __MATERIAL_TYPE_ID__
 
     @staticmethod
-    def depends_on() -> set[str]:
+    def depends_on() -> set[Type[ShaderGroupBuilder]]:
         return {
-            DualLobeSpecularShaderGroupBuilder.group_name(),
-            AsymmetricalDisplacementShaderGroupBuilder.group_name(),
-            WeightedTranslucencyShaderGroupBuilder.group_name(),
-            WeightedTransmissonShaderGroupBuilder.group_name(),
+            AsymmetricalDisplacementShaderGroupBuilder,
+            BlackbodyEmissionShaderGroupBuilder,
+            DualLobeSpecularShaderGroupBuilder,
+            MetallicFlakesShaderGroupBuilder,
+            WeightedTranslucencyShaderGroupBuilder,
         }
 
     def setup_group(self):
@@ -245,6 +255,9 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_scattering_measurement_distance = self._float_socket(self.in_scattering_measurement_distance, 0.1, parent=panel_volume_scattering)
 
         # Sockets: Volume Transmission
+        sock_refraction_weight = self._float_socket(self.in_refraction_weight, parent=panel_volume_transmission)
+        sock_refraction_weight_map = self._color_socket(self.in_refraction_weight_map, parent=panel_volume_transmission)
+        sock_ior = self._float_socket(self.in_ior, parent=panel_volume_transmission)
         sock_transmitted_measurement_distance = self._float_socket(self.in_transmitted_measurement_distance, 0.1, parent=panel_volume_transmission)
         sock_transmitted_color = self._color_socket(self.in_transmitted_color, (0.0, 0.0, 0.0, 1.0), parent=panel_volume_transmission)
         sock_transmitted_color_map = self._color_socket(self.in_transmitted_color_map, parent=panel_volume_transmission)
@@ -252,7 +265,15 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
         # Output Sockets:
         sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
+        sock_out_volume = self._shader_socket(self.out_volume, in_out="OUTPUT")
         sock_out_displacement = self._shader_socket(self.out_displacement, in_out="OUTPUT")
+
+        # Frames
+        frame_pbr = self.add_frame("PBR")
+        frame_normal = self.add_frame("Normal")
+        frame_diff_overlay = self.add_frame("Diffuse Overlay")
+        frame_thin_film = self.add_frame("Thin Film")
+        frame_refraction = self.add_frame("Refraction and Tranmission")
 
         # Nodes: Group Input
         node_group_input = self._add_node__group_input("Group Input", (-1045, 0))
@@ -363,7 +384,9 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs("sss_direction", builder.in_sss_direction, None)
 
         # Volume Transmission
-        if self._channel_enabled("transmitted_color"):
+        if self._channel_enabled("refraction_weight"):
+            self._channel_to_inputs("refraction_weight", builder.in_refraction_weight, builder.in_refraction_weight_map)
+            self._channel_to_inputs("refraction_index", builder.in_ior, None)
             self._channel_to_inputs("transmitted_measurement_distance", builder.in_transmitted_measurement_distance, None)
             self._channel_to_inputs("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map)
         # @formatter:on

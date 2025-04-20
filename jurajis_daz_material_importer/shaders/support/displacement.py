@@ -25,11 +25,11 @@ class AsymmetricalDisplacementShaderGroupBuilder(SupportShaderGroupBuilder):
         super().setup_group()
 
         # Input Sockets
-        sock_normal = self._vector_socket(self.in_normal)
-        sock_strength = self._float_socket(self.in_strength)
-        sock_strength_map = self._color_socket(self.in_strength_map, (0.5, 0.5, 0.5, 1.0))
-        sock_max_displacement = self._float_socket(self.in_max_displacement)
+        sock_strength = self._float_socket(self.in_strength, 1)
+        sock_strength_map = self._color_socket(self.in_strength_map)
         sock_min_displacement = self._float_socket(self.in_min_displacement)
+        sock_max_displacement = self._float_socket(self.in_max_displacement)
+        sock_normal = self._vector_socket(self.in_normal)
 
         # Output Sockets
         sock_out_displacement = self._vector_socket(self.out_displacement, in_out="OUTPUT")

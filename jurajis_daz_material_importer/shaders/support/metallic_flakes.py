@@ -53,7 +53,7 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
         # Nodes: Metallic Flakes
         node_mix_weight = self._add_node__hsv("Mix Weight and Map", (-720.0, 320.0))
         self._link_socket(node_group_input, node_mix_weight, sock_weight, 2)
-        self._link_socket(node_group_input, node_mix_weight, sock_weight_map, 5)
+        self._link_socket(node_group_input, node_mix_weight, sock_weight_map, 4)
 
         node_mix_color = self._add_node__mix("Mix Color and Map", (-740.0, 80.0))
         self._link_socket(node_group_input, node_mix_color, sock_color, 6)
@@ -88,7 +88,7 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_pick_visible_flakes, sock_flake_density, 1)
 
         node_mix_weight_visible_flakes = self._add_node__math("Mix Weight and Visible Flakes", (520.0, 260.0), "MULTIPLY")
-        self._link_socket(node_mix_weight, node_mix_weight_visible_flakes, 2, 0)
+        self._link_socket(node_mix_weight, node_mix_weight_visible_flakes, 0, 0)
         self._link_socket(node_pick_visible_flakes, node_mix_weight_visible_flakes, 0, 1)
 
         node_princ_bsdf = self._add_node__princ_bdsf("Principled BSDF", (500.0, -80.0))

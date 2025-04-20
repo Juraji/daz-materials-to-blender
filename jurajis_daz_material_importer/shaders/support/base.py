@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Any, cast, Type
 
@@ -24,6 +25,22 @@ class _MaterialTypeIdMixin:
     @staticmethod
     def material_type_id() -> str:
         raise NotImplementedError()
+
+@dataclass
+class RerouteGroup:
+    parent: Node | None = None
+    direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL"
+    offset: float = field(default=20.0)
+    _current_x: float = field(default=0.0)
+    _current_y: float = field(default=0.0)
+
+    def next_position(self) -> tuple[float, float]:
+        if self.direction == "HORIZONTAL":
+            self._current_x -= self.offset
+        else:
+            self._current_y -= self.offset
+
+        return self._current_x, self._current_y
 
 
 class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
@@ -105,7 +122,15 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                      source: Node,
                      target: Node,
                      source_socket: NodeTreeInterfaceSocket | int,
-                     target_socket: NodeTreeInterfaceSocket | int):
+                     target_socket: NodeTreeInterfaceSocket | int,
+                     group: RerouteGroup | None = None):
+
+        if group:
+            node_reroute = self._add_node__reroute(group.next_position(), group.parent)
+            self._link_socket(source, node_reroute, source_socket, 0)
+            self._link_socket(node_reroute, target, 0, target_socket)
+            return
+
         if isinstance(source_socket, NodeTreeInterfaceSocket):
             source_socket = source.outputs[source_socket.name]
         else:
@@ -131,16 +156,24 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
             sock.default_value = default_value
 
         for prop, value in props.items():
-            sock[prop] = value
+            if hasattr(sock, prop):
+                setattr(sock, prop, value)
 
         return sock
+
+    @staticmethod
+    def _reroute_group(initial_location: tuple[float, float],
+                       parent: Node | None = None,
+                       direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL",
+                       offset: float = 20.0) -> RerouteGroup:
+        return RerouteGroup(parent, direction, offset, *initial_location)
 
     # Nodes
     def _add_panel(self, name: str,
                    default_closed: bool = True) -> NodeTreeInterfacePanel:
         return self.node_group.interface.new_panel(name, default_closed=default_closed)
 
-    def add_frame(self, label: str) -> Node:
+    def _add_frame(self, label: str) -> Node:
         return self._add_node("NodeFrame", label, (0, 0))
 
     def _add_node__group_input(self,
@@ -226,14 +259,19 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                               props: dict[str, Any] = {}):
         return self._add_node("ShaderNodeBsdfPrincipled", label, location, parent, props)
 
-    def _add_node_shader_group(self,
-                               label: str,
-                               builder: Type[ShaderGroupBuilder],
-                               location: tuple[float, float],
-                               parent: Node = None,
-                               props: dict[str, Any] = {}):
+    def _add_node__shader_group(self,
+                                label: str,
+                                builder: Type[ShaderGroupBuilder],
+                                location: tuple[float, float],
+                                parent: Node = None,
+                                props: dict[str, Any] = {}):
         props = {**props, "node_tree": self.node_trees[builder.group_name()]}
         return self._add_node("ShaderNodeGroup", label, location, parent, props)
+
+    def _add_node__reroute(self,
+                           location: tuple[float, float],
+                           parent: Node = None):
+        return self._add_node("NodeReroute", "", location, parent)
 
     def _add_node(self,
                   node_type: str,
@@ -243,7 +281,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                   props: dict[str, Any] = {}) -> Node:
         node = self.node_group.nodes.new(node_type)
         node.label = label
-        node.name = slugify(self.group_name(), node_type, label)
+        node.name = slugify(node_type, label)
         node.parent = parent
         node.location = location
 

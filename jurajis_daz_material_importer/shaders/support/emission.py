@@ -7,7 +7,7 @@ __MATERIAL_TYPE_ID__ = "blackbody_emission"
 class BlackbodyEmissionShaderGroupBuilder(ShaderGroupBuilder):
     in_color = "Color"
     in_color_map = "Color Map"
-    in_temperature = "Temperature"
+    in_temperature = "Temperature (K)"
     in_luminance = "Luminance"
     in_luminance_map = "Luminance Map"
 

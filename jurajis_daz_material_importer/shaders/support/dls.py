@@ -19,6 +19,9 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
     in_normal = 'Normal'
     dls_layer_weight = 0.7
 
+    out_fac = "Fac"
+    out_shader = "Shader"
+
     @staticmethod
     def group_name() -> str:
         return __GROUP_NAME__
@@ -49,8 +52,8 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
         sock_normal = self._vector_socket(self.in_normal)
 
         # Output Sockets
-        sock_out_fac = self._float_socket('Fac', in_out='OUTPUT')
-        sock_out_specular = self._shader_socket('Specular', in_out='OUTPUT')
+        sock_out_fac = self._float_socket(self.out_fac, in_out='OUTPUT')
+        sock_out_specular = self._shader_socket(self.out_shader, in_out='OUTPUT')
 
         # Nodes: Group Input
         node_group_input = self._add_node__group_input('Group Input', (-1159, -78))

@@ -8,6 +8,7 @@ from .support.dls import DualLobeSpecularShaderGroupBuilder
 from .support.emission import BlackbodyEmissionShaderGroupBuilder
 from .support.metallic_flakes import MetallicFlakesShaderGroupBuilder
 from .support.translucency import WeightedTranslucencyShaderGroupBuilder
+from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
 from ..utils.dson import DsonMaterialChannel
 
 __GROUP_NAME__ = "Iray Uber (Metallicity/Roughness)"
@@ -34,10 +35,10 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_diffuse_roughness_map = "Diffuse Roughness Map"
 
     # Base Bump
+    in_normal_map = "Normal"
+    in_normal_map_map = "Normal Map"
     in_bump_strength = "Bump Strength"
     in_bump_strength_map = "Bump Strength Map"
-    in_normal_map = "Normal Map"
-    in_normal_map_map = "Normal Map Map"
 
     # Base Diffuse Overlay
     in_diffuse_overlay_weight = "Diffuse Overlay Weight"
@@ -173,10 +174,10 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_diffuse_roughness_map = self._color_socket(self.in_diffuse_roughness_map, parent=panel_base_diffuse)
 
         # Sockets: Base Bump
+        sock_normal = self._float_socket(self.in_normal_map, 1, parent=panel_base_bump)
+        sock_normal_map = self._color_socket(self.in_normal_map_map, parent=panel_base_bump)
         sock_bump_strength = self._float_socket(self.in_bump_strength, 1, parent=panel_base_bump)
         sock_bump_strength_map = self._color_socket(self.in_bump_strength_map, parent=panel_base_bump)
-        sock_normal_map = self._float_socket(self.in_normal_map, 1, parent=panel_base_bump)
-        sock_normal_map_map = self._color_socket(self.in_normal_map_map, parent=panel_base_bump)
 
         # Sockets: Base Diffuse Overlay
         sock_diffuse_overlay_weight = self._float_socket(self.in_diffuse_overlay_weight, parent=panel_base_diffuse_overlay)
@@ -252,34 +253,254 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_sss_weight = self._float_socket(self.in_sss_weight, parent=panel_volume_scattering)
         sock_sss_color = self._color_socket(self.in_sss_color, (0.0, 0.0, 0.0, 1.0), parent=panel_volume_scattering)
         sock_sss_direction = self._float_socket(self.in_sss_direction, parent=panel_volume_scattering)
-        sock_scattering_measurement_distance = self._float_socket(self.in_scattering_measurement_distance, 0.1, parent=panel_volume_scattering)
+        sock_sss_scale = self._float_socket(self.in_scattering_measurement_distance, 0.1, parent=panel_volume_scattering)
 
         # Sockets: Volume Transmission
         sock_refraction_weight = self._float_socket(self.in_refraction_weight, parent=panel_volume_transmission)
         sock_refraction_weight_map = self._color_socket(self.in_refraction_weight_map, parent=panel_volume_transmission)
-        sock_ior = self._float_socket(self.in_ior, parent=panel_volume_transmission)
-        sock_transmitted_measurement_distance = self._float_socket(self.in_transmitted_measurement_distance, 0.1, parent=panel_volume_transmission)
+        sock_ior = self._float_socket(self.in_ior, 1.5, parent=panel_volume_transmission)
+        sock_transmitted_distance = self._float_socket(self.in_transmitted_measurement_distance, 0.1, parent=panel_volume_transmission)
         sock_transmitted_color = self._color_socket(self.in_transmitted_color, (0.0, 0.0, 0.0, 1.0), parent=panel_volume_transmission)
         sock_transmitted_color_map = self._color_socket(self.in_transmitted_color_map, parent=panel_volume_transmission)
-        # @formatter:on
 
         # Output Sockets:
         sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
         sock_out_volume = self._shader_socket(self.out_volume, in_out="OUTPUT")
-        sock_out_displacement = self._shader_socket(self.out_displacement, in_out="OUTPUT")
+        sock_out_displacement = self._vector_socket(self.out_displacement, in_out="OUTPUT")
 
-        # Frames
-        frame_pbr = self.add_frame("PBR")
-        frame_normal = self.add_frame("Normal")
-        frame_diff_overlay = self.add_frame("Diffuse Overlay")
-        frame_thin_film = self.add_frame("Thin Film")
-        frame_refraction = self.add_frame("Refraction and Tranmission")
+        # Frames and Reroute Groups
+        frame_pbr = self._add_frame("PBR")
+        reroute_pbr_in = self._reroute_group((-2347, 800), parent=frame_pbr)
+        reroute_pbr_out = self._reroute_group((-1584, 755), parent=frame_pbr)
+
+        frame_normal = self._add_frame("Normal")
+        reroute_normal_in = self._reroute_group((-3067, 713), parent=frame_normal)
+
+        frame_diff_overlay = self._add_frame("Diffuse Overlay")
+        reroute_diff_overlay_in = self._reroute_group((-1367, 492), parent=frame_diff_overlay)
+        reroute_diff_overlay_out = self._reroute_group((-515, 489), parent=frame_diff_overlay)
+
+        frame_thin_film = self._add_frame("Thin Film")
+        reroute_thin_film_in = self._reroute_group((-2107, -419), parent=frame_thin_film)
+
+        frame_top_coat = self._add_frame("Top coat")
+        reroute_top_coat_in = self._reroute_group((-2267, -1586), parent=frame_top_coat)
+        reroute_top_coat_out = self._reroute_group((-1613, -1596), parent=frame_top_coat)
+
+        frame_transmission = self._add_frame("Refraction and Tranmission")
+        reroute_transmission_in = self._reroute_group((-2327, -1979), parent=frame_transmission)
+        reroute_transmission_out = self._reroute_group((-1520, -1908), parent=frame_transmission)
+
+        reroute_sss_ior = self._reroute_group((-1920.0, -1361.0))
 
         # Nodes: Group Input
-        node_group_input = self._add_node__group_input("Group Input", (-1045, 0))
+        node_group_input = self._add_node__group_input("Group Input", (-3320, 400))
+
+        # Nodes: PBR
+        node_mix_diffuse_color = self._add_node__mix("Mix Diffuse Color and Map", (-2303, 821), parent=frame_pbr)
+        self._link_socket(node_group_input, node_mix_diffuse_color, sock_diffuse, 6, reroute_pbr_in)
+        self._link_socket(node_group_input, node_mix_diffuse_color, sock_diffuse_map, 7, reroute_pbr_in)
+
+        node_mix_metallic_weight = self._add_node__hsv("Mix Metallic Weight and Map", (-2123, 801), parent=frame_pbr)
+        self._link_socket(node_group_input, node_mix_metallic_weight, sock_metallic_weight, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_mix_metallic_weight, sock_metallic_weight_map, 4, reroute_pbr_in)
+
+        node_mix_roughness_weight = self._add_node__hsv("Mix Rougness Weight and Map", (-1943, 801), parent=frame_pbr)
+        self._link_socket(node_group_input, node_mix_roughness_weight, sock_diffuse_roughness, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_mix_roughness_weight, sock_diffuse_roughness_map, 4, reroute_pbr_in)
+
+        node_mix_opacity = self._add_node__hsv("Mix Cutout Opacity and Map", (-1773, 801), parent=frame_pbr)
+        self._link_socket(node_group_input, node_mix_opacity, sock_cutout_opacity, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_mix_opacity, sock_cutout_opacity_map, 4, reroute_pbr_in)
+
+        # Nodes: Normal and Bump
+        node_normal_map = self._add_node__normal_map("Normal Map", (-3021, 761), parent=frame_normal)
+        self._link_socket(node_group_input, node_normal_map, sock_normal, 0, reroute_normal_in)
+        self._link_socket(node_group_input, node_normal_map, sock_normal_map, 1, reroute_normal_in)
+
+        node_bump = self._add_node__bump("Bump", (-2821, 761), parent=frame_normal)
+        self._link_socket(node_group_input, node_bump, sock_bump_strength, 0, reroute_normal_in)
+        self._link_socket(node_group_input, node_bump, sock_bump_strength_map, 2, reroute_normal_in)
+        self._link_socket(node_normal_map, node_bump, 0, 3)
+
+        node_normal_reroute_left = self._add_node__reroute((-2142, -710))
+        self._link_socket(node_bump, node_normal_reroute_left, 0, 0)
+        node_normal_reroute_right = self._add_node__reroute((-1265, 214))
+        self._link_socket(node_bump, node_normal_reroute_right, 0, 0)
+
+        # Nodes: Diffuse Overlay
+        node_mix_overlay_weight = self._add_node__hsv("Mix Overlay Weight and Map", (-1284, 740), parent=frame_diff_overlay)
+        self._link_socket(node_group_input, node_mix_overlay_weight, sock_diffuse_overlay_weight, 2, reroute_diff_overlay_in)
+        self._link_socket(node_group_input, node_mix_overlay_weight, sock_diffuse_overlay_weight_map, 4, reroute_diff_overlay_in)
+
+        node_overlay_sq_exponent = self._add_node__math("Overlay Squared Exponent", (-1284, 560), "POWER", parent=frame_diff_overlay)
+        self._link_socket(node_group_input, node_overlay_sq_exponent, sock_diffuse_overlay_weight_squared, 0, reroute_diff_overlay_in)
+        self._set_socket(node_overlay_sq_exponent, 1, 1.0)
+
+        node_overlay_sq_value = self._add_node__math("Overlay Squared", (-1104, 640), parent=frame_diff_overlay)
+        self._link_socket(node_mix_overlay_weight, node_overlay_sq_value, 0, 0)
+        self._link_socket(node_overlay_sq_exponent, node_overlay_sq_value, 0, 1)
+
+        node_mix_overlay_color = self._add_node__mix("Mix Overlay Color and Map", (-913, 700), parent=frame_diff_overlay)
+        self._link_socket(node_group_input, node_mix_overlay_color, sock_diffuse_overlay_color, 6, reroute_diff_overlay_in)
+        self._link_socket(node_group_input, node_mix_overlay_color, sock_diffuse_overlay_color_map, 7, reroute_diff_overlay_in)
+
+        node_mix_overlay_roughness = self._add_node__hsv("Mix Overlay Roughness and Map", (-913, 460), parent=frame_diff_overlay)
+        self._link_socket(node_group_input, node_mix_overlay_roughness, sock_diffuse_overlay_roughness, 2, reroute_diff_overlay_in)
+        self._link_socket(node_group_input, node_mix_overlay_roughness, sock_diffuse_overlay_roughness_map, 4, reroute_diff_overlay_in)
+
+        node_overlay_bsdf = self._add_node("ShaderNodeBsdfDiffuse", "Overlay Layer BSDF", (-700, 476), parent=frame_diff_overlay)
+        self._link_socket(node_mix_overlay_color, node_overlay_bsdf, 2, 0)
+        self._link_socket(node_mix_overlay_roughness, node_overlay_bsdf, 0, 1)
+        self._link_socket(node_normal_reroute_right, node_overlay_bsdf, 0, 2)
+
+        # Nodes: Translucency
+        builder_trans = WeightedTranslucencyShaderGroupBuilder
+        node_translucency = self._add_node__shader_group("Translucency", builder_trans,  (-2000, 225))
+        self._link_socket(node_group_input, node_translucency, sock_translucency_weight, builder_trans.in_translucency_weight)
+        self._link_socket(node_group_input, node_translucency, sock_translucency_weight_map, builder_trans.in_translucency_weight_map)
+        self._link_socket(node_group_input, node_translucency, sock_translucency_color, builder_trans.in_translucency_color)
+        self._link_socket(node_group_input, node_translucency, sock_translucency_color_map, builder_trans.in_translucency_color_map)
+        self._link_socket(node_group_input, node_translucency, sock_invert_transmission_normal, builder_trans.in_invert_transmission_normal)
+        self._link_socket(node_normal_reroute_left, node_translucency, 0, builder_trans.in_normal)
+
+        # Nodes: DLS
+        builder_dls = DualLobeSpecularShaderGroupBuilder
+        node_dls = self._add_node__shader_group("DLS", builder_dls, (-2000, -14))
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_weight, builder_dls.in_weight)
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_weight_map, builder_dls.in_weight_map)
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_reflectivity, builder_dls.in_reflectivity)
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_reflectivity_map, builder_dls.in_reflectivity_map)
+        self._set_socket(node_dls, builder_dls.in_roughness_mult, 1)
+        self._link_socket(node_group_input, node_dls, sock_specular_lobe_1_roughness, builder_dls.in_l1_roughness)
+        self._link_socket(node_group_input, node_dls, sock_specular_lobe_1_roughness_map, builder_dls.in_l1_roughness_map)
+        self._link_socket(node_group_input, node_dls, sock_specular_lobe_2_roughness, builder_dls.in_l2_roughness_mult)
+        self._link_socket(node_group_input, node_dls, sock_specular_lobe_2_roughness_map, builder_dls.in_l2_roughness_mult_map)
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_ratio, builder_dls.in_ratio)
+        self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_ratio_map, builder_dls.in_ratio_map)
+        self._link_socket(node_normal_reroute_left, node_dls, 0, builder_trans.in_normal)
+
+        # Nodes: Thin Film
+        node_mix_thin_film = self._add_node__hsv("Mix Thin Film and Map", (-2071, -420), parent=frame_thin_film)
+        self._link_socket(node_group_input, node_mix_thin_film, sock_base_thin_film, 2, reroute_thin_film_in)
+        self._link_socket(node_group_input, node_mix_thin_film, sock_base_thin_film_map, 4, reroute_thin_film_in)
+
+        node_mix_thin_film_ior = self._add_node__hsv("Mix Thin Film IOR and Map", (-1880, -420), parent=frame_thin_film)
+        self._link_socket(node_group_input, node_mix_thin_film_ior, sock_base_thin_film_ior, 2, reroute_thin_film_in)
+        self._link_socket(node_group_input, node_mix_thin_film_ior, sock_base_thin_film_ior_map, 4, reroute_thin_film_in)
+
+        # Nodes: Blackbody Emission
+        builder_emiss = BlackbodyEmissionShaderGroupBuilder
+        node_bb_emission = self._add_node__shader_group("Blackbody Emission", builder_emiss, (-2000, -634))
+        self._link_socket(node_group_input, node_bb_emission, sock_emission_color, builder_emiss.in_color)
+        self._link_socket(node_group_input, node_bb_emission, sock_emission_color_map, builder_emiss.in_color_map)
+        self._link_socket(node_group_input, node_bb_emission, sock_emission_temperature, builder_emiss.in_temperature)
+        self._link_socket(node_group_input, node_bb_emission, sock_luminance, builder_emiss.in_luminance)
+        self._link_socket(node_group_input, node_bb_emission, sock_luminance_map, builder_emiss.in_luminance_map)
+
+        # Nodes: Displacement
+        builder_disp = AsymmetricalDisplacementShaderGroupBuilder
+        node_displacement = self._add_node__shader_group("Displacement", builder_disp, (-2000, -854))
+        self._link_socket(node_group_input, node_displacement, sock_displacement_strength, builder_disp.in_strength)
+        self._link_socket(node_group_input, node_displacement, sock_displacement_strength_map, builder_disp.in_strength_map)
+        self._link_socket(node_group_input, node_displacement, sock_minimum_displacement, builder_disp.in_min_displacement)
+        self._link_socket(node_group_input, node_displacement, sock_maximum_displacement, builder_disp.in_max_displacement)
+        self._link_socket(node_normal_reroute_left, node_displacement, 0, builder_disp.in_normal)
+
+        # Nodes: Metallic Flakes
+        builder_flakes = MetallicFlakesShaderGroupBuilder
+        node_flakes = self._add_node__shader_group("Metallic Flakes", builder_flakes, (-2000, -1054))
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_weight, builder_flakes.in_weight)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_weight_map, builder_flakes.in_weight_map)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_color, builder_flakes.in_color)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_color_map, builder_flakes.in_color_map)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_roughness, builder_flakes.in_roughness)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_roughness_map, builder_flakes.in_roughness_map)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_size, builder_flakes.in_flake_size)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_strength, builder_flakes.in_flake_strength)
+        self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_density, builder_flakes.in_flake_density)
+        self._link_socket(node_normal_reroute_left, node_flakes, 0, builder_flakes.in_normal)
+
+        # Nodes: Top Coat
+        node_mix_top_coat_weight = self._add_node__hsv("Mix Top Coat Weight and Map", (-2221, -1558), parent=frame_top_coat)
+        self._link_socket(node_group_input, node_mix_top_coat_weight, sock_top_coat_weight, 2, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_mix_top_coat_weight, sock_top_coat_weight_map, 4, reroute_top_coat_in)
+
+        node_mix_top_coat_color = self._add_node__mix("Mix Top Coat Color and Map", (-2021, -1558), parent=frame_top_coat)
+        self._link_socket(node_group_input, node_mix_top_coat_color, sock_top_coat_color, 6, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_mix_top_coat_color, sock_top_coat_color_map, 7, reroute_top_coat_in)
+
+        node_mix_top_coat_roughness = self._add_node__hsv("Mix Top Coat Roughness and Map", (-1841, -1558), parent=frame_top_coat)
+        self._link_socket(node_group_input, node_mix_top_coat_roughness, sock_top_coat_roughness, 2, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_mix_top_coat_roughness, sock_top_coat_roughness_map, 4, reroute_top_coat_in)
+
+        # Nodes: Refraction and Transmission
+        node_mix_refraction_weight = self._add_node__hsv("Mix Refraction Weight and Map", (-2103, -2099), parent=frame_transmission)
+        self._link_socket(node_group_input, node_mix_refraction_weight, sock_refraction_weight, 2, reroute_transmission_in)
+        self._link_socket(node_group_input, node_mix_refraction_weight, sock_refraction_weight_map, 4, reroute_transmission_in)
+
+        node_limit_trans_distance = self._add_node__math("Limit Transmitted Distane", (-1983, -1899), "MAXIMUM", parent=frame_transmission)
+        self._link_socket(node_group_input, node_limit_trans_distance, sock_transmitted_distance, 0, reroute_transmission_in)
+        self._set_socket(node_limit_trans_distance, 0, 0.0001)
+
+        node_mix_transmitted_color = self._add_node__mix("Mix Transmitted Color", (-2283, -1879), parent=frame_transmission)
+        self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color, 6, reroute_transmission_in)
+        self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color_map, 7, reroute_transmission_in)
+
+        node_transmitted_vol = self._add_node("ShaderNodeVolumeAbsorption", "Transmitted Volume Absorpsion", (-1718, -1927), parent=frame_transmission)
+        self._link_socket(node_mix_transmitted_color, node_transmitted_vol, 2,0)
+        self._link_socket(node_limit_trans_distance, node_transmitted_vol, 0,1)
+
+        # Nodes: Surface and mixing
+        s = PrincipledBSDFSockets
+        node_main_layer_bsdf = self._add_node__princ_bdsf("Main Layer BSDF", (-1080, 160))
+        self._link_socket(node_mix_diffuse_color, node_main_layer_bsdf, 2, s.BASE_COLOR, reroute_pbr_out)
+        self._link_socket(node_mix_metallic_weight, node_main_layer_bsdf, 0, s.METALLIC, reroute_pbr_out)
+        self._link_socket(node_mix_roughness_weight, node_main_layer_bsdf, 0, s.ROUGHNESS, reroute_pbr_out)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_ior, s.IOR, reroute_sss_ior)
+        self._link_socket(node_mix_opacity, node_main_layer_bsdf, 0, s.ALPHA, reroute_pbr_out)
+        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, s.NORMAL)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_weight, s.SUBSURFACE_WEIGHT, reroute_sss_ior)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_color, s.SUBSURFACE_RADIUS, reroute_sss_ior)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_scale, s.SUBSURFACE_SCALE, reroute_sss_ior)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_direction, s.SUBSURFACE_ANISOTROPY, reroute_sss_ior)
+        self._link_socket(node_mix_refraction_weight, node_main_layer_bsdf, 0, s.TRANSMISSION_WEIGHT, reroute_transmission_out)
+        self._link_socket(node_mix_top_coat_weight, node_main_layer_bsdf, 0, s.COAT_WEIGHT, reroute_top_coat_out)
+        self._link_socket(node_mix_top_coat_roughness, node_main_layer_bsdf, 0, s.COAT_ROUGHNESS, reroute_top_coat_out)
+        self._link_socket(node_mix_top_coat_color, node_main_layer_bsdf, 2, s.COAT_TINT, reroute_top_coat_out)
+        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, s.COAT_NORMAL)
+        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_color, s.EMISSION)
+        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_weight, s.EMISSION_STRENGTH)
+        self._link_socket(node_mix_thin_film, node_main_layer_bsdf, 0, s.THIN_FILM_THICKNESS)
+        self._link_socket(node_mix_thin_film_ior, node_main_layer_bsdf, 0, s.THIN_FILM_IOR)
+
+        node_mix_shader_trans = self._add_node__mix_shader("Mix Translucency Shader", (-720, 0))
+        self._link_socket(node_translucency, node_mix_shader_trans, builder_trans.out_fac,0)
+        self._link_socket(node_main_layer_bsdf, node_mix_shader_trans, 0,1)
+        self._link_socket(node_translucency, node_mix_shader_trans, builder_flakes.out_shader,2)
+
+        node_mix_shader_flakes = self._add_node__mix_shader("Mix Metallic Flakes Shader", (-540, 0))
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_fac,0)
+        self._link_socket(node_mix_shader_trans, node_mix_shader_flakes, 0,1)
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_shader,2)
+
+        node_mix_shader_overlay = self._add_node__mix_shader("Mix Diffuse Overlay Shader", (-360, 0))
+        self._link_socket(node_overlay_sq_value, node_mix_shader_overlay, 0,0, reroute_diff_overlay_out)
+        self._link_socket(node_mix_shader_flakes, node_mix_shader_overlay, 0,1)
+        self._link_socket(node_overlay_bsdf, node_mix_shader_overlay, 0,2, reroute_diff_overlay_out)
+
+        node_mix_shader_dls = self._add_node__mix_shader("Mix DLS Shader", (-180, 0))
+        self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_fac,0)
+        self._link_socket(node_mix_shader_overlay, node_mix_shader_dls, 0,1)
+        self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_shader, 2)
 
         # Group Output
         node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
+        self._link_socket(node_mix_shader_dls, node_group_output, 0, sock_out_surface)
+        self._link_socket(node_transmitted_vol, node_group_output, 0, sock_out_volume, reroute_transmission_out)
+        self._link_socket(node_displacement, node_group_output, builder_disp.out_displacement, sock_out_displacement)
+
+        # @formatter:on
 
 
 class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):

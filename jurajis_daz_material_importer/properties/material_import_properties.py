@@ -1,4 +1,4 @@
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, FloatProperty
 from bpy.types import PropertyGroup
 
 
@@ -19,4 +19,12 @@ class MaterialImportProperties(PropertyGroup):
         name="Rename Objects",
         description="Rename objects to their DAZ label equivalent. Note that enabling this will prevent rerunning imports!",
         default=False,
+    )
+
+    dls_weight_multiplier: FloatProperty(
+        name="DLS Weight",
+        description="Multiply Dual Lobe Specular weigths by this value. DLS can be quite strong in DAZ, x0.5 seems to be a good starting point.",
+        default=0.5,
+        min=0.0,
+        max=1.0,
     )

@@ -45,6 +45,7 @@ class ImportMaterialsPanelBase(Panel):
         if options_panel:
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
+            options_panel.prop(props, "dls_weight_multiplier")
 
         layout.prop(props, "daz_scene_file")
         layout.operator("daz_import.import_all_materials")

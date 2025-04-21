@@ -331,6 +331,9 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
 
         if self._channel_enabled('dual_lobe_specular_enable'):
             self._channel_to_inputs('dual_lobe_specular_weight', builder.in_dls_weight, builder.in_dls_weight_map)
+            if self._properties.dls_weight_multiplier != 1.0:
+                self._set_socket(self._shader_group, builder.in_dls_weight, self._properties.dls_weight_multiplier, "MULTIPLY")
+
             self._channel_to_inputs('dual_lobe_specular_reflectivity', builder.in_dls_reflectivity, builder.in_dls_reflectivity_map)
             self._channel_to_inputs('dual_lobe_specular_roughness_mult', builder.in_dls_roughness_mult, None)
             self._channel_to_inputs('specular_lobe_1_roughness', builder.in_dls_l1_roughness, builder.in_dls_l1_roughness_map)

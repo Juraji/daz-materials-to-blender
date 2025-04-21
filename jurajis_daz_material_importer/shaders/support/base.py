@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Any, cast, Type
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
-    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor
+    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor, NodeSocketFloat
 
 from ...properties import MaterialImportProperties
 from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
@@ -491,10 +490,22 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         pass
 
     @staticmethod
-    def _set_socket(node: Node, socket: NodeSocket | int | str, value: Any):
+    def _set_socket(
+            node: Node,
+            socket: NodeSocket | int | str,
+            value: Any,
+            op: Literal["SET", "MULTIPLY"] = "SET"):
         socket_key = socket.name if isinstance(socket, NodeSocket) else socket
         socket_input = node.inputs[socket_key]
-        setattr(socket_input, "default_value", value)
+
+        match op:
+            case "SET":
+                setattr(socket_input, "default_value", value)
+            case "MULTIPLY":
+                sock_value = getattr(socket_input, "default_value", 0)
+                if not isinstance(socket_input, NodeSocketFloat):
+                    raise Exception(f"Invalid operation {op} using value {value} for socket {socket_key} with value {sock_value}!")
+                setattr(socket_input, "default_value", sock_value * value)
 
     def _link_socket(self,
                      source: Node,

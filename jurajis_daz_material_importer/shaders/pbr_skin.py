@@ -298,6 +298,8 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
 
 
 class PBRSkinShaderGroupApplier(ShaderGroupApplier):
+    mapping_node_location_offset = -400
+
     @staticmethod
     def group_name() -> str:
         return __GROUP_NAME__
@@ -347,7 +349,8 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             # Only apply mapping if tiling is enabled for this node
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset", "detail_vertical_tiles", "detail_vertical_offset"]
             if detail_map_tex_node and self._channel_enabled(*detail_mapping_ids):
-                detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", (self._mapping.location[0], -400), props={"vector_type": "POINT"})
+                detail_mapping_node_loc = (self._mapping.location[0], self._mapping.location[0] + self.mapping_node_location_offset)
+                detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", detail_mapping_node_loc, props={"vector_type": "POINT"})
                 self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
                 self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)

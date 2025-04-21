@@ -1,12 +1,39 @@
-import json
-from dataclasses import asdict, is_dataclass
+from dataclasses import is_dataclass, asdict, fields
 from json import JSONEncoder
-from typing import TextIO, Any
 
 
-class DataClassJSONEncoder(JSONEncoder):
-    def default(self, o):
-        if is_dataclass(o):
-            return asdict(o)
-        return super().default(o)
+class DataclassJSONEncoder(JSONEncoder):
+    def default(self, dmc):
+        if is_dataclass(dmc):
+            return self.asdict(dmc)
+        else:
+            return super().default(dmc)
 
+    @classmethod
+    def asdict(cls, obj):
+        if hasattr(obj, "__as_dict__"):
+            return obj.__as_dict__()
+        elif is_dataclass(obj):
+            return {f.name: cls.asdict(getattr(obj, f.name)) for f in fields(obj)}
+        elif isinstance(obj, (list, tuple)):
+            return [cls.asdict(v) for v in obj]
+        elif isinstance(obj, dict):
+            return {k: cls.asdict(v) for k, v in obj.items()}
+        else:
+            return obj
+
+def serializable(*include_props: str):
+    def decorator(cls):
+        if not is_dataclass(cls):
+            raise TypeError("@serializable can only be applied to dataclasses")
+
+        def __as_dict__(self):
+            base = asdict(self)
+            for name in include_props:
+                attr = getattr(self, name)
+                base[name] = attr() if callable(attr) else attr
+            return base
+
+        cls.__as_dict__ = __as_dict__
+        return cls
+    return decorator

@@ -26,6 +26,7 @@ class _MaterialTypeIdMixin:
     def material_type_id() -> str:
         raise NotImplementedError()
 
+
 @dataclass
 class RerouteGroup:
     parent: Node | None = None
@@ -299,8 +300,19 @@ class SupportShaderGroupBuilder(ShaderGroupBuilder):
 
 
 class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
-    __group_node_width: float = 400
-    __texture_node_location_y_offset: float = 50
+    group_node_width = 400
+    texture_node_location_x = -915
+    texture_node_location_y_inital = 0
+    texture_node_location_y_offset = 50
+    uv_map_location = (-1505, 0)
+    mapping_location = (-1230, 0)
+    node_group_location = (-415, 0)
+    material_output_location = (0, 0)
+    output_socket_map = {
+        "Surface": 0,
+        "Volume": 0,
+        "Displacement": 0,
+    }
 
     def __init__(self,
                  properties: MaterialImportProperties,
@@ -308,6 +320,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         super().__init__()
         self._properties = properties
         self._node_tree = node_tree
+
+        self._texture_node_location_y_current = self.texture_node_location_y_inital
 
         self._uv_map: Node | None = None
         self._mapping: Node | None = None
@@ -319,7 +333,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         mapping = self._node_tree.nodes.new("ShaderNodeMapping")
         mapping.name = "Mapping"
         mapping.vector_type = 'POINT'
-        mapping.location = (-1230, 0)
+        mapping.location = self.mapping_location
         self._mapping = mapping
 
         # node UV Map
@@ -327,7 +341,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         uv_map.name = "UV Map"
         uv_map.from_instancer = False
         uv_map.uv_map = "UVMap"
-        uv_map.location = (-1505, 0)
+        uv_map.location = self.uv_map_location
         self._link_socket(uv_map, mapping, 0, 0)
         self._uv_map = uv_map
 
@@ -335,49 +349,36 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         material_output.name = "Material Output"
         material_output.is_active_output = True
         material_output.target = 'ALL'
-        material_output.location = (125, 0)
+        material_output.location = self.material_output_location
         self._material_ouput = material_output
 
         shader_group = self._node_tree.nodes.new("ShaderNodeGroup")
         shader_group.label = self.group_name()
         shader_group.name = slugify(self.group_name())
-        shader_group.location = (-415, 0)
-        shader_group.width = self.__group_node_width
+        shader_group.location = self.node_group_location
+        shader_group.width = self.group_node_width
         shader_group.node_tree = bpy.data.node_groups[self.group_name()]
 
         for out_sock in shader_group.outputs:
-            match out_sock.name:
-                case "Surface":
-                    self._link_socket(shader_group, self._material_ouput, out_sock, 0)
-                case "Volume":
-                    self._link_socket(shader_group, self._material_ouput, out_sock, 1)
-                case "Displacement":
-                    self._link_socket(shader_group, self._material_ouput, out_sock, 2)
+            target_sock = self.output_socket_map.get(out_sock.name)
+            if target_sock is None:
+                raise Exception(
+                    f"Output socket {out_sock.name} in group {self.group_name()} has no target socket in Material Output.")
+
+            self._link_socket(shader_group, self._material_ouput, out_sock, target_sock)
 
         self._shader_group = shader_group
-
         self._channels = channels
-
-    def align_image_nodes(self):
-        tex_nodes = filter(lambda n: n.type == "TEX_IMAGE", self._node_tree.nodes)
-
-        current_y = 0
-        for node in tex_nodes:
-            node.location = (-915, current_y)
-            current_y -= self.__texture_node_location_y_offset
 
     def _channel_enabled(self, *feat_names: str) -> bool:
         for feat_name in feat_names:
             channel = self._channels.get(feat_name)
             if not channel:
                 continue
-            val = channel.value
-            if isinstance(val, tuple):
-                # Enabled if any of the first 3 components are not zero
-                if val[:3] != (0.0, 0.0, 0.0):
-                    return True
-            elif val:
-                return True
+            if isinstance(channel, DsonBoolMaterialChannel):
+                return channel.value
+            else:
+                return channel.is_set()
         return False
 
     def _channel_to_inputs(self,
@@ -409,6 +410,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         image_texture: ShaderNodeTexImage | None = None
         if map_socket_name and channel.has_image():
             image_texture = self._add_image_texture(channel.image_file, non_color_map)
+            self._link_socket(self._mapping, image_texture, 0, 0)
             self._link_socket(image_texture, self._shader_group, 0, map_socket_name)
 
         return image_texture
@@ -416,6 +418,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     def _add_image_texture(self, path: str, non_color: bool, tile: int = 1) -> ShaderNodeTexImage:
         tex_image: ShaderNodeTexImage = cast(ShaderNodeTexImage, self._node_tree.nodes.new(type="ShaderNodeTexImage"))
         tex_image.hide = True
+        tex_image.location = self._next_image_node_location()
         tex_image.image = bpy.data.images.load(path)
         # noinspection PyTypeChecker
         tex_image.image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
@@ -427,8 +430,12 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         else:
             tex_image.image = bpy.data.images.load(img_name)
 
-        self._link_socket(self._mapping, tex_image, 0, 0)
         return tex_image
+
+    def _next_image_node_location(self):
+        loc = (self.texture_node_location_x, self._texture_node_location_y_current)
+        self._texture_node_location_y_current -= self.texture_node_location_y_offset
+        return loc
 
     def _add_node(self,
                   node_type: str,

@@ -4,24 +4,31 @@ import winreg
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import Any
+from typing import TypeVar, Generic
 from urllib import parse as urlparse
 
+from .json import serializable
 from .slugify import slugify
 
+DMC_V = TypeVar('DMC_V')
 
+
+@serializable("has_image", "is_set")
 @dataclass
-class DsonMaterialChannel:
+class DsonMaterialChannel(Generic[DMC_V]):
     id: str
-    value: Any
+    value: DMC_V
+    default_value: DMC_V
     image_file: str | None
 
     def has_image(self) -> bool: return self.image_file is not None
 
+    def is_set(self):
+        return self.value != self.default_value or self.has_image()
+
 
 @dataclass
-class DsonColorMaterialChannel(DsonMaterialChannel):
-    value: tuple[float, float, float]
+class DsonColorMaterialChannel(DsonMaterialChannel[tuple[float, float, float]]):
     alpha: float = 1.0
 
     def as_rgba(self) -> tuple[float, float, float, float]:
@@ -32,23 +39,24 @@ class DsonColorMaterialChannel(DsonMaterialChannel):
 
 
 @dataclass
-class DsonFloatMaterialChannel(DsonMaterialChannel):
-    value: float
+class DsonFloatMaterialChannel(DsonMaterialChannel[float]):
+    pass
 
 
 @dataclass
-class DsonBoolMaterialChannel(DsonMaterialChannel):
-    value: bool
+class DsonBoolMaterialChannel(DsonMaterialChannel[bool]):
+    pass
 
 
 @dataclass
-class DsonStringMaterialChannel(DsonMaterialChannel):
-    value: str
+class DsonStringMaterialChannel(DsonMaterialChannel[str]):
+    pass
 
 
 @dataclass
-class DsonImageMaterialChannel(DsonMaterialChannel):
-    value: None
+class DsonImageMaterialChannel(DsonMaterialChannel[None]):
+    def is_set(self):
+        return self.has_image()
 
 
 @dataclass
@@ -218,21 +226,30 @@ class DazDsonMaterialReader:
 
     def _map_channel(self, c: dict) -> DsonMaterialChannel:
         mat_id = slugify(c['id'])
-        raw_value = c.get("current_value") or c.get("value")
+        raw_value = c.get("current_value")
         value_type = c['type']
 
         image_file = str(self._determine_content_dir_path(c['image_file'])) if 'image_file' in c else None
 
-        if value_type == "float_color" or value_type == "color":
-            dson_channel = DsonColorMaterialChannel(mat_id, (raw_value[0], raw_value[1], raw_value[2]), image_file)
-        elif value_type == "float":
-            dson_channel = DsonFloatMaterialChannel(mat_id, raw_value, image_file)
-        elif value_type == "bool":
-            dson_channel = DsonBoolMaterialChannel(mat_id, raw_value, image_file)
-        elif value_type == "image":
-            dson_channel = DsonImageMaterialChannel(mat_id, None, image_file or raw_value)
-        else:
-            dson_channel = DsonStringMaterialChannel(mat_id, str(raw_value), image_file)
+        match value_type:
+            case "float_color" | "color":
+                raw_default_value = c.get("value", (0, 0, 0))
+                dson_channel = DsonColorMaterialChannel(
+                    mat_id,
+                    tuple(raw_value[:3]),
+                    tuple(raw_default_value[:3]),
+                    image_file)
+            case "float":
+                raw_default_value = c.get("value", 0.0)
+                dson_channel = DsonFloatMaterialChannel(mat_id, float(raw_value), float(raw_default_value), image_file)
+            case "bool":
+                raw_default_value = c.get("value", False)
+                dson_channel = DsonBoolMaterialChannel(mat_id, bool(raw_value), bool(raw_default_value), image_file)
+            case "image":
+                dson_channel = DsonImageMaterialChannel(mat_id, None, None, image_file or raw_value)
+            case _:
+                raw_default_value = c.get("value", "")
+                dson_channel = DsonStringMaterialChannel(mat_id, str(raw_value), str(raw_default_value), image_file)
 
         return dson_channel
 

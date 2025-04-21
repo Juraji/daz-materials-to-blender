@@ -101,7 +101,6 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
 
             applier = applier_cls(props, node_tree)
             applier.apply_shader_group(channels)
-            applier.align_image_nodes()
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

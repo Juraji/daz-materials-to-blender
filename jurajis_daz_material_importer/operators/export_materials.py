@@ -8,7 +8,7 @@ from bpy import path as bpath
 
 from .operator_report_mixin import OperatorReportMixin
 from ..utils.dson import DazDsonMaterialReader
-from ..utils.json import DataClassJSONEncoder
+from ..utils.json import DataclassJSONEncoder
 
 
 class ExportMaterialsOperator(OperatorReportMixin, Operator):
@@ -37,11 +37,11 @@ class ExportMaterialsOperator(OperatorReportMixin, Operator):
         dson_scene_nodes = dson_reader.read_materials(daz_save_file)
 
         directory = path.dirname(bpy.data.filepath)
-        output_name = f"{bpath.basename(str(daz_save_file))}.json"
+        output_name = f"{bpath.basename(str(daz_save_file))}.materials.json"
         output_path = path.join(directory, output_name)
 
         with open(output_path, "w") as f:
-            f.write(json.dumps(dson_scene_nodes, indent=2, cls=DataClassJSONEncoder))
+            f.write(json.dumps(dson_scene_nodes, indent=2, cls=DataclassJSONEncoder))
 
         self.report_info(f"Exported materials to {output_path}!")
         return {"FINISHED"}

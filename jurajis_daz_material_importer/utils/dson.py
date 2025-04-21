@@ -86,11 +86,16 @@ class DazDsonMaterialReader:
 
         mats_per_object: dict[str, DsonSceneNode] = {}
 
-        for mat in scene_materials:
-            mat_name = mat['groups'][0].replace(' ', '_')
-            node_id, node_label, node_parent = self._find_node_by_geo_url(scene_nodes, mat['geometry'])
-            mat_type = self._find_shader_type(material_library, mat)
+        for scene_mat in scene_materials:
+            mat_name = scene_mat['groups'][0].replace(' ', '_')
+            node_id, node_label, node_parent = self._find_node_by_geo_url(scene_nodes, scene_mat['geometry'])
 
+            lib_mat: dict | None = None
+            if scene_mat['url'].startswith('#'):
+                material_id = self._unquote_daz_ref(scene_mat['url'])
+                lib_mat = next((m for m in material_library if m['id'] == material_id), None)
+
+            mat_type = self._find_shader_type(scene_mat, lib_mat)
             node = mats_per_object.setdefault(node_id, DsonSceneNode(node_id, node_label, node_parent))
 
             if mat_name in node.materials:
@@ -98,15 +103,25 @@ class DazDsonMaterialReader:
 
             channels = {}
 
-            if 'diffuse' in mat:
-                ch = self._map_channel(mat['diffuse']['channel'])
+            if 'diffuse' in scene_mat:
+                ch = self._map_channel(scene_mat['diffuse']['channel'])
                 channels[ch.id] = ch
 
-            extra_channels = mat.get('extra', [])
+            # Map scene materials
+            extra_channels = scene_mat.get('extra', [])
             if len(extra_channels) == 2:
                 for ch_data in extra_channels[1]['channels']:
                     ch = self._map_channel(ch_data['channel'])
                     channels[ch.id] = ch
+
+            # Map library materials if missing from scene material
+            if lib_mat:
+                lib_extra_channels = lib_mat.get('extra', [])
+                if len(lib_extra_channels) == 2:
+                    for ch_data in lib_extra_channels[1]['channels']:
+                        ch = self._map_channel(ch_data['channel'])
+                        if not ch.id in channels:
+                            channels[ch.id] = ch
 
             node.materials.append(DsonMaterial(mat_name, mat_type, channels))
 
@@ -176,35 +191,39 @@ class DazDsonMaterialReader:
 
         raise Exception(f'No geometries found in scene node for url {geo_url}')
 
-    def _find_shader_type(self, material_library, mat_data) -> str:
-        extra = mat_data['extra']
+    def _find_shader_type(self, scene_mat: dict, lib_mat: dict) -> str:
+        url = scene_mat['url']
+
+        if url in self.__material_shader_type_cache:
+            return self.__material_shader_type_cache[url]
+
+        extra = scene_mat['extra']
         if extra[0]['type'] == 'studio/material/uber_iray':
             if len(extra) == 2:
                 base_mixing = next((ch['channel']['current_value'] for ch in extra[1]['channels'] if
                                     ch['channel']['id'] == 'Base Mixing'), 0)
-                return {
-                    0: "iray_uber__pbr_mr",
-                    1: "iray_uber__pbr_sg",
-                    2: "iray_uber__weighted"
-                }.get(base_mixing, "iray_uber__pbr_mr")
-            return "iray_uber__pbr_mr"
+                match base_mixing:
+                    case 1:
+                        mat_id = "iray_uber__pbr_sg"
+                    case 2:
+                        mat_id = "iray_uber__weighted"
+                    case _:
+                        mat_id = "iray_uber__pbr_mr"
+            else:
+                mat_id = "iray_uber__pbr_mr"
 
-        url = mat_data['url']
-        if url in self.__material_shader_type_cache:
-            return self.__material_shader_type_cache[url]
+            self.__material_shader_type_cache[url] = mat_id
+            return mat_id
 
         if url.startswith("/"):
             mat_id = slugify(self._unquote_daz_ref(url))
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
 
-        if url.startswith('#'):
-            material_id = slugify(self._unquote_daz_ref(url))
-            for mat in material_library:
-                if mat['id'] == material_id and mat['extra'][0]['type'] == 'studio/material/daz_brick':
-                    shader_type = slugify(mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
-                    self.__material_shader_type_cache[url] = shader_type
-                    return shader_type
+        if lib_mat and scene_mat['extra'][0]['type'] == 'studio/material/daz_brick':
+            shader_type = slugify(lib_mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
+            self.__material_shader_type_cache[url] = shader_type
+            return shader_type
 
         raise Exception(f'Unable to find shader type for url {url}.')
 

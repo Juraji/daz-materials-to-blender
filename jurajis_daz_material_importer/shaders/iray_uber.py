@@ -2,7 +2,7 @@ from typing import Type
 
 from bpy.types import NodeSocket
 
-from .support.base import ShaderGroupApplier, ShaderGroupBuilder
+from .support.base import ShaderGroupApplier, ShaderGroupBuilder, RerouteGroup
 from .support.displacement import AsymmetricalDisplacementShaderGroupBuilder
 from .support.dls import DualLobeSpecularShaderGroupBuilder
 from .support.emission import BlackbodyEmissionShaderGroupBuilder
@@ -270,28 +270,28 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
         # Frames and Reroute Groups
         frame_pbr = self._add_frame("PBR")
-        reroute_pbr_in = self._reroute_group((-2347, 800), parent=frame_pbr)
-        reroute_pbr_out = self._reroute_group((-1584, 755), parent=frame_pbr)
+        reroute_pbr_in = RerouteGroup(-2347, 800, frame_pbr)
+        reroute_pbr_out = RerouteGroup(-1584, 755, frame_pbr)
 
         frame_normal = self._add_frame("Normal")
-        reroute_normal_in = self._reroute_group((-3067, 713), parent=frame_normal)
+        reroute_normal_in = RerouteGroup(-3067, 713, frame_normal)
 
         frame_diff_overlay = self._add_frame("Diffuse Overlay")
-        reroute_diff_overlay_in = self._reroute_group((-1367, 492), parent=frame_diff_overlay)
-        reroute_diff_overlay_out = self._reroute_group((-515, 489), parent=frame_diff_overlay)
+        reroute_diff_overlay_in = RerouteGroup(-1367, 492, frame_diff_overlay)
+        reroute_diff_overlay_out = RerouteGroup(-515, 489, frame_diff_overlay)
 
         frame_thin_film = self._add_frame("Thin Film")
-        reroute_thin_film_in = self._reroute_group((-2107, -419), parent=frame_thin_film)
+        reroute_thin_film_in = RerouteGroup(-2107, -419, frame_thin_film)
 
         frame_top_coat = self._add_frame("Top coat")
-        reroute_top_coat_in = self._reroute_group((-2267, -1586), parent=frame_top_coat)
-        reroute_top_coat_out = self._reroute_group((-1613, -1596), parent=frame_top_coat)
+        reroute_top_coat_in = RerouteGroup(-2267, -1586, frame_top_coat)
+        reroute_top_coat_out = RerouteGroup(-1613, -1596, frame_top_coat)
 
         frame_transmission = self._add_frame("Refraction and Tranmission")
-        reroute_transmission_in = self._reroute_group((-2327, -1979), parent=frame_transmission)
-        reroute_transmission_out = self._reroute_group((-1520, -1908), parent=frame_transmission)
+        reroute_transmission_in = RerouteGroup(-2327, -1979, frame_transmission)
+        reroute_transmission_out = RerouteGroup(-1520, -1908, frame_transmission)
 
-        reroute_sss_ior = self._reroute_group((-1920.0, -1361.0))
+        reroute_sss_ior = RerouteGroup(1920.0, -1361.0)
 
         # Nodes: Group Input
         node_group_input = self._add_node__group_input("Group Input", (-3320, 400))

@@ -27,21 +27,31 @@ class _MaterialTypeIdMixin:
         raise NotImplementedError()
 
 
-@dataclass
 class RerouteGroup:
-    parent: Node | None = None
-    direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL"
-    offset: float = field(default=20.0)
-    _current_x: float = field(default=0.0)
-    _current_y: float = field(default=0.0)
+
+    def __init__(self,
+                 location_x: float,
+                 location_y: float,
+                 parent: Node | None = None,
+                 direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL",
+                 offset: float = 20.0):
+        self.location_x = location_x
+        self.location_y = location_y
+        self.parent = parent
+        self.direction = direction
+        self.offset = offset
+        self._counter = 0
 
     def next_position(self) -> tuple[float, float]:
-        if self.direction == "HORIZONTAL":
-            self._current_x -= self.offset
-        else:
-            self._current_y -= self.offset
+        x, y = self.location_x, self.location_y
 
-        return self._current_x, self._current_y
+        if self.direction == "HORIZONTAL":
+            x -= self.offset * self._counter
+        else:
+            y -= self.offset * self._counter
+
+        self._counter += 1
+        return x, y
 
 
 class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
@@ -161,13 +171,6 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                 setattr(sock, prop, value)
 
         return sock
-
-    @staticmethod
-    def _reroute_group(initial_location: tuple[float, float],
-                       parent: Node | None = None,
-                       direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL",
-                       offset: float = 20.0) -> RerouteGroup:
-        return RerouteGroup(parent, direction, offset, *initial_location)
 
     # Nodes
     def _add_panel(self, name: str,
@@ -310,8 +313,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     material_output_location = (0, 0)
     output_socket_map = {
         "Surface": 0,
-        "Volume": 0,
-        "Displacement": 0,
+        "Volume": 1,
+        "Displacement": 2,
     }
 
     def __init__(self,
@@ -333,6 +336,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         mapping = self._node_tree.nodes.new("ShaderNodeMapping")
         mapping.name = "Mapping"
         mapping.vector_type = 'POINT'
+        mapping.hide = True
         mapping.location = self.mapping_location
         self._mapping = mapping
 

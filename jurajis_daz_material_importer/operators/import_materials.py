@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 from typing import Type
 
@@ -34,7 +35,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
 
         dson_reader = DazDsonMaterialReader()
         dson_scene_nodes = dson_reader.read_materials(daz_save_file)
-        dson_id_conversion_table = dson_reader.create_dson_id_conversion_table(dson_scene_nodes)
+        dson_id_conversion_table = self._create_dson_id_conversion_table(dson_scene_nodes)
         self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
 
         def convert_id(nid: str) -> str:
@@ -119,3 +120,25 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             if applier.material_type_id() == mat_type_id:
                 return applier
         return None
+
+    @staticmethod
+    def _create_dson_id_conversion_table(nodes: list[DsonSceneNode]) -> dict[str, str]:
+        """
+        :param nodes: The result from read_materials
+        :return: A dict of DAZ node id to expected node name in Blender.
+        """
+        conversion_table = {}
+        suffix_groups = defaultdict(list)
+
+        # Collect node IDs with suffixes
+        for node in nodes:
+            base, *suffix = node.id.rsplit('-', 1)
+            if suffix and suffix[0].isdigit():
+                suffix_groups[base].append(node.id)
+
+        # Assign new names based on suffix groups
+        for base, variants in suffix_groups.items():
+            for i, variant in enumerate(sorted(variants)):
+                conversion_table[variant] = f"{base}.{i + 1:03d}"
+
+        return conversion_table

@@ -10,6 +10,3 @@ class DataClassJSONEncoder(JSONEncoder):
             return asdict(o)
         return super().default(o)
 
-
-def json_dump_dataclasses(f: TextIO, obj: Any):
-    f.write(json.dumps(obj, indent=2, cls=DataClassJSONEncoder))

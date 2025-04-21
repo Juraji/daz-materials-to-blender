@@ -1,7 +1,6 @@
 import gzip
 import json
 import winreg
-from collections import defaultdict
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
@@ -126,28 +125,6 @@ class DazDsonMaterialReader:
             node.materials.append(DsonMaterial(mat_name, mat_type, channels))
 
         return list(mats_per_object.values())
-
-    @staticmethod
-    def create_dson_id_conversion_table(nodes: list[DsonSceneNode]) -> dict[str, str]:
-        """
-        :param nodes: The result from read_materials
-        :return: A dict of DAZ node id to expected node name in Blender.
-        """
-        conversion_table = {}
-        suffix_groups = defaultdict(list)
-
-        # Collect node IDs with suffixes
-        for node in nodes:
-            base, *suffix = node.id.rsplit('-', 1)
-            if suffix and suffix[0].isdigit():
-                suffix_groups[base].append(node.id)
-
-        # Assign new names based on suffix groups
-        for base, variants in suffix_groups.items():
-            for i, variant in enumerate(sorted(variants)):
-                conversion_table[variant] = f"{base}.{i + 1:03d}"
-
-        return conversion_table
 
     @classmethod
     def _read_dson_file(cls, dson_file: PathLike) -> dict:

@@ -18,6 +18,11 @@ class ImportMaterialsPanelBase(Panel):
         # noinspection PyUnresolvedReferences
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
+        tools_header, tools_panel = layout.panel("tools", default_closed=True)
+        tools_header.label(text="Tools & Debugging")
+        if tools_panel:
+            tools_panel.operator("daz_import.export_materials")
+
         shader_groups_header, shader_groups_panel = layout.panel("shader_groups", default_closed=True)
         shader_groups_header.label(text="Shader Groups")
         if shader_groups_panel:

@@ -554,6 +554,9 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         # Base Dual Lobe Specular
         if self._channel_enabled('sock_dual_lobe_specular_weight'):
             self._channel_to_inputs('dual_lobe_specular_weight', builder.in_dual_lobe_specular_weight, builder.in_dual_lobe_specular_weight_map)
+            if self._properties.dls_weight_multiplier != 1.0:
+                self._set_socket(self._shader_group, builder.in_dual_lobe_specular_weight, self._properties.dls_weight_multiplier, "MULTIPLY")
+
             self._channel_to_inputs('dual_lobe_specular_reflectivity', builder.in_dual_lobe_specular_reflectivity, builder.in_dual_lobe_specular_reflectivity_map)
             self._channel_to_inputs('specular_lobe_1_roughness', builder.in_specular_lobe_1_roughness, builder.in_specular_lobe_1_roughness_map)
             self._channel_to_inputs('specular_lobe_2_roughness', builder.in_specular_lobe_2_roughness, builder.in_specular_lobe_2_roughness_map)

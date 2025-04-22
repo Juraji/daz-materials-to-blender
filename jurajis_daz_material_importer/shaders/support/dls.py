@@ -30,10 +30,6 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
-    @staticmethod
-    def is_support() -> bool:
-        return True
-
     def setup_group(self):
         super().setup_group()
 

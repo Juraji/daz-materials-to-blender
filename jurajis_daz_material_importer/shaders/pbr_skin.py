@@ -325,7 +325,6 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs('diffuse_roughness', builder.in_roughness_weight, builder.in_roughness_weight_map)
 
         self._channel_to_inputs('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
-
         self._channel_to_inputs('cutout_opacity', builder.in_opacity, builder.in_opacity_map)
 
         if self._channel_enabled('dual_lobe_specular_enable'):
@@ -345,10 +344,14 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs('sss_direction', builder.in_sss_direction, None)
 
         self._channel_to_inputs('normal_map', builder.in_normal_weight, builder.in_normal_map)
+        if self._properties.pbr_skin_normal_multiplier != 1.0:
+            self._set_socket(self._shader_group, builder.in_normal_weight, self._properties.pbr_skin_normal_multiplier, "MULTIPLY")
 
         if self._channel_enabled('detail_enable'):
             self._channel_to_inputs('detail_weight', builder.in_detail_weight, builder.in_detail_weight_map)
             detail_map_tex_node = self._channel_to_inputs('detail_normal_map', None, builder.in_detail_normal_map)
+            if self._properties.pbr_skin_normal_multiplier != 1.0:
+                self._set_socket(self._shader_group, builder.in_detail_weight, self._properties.pbr_skin_normal_multiplier, "MULTIPLY")
 
             # Only apply mapping if tiling is enabled for this node
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset", "detail_vertical_tiles", "detail_vertical_offset"]

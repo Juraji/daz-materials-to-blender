@@ -43,9 +43,13 @@ class ImportMaterialsPanelBase(Panel):
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Import Options")
         if options_panel:
+            options_panel.label(text="General")
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
             options_panel.prop(props, "dls_weight_multiplier")
+
+            options_panel.label(text="PBR Skin")
+            options_panel.prop(props, "pbr_skin_normal_multiplier")
 
         layout.prop(props, "daz_scene_file")
         layout.operator("daz_import.import_all_materials")

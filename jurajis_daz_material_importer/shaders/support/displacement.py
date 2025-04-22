@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeDisplacement
+
 from .base import SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Asymmetrical Displacement"
@@ -58,8 +60,7 @@ class AsymmetricalDisplacementShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_norm_min_max, node_norm_div_abs_min, 0, 0)
         self._link_socket(node_abs_min, node_norm_div_abs_min, 0, 1)
 
-        node_displacement = self._add_node("ShaderNodeDisplacement", "Displacement", (419, 39),
-                                           props={"space": "OBJECT"})
+        node_displacement = self._add_node(ShaderNodeDisplacement, "Displacement", (419, 39), props={"space": "OBJECT"})
         self._link_socket(node_strength_div_norm, node_displacement, 0, 0)
         self._link_socket(node_norm_div_abs_min, node_displacement, 0, 1)
         self._link_socket(node_group_input, node_displacement, sock_strength, 2)

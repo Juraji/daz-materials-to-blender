@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeBsdfTranslucent
+
 from .base import SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Weighted Translucency"
@@ -61,7 +63,7 @@ class WeightedTranslucencyShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_flip_factor, node_flip_normal, 0, 0)
         self._link_socket(node_group_input, node_flip_normal, sock_normal, 1)
 
-        node_trans_bsdf = self._add_node("ShaderNodeBsdfTranslucent", "Translucent BSDF", (230, 8))
+        node_trans_bsdf = self._add_node(ShaderNodeBsdfTranslucent, "Translucent BSDF", (230, 8))
         self._link_socket(node_mix_color_map, node_trans_bsdf, 2, 0)
         self._link_socket(node_flip_normal, node_trans_bsdf, 0, 1)
 

@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeBlackbody
+
 from .base import ShaderGroupBuilder, SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Blackbody Emission"
@@ -49,7 +51,7 @@ class BlackbodyEmissionShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_color, sock_color, 6)
         self._link_socket(node_group_input, node_mix_color, sock_color_map, 7)
 
-        node_blackbody = self._add_node("ShaderNodeBlackbody", "Blackbody", (-111, -209))
+        node_blackbody = self._add_node(ShaderNodeBlackbody, "Blackbody", (-111, -209))
         self._link_socket(node_group_input, node_blackbody, sock_temperature, 0)
 
         node_mix_color_temp = self._add_node__mix("Mix Color and Temp", (120, -10))

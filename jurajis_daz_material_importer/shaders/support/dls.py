@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeMath, ShaderNodeLayerWeight, ShaderNodeBsdfAnisotropic
+
 from .base import ShaderGroupBuilder
 
 __GROUP_NAME__ = "Dual Lobe Specular"
@@ -43,7 +45,7 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
         sock_l1_roughness_map = self._color_socket(self.in_l1_roughness_map)
         sock_l2_roughness_mult = self._float_socket(self.in_l2_roughness_mult, 0.45)
         sock_l2_roughness_mult_map = self._color_socket(self.in_l2_roughness_mult_map)
-        sock_ratio = self._float_socket(self.in_ratio ,0.15)
+        sock_ratio = self._float_socket(self.in_ratio, 0.15)
         sock_ratio_map = self._color_socket(self.in_ratio_map)
         sock_normal = self._vector_socket(self.in_normal)
 
@@ -83,19 +85,19 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_combine_l1_roughness, node_l2_multiply, 0, 6)
         self._link_socket(node_combine_l2_roughness_mult, node_l2_multiply, 0, 7)
 
-        node_l1_glossy = self._add_node("ShaderNodeBsdfGlossy", "Lobe 1 Glossy", (43, 162))
+        node_l1_glossy = self._add_node(ShaderNodeBsdfAnisotropic, "Lobe 1 Glossy", (43, 162))
         node_l1_glossy.distribution = 'MULTI_GGX'
         self._link_socket(node_combine_reflectivity, node_l1_glossy, 0, 0)
         self._link_socket(node_l1_multiply, node_l1_glossy, 2, 1)
         self._link_socket(node_group_input, node_l1_glossy, sock_normal, 4)
 
-        node_l2_glossy = self._add_node("ShaderNodeBsdfGlossy", "Lobe 2 Glossy", (51, -154))
+        node_l2_glossy = self._add_node(ShaderNodeBsdfAnisotropic, "Lobe 2 Glossy", (51, -154))
         node_l2_glossy.distribution = 'MULTI_GGX'
         self._link_socket(node_combine_reflectivity, node_l2_glossy, 0, 0)
         self._link_socket(node_l2_multiply, node_l2_glossy, 2, 1)
         self._link_socket(node_group_input, node_l2_glossy, sock_normal, 4)
 
-        node_layer_weight = self._add_node("ShaderNodeLayerWeight", "Layer Weight", (53, -419))
+        node_layer_weight = self._add_node(ShaderNodeLayerWeight, "Layer Weight", (53, -419))
         self._set_socket(node_layer_weight, 0, self.dls_layer_weight)
         self._link_socket(node_group_input, node_layer_weight, sock_normal, 1)
 
@@ -104,7 +106,7 @@ class DualLobeSpecularShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_l1_glossy, node_mix_glossies, 0, 1)
         self._link_socket(node_l2_glossy, node_mix_glossies, 0, 2)
 
-        node_layer_weight_factor = self._add_node("ShaderNodeMath", "Layer Weight Factor", (309, -228))
+        node_layer_weight_factor = self._add_node(ShaderNodeMath, "Layer Weight Factor", (309, -228))
         node_layer_weight_factor.operation = 'MULTIPLY'
         self._link_socket(node_combine_weight, node_layer_weight_factor, 0, 0)
         self._link_socket(node_layer_weight, node_layer_weight_factor, 0, 1)

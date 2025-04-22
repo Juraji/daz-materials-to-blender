@@ -1,5 +1,7 @@
 from typing import Type
 
+from bpy.types import ShaderNodeMapping
+
 from .support import ShaderGroupBuilder, ShaderGroupApplier, DualLobeSpecularShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
 from ..utils.dson import DsonMaterialChannel
@@ -357,7 +359,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
             detail_mapping_ids = ["detail_horizontal_tiles", "detail_horizontal_offset", "detail_vertical_tiles", "detail_vertical_offset"]
             if detail_map_tex_node and self._channel_enabled(*detail_mapping_ids):
                 detail_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset), self._mapping.location.to_tuple())
-                detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", detail_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
+                detail_mapping_node = self._add_node(ShaderNodeMapping, "Detail Mapping", detail_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
                 self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
                 self._set_material_mapping(*detail_mapping_ids, mapping_node=detail_mapping_node)

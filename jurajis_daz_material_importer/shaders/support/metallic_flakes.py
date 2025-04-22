@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeTexVoronoi, ShaderNodeValToRGB
+
 from .base import SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Metallic Flakes"
@@ -70,7 +72,7 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_invert_flake_size, sock_flake_size, 1)
 
         voronoi_props = {"distance": 'EUCLIDEAN', "feature": 'F1', "normalize": False, "voronoi_dimensions": '3D'}
-        node_voronoi_tex = self._add_node("ShaderNodeTexVoronoi", "Voronoi Texture", (-400.0, -280.0), props=voronoi_props)
+        node_voronoi_tex = self._add_node(ShaderNodeTexVoronoi, "Voronoi Texture", (-400.0, -280.0), props=voronoi_props)
         self._link_socket(node_invert_flake_size, node_voronoi_tex, 0, 2)
         self._set_socket(node_voronoi_tex, 3, 0)
         self._set_socket(node_voronoi_tex, 4, 0)
@@ -81,7 +83,7 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_voron_normal_vector_div, sock_normal, 6)
         self._link_socket(node_voronoi_tex, node_voron_normal_vector_div, 1, 7)
 
-        node_density_ramp = self._add_node("ShaderNodeValToRGB", "Density Ramp", (-240.0, 120.0))
+        node_density_ramp = self._add_node(ShaderNodeValToRGB, "Density Ramp", (-240.0, 120.0))
         self._link_socket(node_voronoi_tex, node_density_ramp, 1,0)
 
         node_pick_visible_flakes = self._add_node__math("Pick Visible Flakes", (200.0, 100.0), "LESS_THAN")

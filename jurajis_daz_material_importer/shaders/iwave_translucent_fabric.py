@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeMapping
+
 from .support import ShaderGroupApplier, ShaderGroupBuilder
 
 from ..utils.dson import DsonMaterialChannel
@@ -294,7 +296,7 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
         fd_mapping_props = ["fine_detail_horizontal_tiles", "fine_detail_horizontal_offset", "fine_detail_vertical_tiles", "fine_detail_vertical_offset"]
         if self._channel_enabled(*fd_mapping_props) and (node_fd_normal_tex or node_fd_glossy_tex):
             fd_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset), self._mapping.location.to_tuple())
-            fd_mapping_node = self._add_node("ShaderNodeMapping", "Fine Detail Mapping", fd_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
+            fd_mapping_node = self._add_node(ShaderNodeMapping, "Fine Detail Mapping", fd_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
             self._link_socket(self._uv_map, fd_mapping_node, 0, 0)
             self._set_material_mapping(*fd_mapping_props, mapping_node=fd_mapping_node)
 
@@ -312,7 +314,7 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
         cutout_mapping_props = ["cutout_opacity_horizontal_tiles", "cutout_opacity_horizontal_offset", "cutout_opacity_vertical_tiles", "cutout_opacity_vertical_offset"]
         if self._channel_enabled(*cutout_mapping_props) and node_cutout_tex:
             cutout_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset * 2), self._mapping.location.to_tuple())
-            cutout_mapping_node = self._add_node("ShaderNodeMapping", "Cutout Opacity Mapping", cutout_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
+            cutout_mapping_node = self._add_node(ShaderNodeMapping, "Cutout Opacity Mapping", cutout_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
             self._link_socket(self._uv_map, cutout_mapping_node, 0, 0)
             self._link_socket(cutout_mapping_node, node_cutout_tex, 0, 0)
             self._set_material_mapping(*cutout_mapping_props, mapping_node=cutout_mapping_node)

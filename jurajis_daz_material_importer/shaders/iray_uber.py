@@ -1,5 +1,7 @@
 from typing import Type
 
+from bpy.types import ShaderNodeBsdfDiffuse, ShaderNodeVolumeAbsorption
+
 from .support import FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, ShaderGroupApplier, ShaderGroupBuilder, \
     RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, DualLobeSpecularShaderGroupBuilder, \
     BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, WeightedTranslucencyShaderGroupBuilder
@@ -345,7 +347,7 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_overlay_roughness, sock_diffuse_overlay_roughness, 2, reroute_diff_overlay_in)
         self._link_socket(node_group_input, node_mix_overlay_roughness, sock_diffuse_overlay_roughness_map, 4, reroute_diff_overlay_in)
 
-        node_overlay_bsdf = self._add_node("ShaderNodeBsdfDiffuse", "Overlay Layer BSDF", (-700, 476), parent=frame_diff_overlay)
+        node_overlay_bsdf = self._add_node(ShaderNodeBsdfDiffuse, "Overlay Layer BSDF", (-700, 476), parent=frame_diff_overlay)
         self._link_socket(node_mix_overlay_color, node_overlay_bsdf, 2, 0)
         self._link_socket(node_mix_overlay_roughness, node_overlay_bsdf, 0, 1)
         self._link_socket(node_normal_reroute_right, node_overlay_bsdf, 0, 2)
@@ -443,7 +445,7 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color, 6, reroute_transmission_in)
         self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color_map, 7, reroute_transmission_in)
 
-        node_transmitted_vol = self._add_node("ShaderNodeVolumeAbsorption", "Transmitted Volume Absorpsion", (-1718, -1927), parent=frame_transmission)
+        node_transmitted_vol = self._add_node(ShaderNodeVolumeAbsorption, "Transmitted Volume Absorpsion", (-1718, -1927), parent=frame_transmission)
         self._link_socket(node_mix_transmitted_color, node_transmitted_vol, 2,0)
         self._link_socket(node_limit_trans_distance, node_transmitted_vol, 0,1)
 

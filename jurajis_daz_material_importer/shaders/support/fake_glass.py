@@ -1,3 +1,5 @@
+from bpy.types import ShaderNodeLightPath, ShaderNodeFresnel, ShaderNodeBsdfAnisotropic, ShaderNodeBsdfTransparent
+
 from .base import SupportShaderGroupBuilder, ShaderGroupApplier
 
 __GROUP_NAME__ = "Fake Glass"
@@ -39,17 +41,17 @@ class FakeGlassShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_normal_map, sock_normal, 0)
         self._link_socket(node_group_input, node_normal_map, sock_normal_map, 1)
 
-        node_light_path = self._add_node("ShaderNodeLightPath", "Light Path", (-920, 290.0))
+        node_light_path = self._add_node(ShaderNodeLightPath, "Light Path", (-920, 290.0))
 
-        node_fresnel = self._add_node("ShaderNodeFresnel", "Fresnel", (-680, 70.0))
+        node_fresnel = self._add_node(ShaderNodeFresnel, "Fresnel", (-680, 70.0))
         self._set_socket(node_fresnel, 0, 40.0)
         self._link_socket(node_normal_map, node_fresnel, 0, 1)
 
-        node_glossy = self._add_node("ShaderNodeBsdfAnisotropic", "Glossy BSDF", (-680, -70.0), props={"distribution": "GGX"})
+        node_glossy = self._add_node(ShaderNodeBsdfAnisotropic, "Glossy BSDF", (-680, -70.0), props={"distribution": "GGX"})
         self._set_socket(node_glossy, 1, 0)
         self._link_socket(node_normal_map, node_glossy, 0, 4)
 
-        node_transparent = self._add_node("ShaderNodeBsdfTransparent", "Transparent", (-680, -290.0))
+        node_transparent = self._add_node(ShaderNodeBsdfTransparent, "Transparent", (-680, -290.0))
 
         node_add_rays1 = self._add_node__math("Add Rays 1", (-680, 290.0))
         self._link_socket(node_light_path, node_add_rays1, 1, 0)

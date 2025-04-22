@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Literal, Any, cast, Type
+from typing import Literal, Any, cast, Type, TypeVar
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
-    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor, NodeSocketFloat
+    NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor, NodeSocketFloat, NodeReroute, \
+    NodeFrame, NodeGroupInput, NodeGroupOutput, ShaderNodeHueSaturation, ShaderNodeMix, ShaderNodeMixShader, \
+    ShaderNodeMath, ShaderNodeVectorMath, ShaderNodeNormalMap, ShaderNodeBump, ShaderNodeBsdfPrincipled, ShaderNodeGroup
 
 from ...properties import MaterialImportProperties
 from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
     DsonBoolMaterialChannel
 from ...utils.slugify import slugify
+
+_TNode = TypeVar('_TNode', bound=Node)
 
 GROUP_DESCRIPTION_PREFIX = "Created by DAZ Material Importer"
 
@@ -179,17 +183,17 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
         return self.node_group.interface.new_panel(name, default_closed=default_closed)
 
     def _add_frame(self, label: str) -> Node:
-        return self._add_node("NodeFrame", label, (0, 0))
+        return self._add_node(NodeFrame, label, (0, 0))
 
     def _add_node__group_input(self,
                                label: str,
                                location: tuple[float, float]):
-        return self._add_node("NodeGroupInput", label, location)
+        return self._add_node(NodeGroupInput, label, location)
 
     def _add_node__group_output(self,
                                 label: str,
                                 location: tuple[float, float]):
-        out = self._add_node("NodeGroupOutput", label, location)
+        out = self._add_node(NodeGroupOutput, label, location)
         out.is_active_output = True
         return out
 
@@ -197,7 +201,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                        label: str,
                        location: tuple[float, float],
                        parent: Node = None) -> Node:
-        return self._add_node("ShaderNodeHueSaturation", label, location, parent)
+        return self._add_node(ShaderNodeHueSaturation, label, location, parent)
 
     def _add_node__mix(self,
                        label: str,
@@ -214,7 +218,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
             "clamp_factor": True,
             "clamp_result": False,
         }
-        mix = self._add_node("ShaderNodeMix", label, location, parent, props)
+        mix = self._add_node(ShaderNodeMix, label, location, parent, props)
         self._set_socket(mix, 0, default_factor)
         return mix
 
@@ -223,7 +227,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                               location: tuple[float, float],
                               parent: Node = None,
                               props: dict[str, Any] = {}) -> Node:
-        return self._add_node("ShaderNodeMixShader", label, location, parent, props)
+        return self._add_node(ShaderNodeMixShader, label, location, parent, props)
 
     def _add_node__math(self,
                         label: str,
@@ -232,7 +236,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                         parent: Node = None,
                         props: dict[str, Any] = {}) -> Node:
         props = {**props, "operation": operation}
-        return self._add_node("ShaderNodeMath", label, location, parent, props)
+        return self._add_node(ShaderNodeMath, label, location, parent, props)
 
     def _add_node__math_vector(self,
                                label: str,
@@ -241,28 +245,28 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                                parent: Node = None,
                                props: dict[str, Any] = {}) -> Node:
         props = {**props, "operation": operation}
-        return self._add_node("ShaderNodeVectorMath", label, location, parent, props=props)
+        return self._add_node(ShaderNodeVectorMath, label, location, parent, props=props)
 
     def _add_node__normal_map(self,
                               label: str,
                               location: tuple[float, float],
                               parent: Node = None,
                               props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeNormalMap", label, location, parent, props)
+        return self._add_node(ShaderNodeNormalMap, label, location, parent, props)
 
     def _add_node__bump(self,
                         label: str,
                         location: tuple[float, float],
                         parent: Node = None,
                         props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeBump", label, location, parent, props)
+        return self._add_node(ShaderNodeBump, label, location, parent, props)
 
     def _add_node__princ_bdsf(self,
                               label: str,
                               location: tuple[float, float],
                               parent: Node = None,
                               props: dict[str, Any] = {}):
-        return self._add_node("ShaderNodeBsdfPrincipled", label, location, parent, props)
+        return self._add_node(ShaderNodeBsdfPrincipled, label, location, parent, props)
 
     def _add_node__shader_group(self,
                                 label: str,
@@ -271,25 +275,30 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                                 parent: Node = None,
                                 props: dict[str, Any] = {}):
         props = {**props, "node_tree": self.node_trees[builder.group_name()]}
-        return self._add_node("ShaderNodeGroup", label, location, parent, props)
+        return self._add_node(ShaderNodeGroup, label, location, parent, props)
 
     def _add_node__reroute(self,
                            location: tuple[float, float],
                            parent: Node = None):
-        return self._add_node("NodeReroute", "", location, parent)
+        return self._add_node(NodeReroute, "", location, parent)
 
     def _add_node(self,
-                  node_type: str,
+                  node_type: Type[_TNode],
                   label: str,
                   location: tuple[float, float],
                   parent: Node = None,
-                  props: dict[str, Any] = {}) -> Node:
-        node = self.node_group.nodes.new(node_type)
+                  props: dict[str, Any] = {}) -> _TNode:
+        node_type_id = getattr(getattr(node_type, "bl_rna", None), "identifier", None)
+        if node_type_id is None:
+            raise TypeError(f"Cannot resolve bl_idname for type: {node_type.__name__}")
+
+        node = self.node_group.nodes.new(node_type_id)
         node.label = label
-        node.name = slugify(node_type, label)
+        node.name = slugify(self.group_name(), node_type_id, label)
         node.parent = parent
         node.location = location
 
+        # Set props
         for prop, value in props.items():
             if hasattr(node, prop):
                 setattr(node, prop, value)
@@ -420,22 +429,26 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         return image_texture
 
-    def _add_image_texture(self, path: str, non_color: bool, tile: int = 1) -> ShaderNodeTexImage:
-        tex_image: ShaderNodeTexImage = cast(ShaderNodeTexImage, self._node_tree.nodes.new(type="ShaderNodeTexImage"))
-        tex_image.hide = True
-        tex_image.location = self._next_image_node_location()
-        tex_image.image = bpy.data.images.load(path)
-        # noinspection PyTypeChecker
-        tex_image.image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
-        tex_image.image_user.tile = tile
-
+    def _add_image_texture(self, path: str, non_color: bool) -> ShaderNodeTexImage:
         img_name = os.path.basename(path)
-        if img_name in bpy.data.images:
-            tex_image.image = bpy.data.images[img_name]
-        else:
-            tex_image.image = bpy.data.images.load(img_name)
 
-        return tex_image
+        for node in self._node_tree.nodes:
+            if isinstance(node, ShaderNodeTexImage) and node.image and node.image.name == img_name:
+                return node
+
+        image = bpy.data.images.load(path, check_existing=True)
+        # noinspection PyTypeChecker
+        image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
+
+        return self._add_node(
+            ShaderNodeTexImage,
+            img_name,
+            self._next_image_node_location(),
+            props={
+                "image": image,
+                "hide": True
+            }
+        )
 
     def _next_image_node_location(self):
         loc = (self.texture_node_location_x, self._texture_node_location_y_current)
@@ -443,19 +456,25 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         return loc
 
     def _add_node(self,
-                  node_type: str,
+                  node_type: Type[_TNode],
                   label: str,
                   location: tuple[float, float],
                   parent: Node = None,
-                  props: dict[str, Any] = {}) -> Node:
-        node = self._node_tree.nodes.new(node_type)
+                  props: dict[str, Any] = {}) -> _TNode:
+        node_type_id = getattr(getattr(node_type, "bl_rna", None), "identifier", None)
+        if node_type_id is None:
+            raise TypeError(f"Cannot resolve bl_idname for type: {node_type.__name__}")
+
+        node = self._node_tree.nodes.new(node_type_id)
         node.label = label
-        node.name = slugify(self.group_name(), node_type, label)
+        node.name = slugify(self.group_name(), node_type_id, label)
         node.parent = parent
         node.location = location
 
         # Set props
-        [setattr(node, prop, value) for prop, value in props.items() if hasattr(node, prop)]
+        for prop, value in props.items():
+            if hasattr(node, prop):
+                setattr(node, prop, value)
 
         return node
 
@@ -488,8 +507,6 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[1] = scale
 
-        pass
-
     @staticmethod
     def _set_socket(
             node: Node,
@@ -505,7 +522,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             case "MULTIPLY":
                 sock_value = getattr(socket_input, "default_value", 0)
                 if not isinstance(socket_input, NodeSocketFloat):
-                    raise Exception(f"Invalid operation {op} using value {value} for socket {socket_key} with value {sock_value}!")
+                    raise Exception(
+                        f"Invalid operation {op} using value {value} for socket {socket_key} with value {sock_value}!")
                 setattr(socket_input, "default_value", sock_value * value)
 
     def _link_socket(self,

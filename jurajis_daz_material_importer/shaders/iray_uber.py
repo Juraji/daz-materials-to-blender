@@ -6,13 +6,104 @@ from .support import FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, S
     RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, DualLobeSpecularShaderGroupBuilder, \
     BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, WeightedTranslucencyShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonStringMaterialChannel
 
-__GROUP_NAME__ = "Iray Uber (Metallicity/Roughness)"
-__MATERIAL_TYPE_ID__ = "iray_uber__pbr_mr"
+__GROUP_NAME__ = "Iray Uber"
+__MATERIAL_TYPE_ID__ = "iray_uber"
 
 
-class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
+class IrayUberShaderGroupBuilder(ShaderGroupBuilder):
+    """
+    This implementation is an adapter for the PBR Metalicity/Roughness,
+    PBR Specular/Glossiness and Weighted implementations of Iray Uber.
+
+    Since all of these subtypes identify as Iray Uver in the DAZ Scene,
+    we need to use some delegation here, based on the Base Mixing property
+    """
+
+    @staticmethod
+    def group_name() -> str:
+        return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    @staticmethod
+    def depends_on() -> set[Type[ShaderGroupBuilder]]:
+        return {
+            AsymmetricalDisplacementShaderGroupBuilder,
+            BlackbodyEmissionShaderGroupBuilder,
+            DualLobeSpecularShaderGroupBuilder,
+            MetallicFlakesShaderGroupBuilder,
+            WeightedTranslucencyShaderGroupBuilder,
+            FakeGlassShaderGroupBuilder,
+        }
+
+    def setup_group(self):
+        _IrayUberPBRMRShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+        _IrayUberPBRSGShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+        _IrayUberWeightedShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+
+
+class IrayUberShaderGroupApplier(ShaderGroupApplier):
+    """
+    This implementation is an adapter for the PBR Metalicity/Roughness,
+    PBR Specular/Glossiness and Weighted implementations of Iray Uber.
+
+    Since all of these subtypes identify as Iray Uver in the DAZ Scene,
+    we need to use some delegation here, based on the Base Mixing property
+    """
+
+    @staticmethod
+    def group_name() -> str:
+        return __GROUP_NAME__
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        if self._can_use_glass_shortcut(channels):
+            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
+            fake_glass.apply_shader_group(channels)
+            return
+
+        # NOTE: The upstream enum is serialized as its index (DsonStringMaterialChannel).
+        mixing_type_opt = self._determing_mixing_type_opt(channels)
+        match mixing_type_opt:
+            case "0":  # PBR Metallicity/Roughness
+                builder_cls = _IrayUberPBRMRShaderGroupApplier
+            case "1":  # PBR Specular/Glossiness
+                builder_cls = _IrayUberPBRSGShaderGroupApplier
+            case "2":  # Weighted
+                builder_cls = _IrayUberWeightedShaderGroupApplier
+            case _:
+                raise RuntimeError(f"Unknown Iray Uber mixing type {mixing_type_opt}!")
+
+        builder_cls(self._properties, self._node_tree).apply_shader_group(channels)
+
+    @staticmethod
+    def _can_use_glass_shortcut(channels):
+        """
+        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
+        fake glass shader group, instead of the full Iray Uber setup.
+        """
+        refraction_weight_ch = channels.get("refraction_weight", None)
+        refraction_index_ch = channels.get("refraction_index", None)
+
+        if refraction_weight_ch is not None and refraction_index_ch is not None:
+            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38
+
+    @staticmethod
+    def _determing_mixing_type_opt(channels: dict[str, DsonMaterialChannel]) -> str:
+        mixing_ch = channels.get("base_mixing", None)
+        if mixing_ch is not None and isinstance(mixing_ch, DsonStringMaterialChannel):
+            return mixing_ch.value
+        return "__NO_VALUE__"
+
+
+class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     """
     About Iray Uber, decisions had to be made.
     Given Iray Uber has 166 adjustable properties (counting values and maps separately).
@@ -127,22 +218,11 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
     @staticmethod
     def group_name() -> str:
-        return __GROUP_NAME__
+        return f"{__GROUP_NAME__} (PBR Metalicity/Roughness)"
 
     @staticmethod
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
-
-    @staticmethod
-    def depends_on() -> set[Type[ShaderGroupBuilder]]:
-        return {
-            AsymmetricalDisplacementShaderGroupBuilder,
-            BlackbodyEmissionShaderGroupBuilder,
-            DualLobeSpecularShaderGroupBuilder,
-            MetallicFlakesShaderGroupBuilder,
-            WeightedTranslucencyShaderGroupBuilder,
-            FakeGlassShaderGroupBuilder,
-        }
 
     def setup_group(self):
         super().setup_group()
@@ -501,24 +581,20 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         # @formatter:on
 
 
-class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
+class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
+
     @staticmethod
     def group_name() -> str:
-        return __GROUP_NAME__
+        return f"{__GROUP_NAME__} (PBR Metalicity/Roughness)"
 
     @staticmethod
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        if self._can_use_glass_shortcut(channels):
-            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
-            fake_glass.apply_shader_group(channels)
-            return
-
         super().apply_shader_group(channels)
 
-        builder = IrayUberPBRMRShaderGroupBuilder
+        builder = _IrayUberPBRMRShaderGroupBuilder
 
         # @formatter:off
         # Geometry Tiling
@@ -643,14 +719,102 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         else:
             return base_luminance
 
-    @staticmethod
-    def _can_use_glass_shortcut(channels):
-        """
-        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
-        fake glass shader group, instead of the full Iray Uber setup.
-        """
-        refraction_weight_ch = channels.get("refraction_weight", None)
-        refraction_index_ch = channels.get("refraction_index", None)
 
-        if refraction_weight_ch is not None and refraction_index_ch is not None:
-            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38
+class _IrayUberPBRSGShaderGroupBuilder(ShaderGroupBuilder):
+    out_surface = "Surface"
+
+    @staticmethod
+    def group_name() -> str:
+        return f"{__GROUP_NAME__} (PBR Specular/Glossiness)"
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    def setup_group(self):
+        super().setup_group()
+
+        # Output Sockets:
+        sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
+
+        # Nodes: WHITE BSDF
+        node_diffuse_bsdf = self._add_node(ShaderNodeBsdfDiffuse, "Default", (-300, 0))
+        self._set_socket(node_diffuse_bsdf, 0, (0.5, 0.5, 0.5, 0.1))
+        self._set_socket(node_diffuse_bsdf, 1, 1.0)
+
+        # Group Output
+        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
+        self._link_socket(node_diffuse_bsdf, node_group_output, 0, sock_out_surface)
+
+
+class _IrayUberPBRSGShaderGroupApplier(ShaderGroupApplier):
+
+    @staticmethod
+    def group_name() -> str:
+        return f"{__GROUP_NAME__} (PBR Specular/Glossiness)"
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        """
+        NOT IMPLEMENTED!
+        The applier currently just adds all images from the channels to the material,
+        but group set up is left to the user.
+        """
+        super().apply_shader_group(channels)
+
+        for channel in channels.values():
+            if channel.has_image():
+                self._add_image_texture(channel.image_file, False)
+
+
+class _IrayUberWeightedShaderGroupBuilder(ShaderGroupBuilder):
+    out_surface = "Surface"
+
+    @staticmethod
+    def group_name() -> str:
+        return f"{__GROUP_NAME__} (Weighted)"
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    def setup_group(self):
+        super().setup_group()
+
+        # Output Sockets:
+        sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
+
+        # Nodes: WHITE BSDF
+        node_diffuse_bsdf = self._add_node(ShaderNodeBsdfDiffuse, "Default", (-300, 0))
+        self._set_socket(node_diffuse_bsdf, 0, (0.5, 0.5, 0.5, 0.1))
+        self._set_socket(node_diffuse_bsdf, 1, 1.0)
+
+        # Group Output
+        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
+        self._link_socket(node_diffuse_bsdf, node_group_output, 0, sock_out_surface)
+
+
+class _IrayUberWeightedShaderGroupApplier(ShaderGroupApplier):
+
+    @staticmethod
+    def group_name() -> str:
+        return f"{__GROUP_NAME__} (Weighted)"
+
+    @staticmethod
+    def material_type_id() -> str:
+        return __MATERIAL_TYPE_ID__
+
+    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        """
+        NOT IMPLEMENTED!
+        The applier currently just adds all images from the channels to the material,
+        but group set up is left to the user.
+        """
+        super().apply_shader_group(channels)
+
+        for channel in channels.values():
+            if channel.has_image():
+                self._add_image_texture(channel.image_file, False)

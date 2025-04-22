@@ -184,19 +184,7 @@ class DazDsonMaterialReader:
 
         extra = scene_mat['extra']
         if extra[0]['type'] == 'studio/material/uber_iray':
-            if len(extra) == 2:
-                base_mixing = next((ch['channel']['current_value'] for ch in extra[1]['channels'] if
-                                    ch['channel']['id'] == 'Base Mixing'), 0)
-                match base_mixing:
-                    case 1:
-                        mat_id = "iray_uber__pbr_sg"
-                    case 2:
-                        mat_id = "iray_uber__weighted"
-                    case _:
-                        mat_id = "iray_uber__pbr_mr"
-            else:
-                mat_id = "iray_uber__pbr_mr"
-
+            mat_id = "iray_uber"
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
 

@@ -1,6 +1,6 @@
 from typing import Type
 
-from .iray_uber import IrayUberPBRMRShaderGroupBuilder, IrayUberPBRMRShaderGroupApplier
+from .iray_uber import IrayUberShaderGroupBuilder, IrayUberShaderGroupApplier
 from .iwave_translucent_fabric import IWaveTranslucentFabricShaderGroupBuilder, IWaveTranslucentFabricShaderGroupApplier
 from .pbr_skin import PBRSkinShaderGroupBuilder, PBRSkinShaderGroupApplier
 from .support import ShaderGroupBuilder, ShaderGroupApplier, AsymmetricalDisplacementShaderGroupBuilder, \
@@ -19,13 +19,13 @@ SHADER_GROUP_BUILDERS: list[Type[ShaderGroupBuilder]] = [
 
     # Shaders
     PBRSkinShaderGroupBuilder,
-    IrayUberPBRMRShaderGroupBuilder,
+    IrayUberShaderGroupBuilder,
     IWaveTranslucentFabricShaderGroupBuilder,
 ]
 
 SHADER_GROUP_APPLIERS: list[Type[ShaderGroupApplier]] = [
     PBRSkinShaderGroupApplier,
-    IrayUberPBRMRShaderGroupApplier,
+    IrayUberShaderGroupApplier,
     IWaveTranslucentFabricShaderGroupApplier,
     FakeGlassShaderGroupApplier,
 ]

@@ -19,6 +19,8 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
     out_fac = "Fac"
     out_shader = "Shader"
 
+    flake_size_inverson_base = 50
+
     @staticmethod
     def group_name() -> str:
         return __GROUP_NAME__
@@ -64,24 +66,23 @@ class MetallicFlakesShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_roughness, sock_roughness_map, 7)
 
         node_invert_flake_size = self._add_node__math("Invert Flake Size", (-740.0, -400.0), "DIVIDE")
-        self._set_socket(node_invert_flake_size, 0, 1000)
+        self._set_socket(node_invert_flake_size, 0, self.flake_size_inverson_base)
         self._link_socket(node_group_input, node_invert_flake_size, sock_flake_size, 1)
 
         voronoi_props = {"distance": 'EUCLIDEAN', "feature": 'F1', "normalize": False, "voronoi_dimensions": '3D'}
         node_voronoi_tex = self._add_node("ShaderNodeTexVoronoi", "Voronoi Texture", (-400.0, -280.0), props=voronoi_props)
-        self._link_socket(node_group_input, node_voronoi_tex, sock_normal, 0)
         self._link_socket(node_invert_flake_size, node_voronoi_tex, 0, 2)
         self._set_socket(node_voronoi_tex, 3, 0)
         self._set_socket(node_voronoi_tex, 4, 0)
-        self._set_socket(node_voronoi_tex, 5, 2)
+        self._set_socket(node_voronoi_tex, 5, 1)
         self._set_socket(node_voronoi_tex, 8, 1)
 
         node_voron_normal_vector_div = self._add_node__mix("Ruin Normals", (60.0, -220.0), blend_type="DIVIDE", default_factor=0.1)
         self._link_socket(node_group_input, node_voron_normal_vector_div, sock_normal, 6)
-        self._link_socket(node_voronoi_tex, node_voron_normal_vector_div, 2, 7)
+        self._link_socket(node_voronoi_tex, node_voron_normal_vector_div, 1, 7)
 
         node_density_ramp = self._add_node("ShaderNodeValToRGB", "Density Ramp", (-240.0, 120.0))
-        self._link_socket(node_voronoi_tex, node_density_ramp, 2,0)
+        self._link_socket(node_voronoi_tex, node_density_ramp, 1,0)
 
         node_pick_visible_flakes = self._add_node__math("Pick Visible Flakes", (200.0, 100.0), "LESS_THAN")
         self._link_socket(node_density_ramp, node_pick_visible_flakes, 0, 0)

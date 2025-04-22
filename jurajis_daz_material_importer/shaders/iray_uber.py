@@ -287,7 +287,7 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         reroute_transmission_in = RerouteGroup(-2327, -1979, frame_transmission)
         reroute_transmission_out = RerouteGroup(-1520, -1908, frame_transmission)
 
-        reroute_sss_ior = RerouteGroup(1920.0, -1361.0)
+        reroute_sss_ior = RerouteGroup(-1920.0, -1400.0)
 
         # Nodes: Group Input
         node_group_input = self._add_node__group_input("Group Input", (-3320, 400))
@@ -470,29 +470,29 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_mix_thin_film, node_main_layer_bsdf, 0, s.THIN_FILM_THICKNESS)
         self._link_socket(node_mix_thin_film_ior, node_main_layer_bsdf, 0, s.THIN_FILM_IOR)
 
-        node_mix_shader_trans = self._add_node__mix_shader("Mix Translucency Shader", (-720, 0))
+        node_mix_shader_trans = self._add_node__mix_shader("Mix Translucency Shader", (-780, 0))
         self._link_socket(node_translucency, node_mix_shader_trans, builder_trans.out_fac,0)
         self._link_socket(node_main_layer_bsdf, node_mix_shader_trans, 0,1)
         self._link_socket(node_translucency, node_mix_shader_trans, builder_flakes.out_shader,2)
 
-        node_mix_shader_flakes = self._add_node__mix_shader("Mix Metallic Flakes Shader", (-540, 0))
-        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_fac,0)
-        self._link_socket(node_mix_shader_trans, node_mix_shader_flakes, 0,1)
-        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_shader,2)
-
-        node_mix_shader_overlay = self._add_node__mix_shader("Mix Diffuse Overlay Shader", (-360, 0))
+        node_mix_shader_overlay = self._add_node__mix_shader("Mix Diffuse Overlay Shader", (-580, 0))
         self._link_socket(node_overlay_sq_value, node_mix_shader_overlay, 0,0, reroute_diff_overlay_out)
-        self._link_socket(node_mix_shader_flakes, node_mix_shader_overlay, 0,1)
+        self._link_socket(node_mix_shader_trans, node_mix_shader_overlay, 0,1)
         self._link_socket(node_overlay_bsdf, node_mix_shader_overlay, 0,2, reroute_diff_overlay_out)
 
-        node_mix_shader_dls = self._add_node__mix_shader("Mix DLS Shader", (-180, 0))
+        node_mix_shader_dls = self._add_node__mix_shader("Mix DLS Shader", (-400, 0))
         self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_fac,0)
         self._link_socket(node_mix_shader_overlay, node_mix_shader_dls, 0,1)
         self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_shader, 2)
 
+        node_mix_shader_flakes = self._add_node__mix_shader("Mix Metallic Flakes Shader", (-220, 0))
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_fac,0)
+        self._link_socket(node_mix_shader_dls, node_mix_shader_flakes, 0,1)
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_shader,2)
+
         # Group Output
         node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
-        self._link_socket(node_mix_shader_dls, node_group_output, 0, sock_out_surface)
+        self._link_socket(node_mix_shader_flakes, node_group_output, 0, sock_out_surface)
         self._link_socket(node_transmitted_vol, node_group_output, 0, sock_out_volume, reroute_transmission_out)
         self._link_socket(node_displacement, node_group_output, builder_disp.out_displacement, sock_out_displacement)
 

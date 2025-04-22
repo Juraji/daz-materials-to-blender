@@ -520,7 +520,7 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
 
         # @formatter:off
         # Geometry Tiling
-        self._set_material_mapping(channels, "horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset")
+        self._set_material_mapping("horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset")
 
         # Base Diffuse
         self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map)

@@ -458,7 +458,6 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         return node
 
     def _set_material_mapping(self,
-                              channels: dict[str, DsonMaterialChannel],
                               horizontal_tiling_channel_id: str,
                               horizontal_offset_channel_id: str,
                               vertical_tiling_channel_id: str,
@@ -467,23 +466,23 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         mapping_node = mapping_node or self._mapping
 
-        if horizontal_offset_channel_id in channels:
-            scale = channels[horizontal_offset_channel_id].value
+        if horizontal_offset_channel_id in self._channels:
+            scale = self._channels[horizontal_offset_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[1].default_value[0] = scale
 
-        if vertical_offset_channel_id in channels:
-            scale = channels[vertical_offset_channel_id].value
+        if vertical_offset_channel_id in self._channels:
+            scale = self._channels[vertical_offset_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[1].default_value[1] = scale
 
-        if horizontal_tiling_channel_id in channels:
-            scale = 1 / channels[horizontal_tiling_channel_id].value
+        if horizontal_tiling_channel_id in self._channels:
+            scale = 1 / self._channels[horizontal_tiling_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[0] = scale
 
-        if vertical_tiling_channel_id in channels:
-            scale = 1 / channels[vertical_tiling_channel_id].value
+        if vertical_tiling_channel_id in self._channels:
+            scale = 1 / self._channels[vertical_tiling_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[1] = scale
 

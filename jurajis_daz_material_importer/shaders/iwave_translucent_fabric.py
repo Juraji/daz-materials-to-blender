@@ -5,15 +5,17 @@ from ..utils.dson import DsonMaterialChannel
 __GROUP_NAME__ = "iWave Translucent Fabric"
 __MATERIAL_TYPE_ID__ = "translucent_fabric"
 
+from ..utils.math import tuple_zip_sum
+
 
 class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
     in_diffuse = "Diffuse"
     in_diffuse_map = "Diffuse Map"
 
-    in_normal_map = "Normal Map"
-    in_normal_map_map = "Normal Map Map"
-    in_crumple_normal_map = "Crumple Normal Map"
-    in_crumple_normal_map_map = "Crumple Normal Map Map"
+    in_base_normal = "Normal"
+    in_base_normal_map = "Normal Map"
+    in_base_bump = "Bump"
+    in_base_bump_map = "Bump Map"
 
     in_fiber_layer_weight = "Fiber Layer Weight"
     in_fiber_layer_weight_map = "Fiber Layer Weight Map"
@@ -27,22 +29,11 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
     in_translucency_weight_map = "Translucency Weight Map"
     in_translucency_color = "Translucency Color"
     in_translucency_color_map = "Translucency Color Map"
-    in_fiber_layer_weight_map_horizontal_tiles = "Fiber Layer Weight Map Horizontal Tiles"
-    in_fiber_layer_weight_map_horizontal_offset = "Fiber Layer Weight Map Horizontal Offset"
-    in_fiber_layer_weight_map_vertical_tiles = "Fiber Layer Weight Map Vertical Tiles"
-    in_fiber_layer_weight_map_vertical_offset = "Fiber Layer Weight Map Vertical Offset"
 
-    in_fine_detail_blend_weight = "Fine Detail Blend Weight"
-    in_fine_detail_map = "Fine Detail Map"
-    in_fine_detail_blend_mode = "Fine Detail Blend Mode"
     in_fine_detail_glossy_reflectivity = "Fine Detail Glossy Reflectivity"
     in_fine_detail_glossy_reflectivity_map = "Fine Detail Glossy Reflectivity Map"
+    in_fine_detail_normal = "Fine Detail Normal"
     in_fine_detail_normal_map = "Fine Detail Normal Map"
-    in_fine_detail_normal_map_map = "Fine Detail Normal Map Map"
-    in_fine_detail_and_crumple_normal = "Fine Detail And Crumple Normal"
-    in_fine_detail_and_crumple_normal_map = "Fine Detail And Crumple Normal Map"
-    in_fine_detail_and_crumple_bump = "Fine Detail And Crumple Bump"
-    in_fine_detail_and_crumple_bump_map = "Fine Detail And Crumple Bump Map"
     in_fine_detail_horizontal_tiles = "Fine Detail Horizontal Tiles"
     in_fine_detail_horizontal_offset = "Fine Detail Horizontal Offset"
     in_fine_detail_vertical_tiles = "Fine Detail Vertical Tiles"
@@ -54,7 +45,6 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
     in_displacement_strength_map = "Displacement Strength Map"
     in_minimum_displacement = "Minimum Displacement"
     in_maximum_displacement = "Maximum Displacement"
-    in_subd_displacement_level = "Subd Displacement Level"
     in_horizontal_tiles = "Horizontal Tiles"
     in_horizontal_offset = "Horizontal Offset"
     in_vertical_tiles = "Vertical Tiles"
@@ -66,35 +56,25 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
 
     in_glossy_layered_weight = "Glossy Layered Weight"
     in_glossy_layered_weight_map = "Glossy Layered Weight Map"
-    in_share_glossy_inputs = "Share Glossy Inputs"
     in_glossy_color = "Glossy Color"
     in_glossy_color_map = "Glossy Color Map"
     in_glossy_reflectivity = "Glossy Reflectivity"
     in_glossy_reflectivity_map = "Glossy Reflectivity Map"
     in_glossy_roughness = "Glossy Roughness"
     in_glossy_roughness_map = "Glossy Roughness Map"
-    in_glossy_anisotropy = "Glossy Anisotropy"
-    in_glossy_anisotropy_map = "Glossy Anisotropy Map"
-    in_glossy_anisotropy_rotations = "Glossy Anisotropy Rotations"
-    in_glossy_anisotropy_rotations_map = "Glossy Anisotropy Rotations Map"
 
+    in_gradient_layer_normal_opacity = "Gradient Layer Normal Opacity"
+    in_gradient_layer_normal_opacity_map = "Gradient Layer Normal Opacity Map"
+    in_gradient_layer_grazing_opacity = "Gradient Layer Grazing Opacity"
+    in_gradient_layer_grazing_opacity_map = "Gradient Layer Grazing Opacity Map"
+    in_gradient_layer_exponent = "Gradient Layer Exponent"
+    in_gradient_layer_exponent_map = "Gradient Layer Exponent Map"
     in_gradient_layer_grazing_color = "Gradient Layer Grazing Color"
     in_gradient_layer_grazing_color_map = "Gradient Layer Grazing Color Map"
     in_gradient_layer_normal_tint = "Gradient Layer Normal Tint"
     in_gradient_layer_normal_tint_map = "Gradient Layer Normal Tint Map"
     in_gradient_layer_normal_tint_weight = "Gradient Layer Normal Tint Weight"
     in_gradient_layer_normal_tint_weight_map = "Gradient Layer Normal Tint Weight Map"
-    in_gradient_layer_normal_reflectivity = "Gradient Layer Normal Reflectivity"
-    in_gradient_layer_normal_reflectivity_map = "Gradient Layer Normal Reflectivity Map"
-    in_gradient_layer_grazing_reflectivity = "Gradient Layer Grazing Reflectivity"
-    in_gradient_layer_grazing_reflectivity_map = "Gradient Layer Grazing Reflectivity Map"
-    in_gradient_layer_exponent = "Gradient Layer Exponent"
-    in_gradient_layer_exponent_map = "Gradient Layer Exponent Map"
-    in_gradient_layer_strength = "Gradient Layer Strength"
-    in_gradient_layer_metallic_weight = "Gradient Layer Metallic Weight"
-    in_gradient_layer_glossy_layered_weight = "Gradient Layer Glossy Layered Weight"
-    in_gradient_layer_refraction_index = "Gradient Layer Refraction Index"
-    in_gradient_layer_refraction_weight = "Gradient Layer Refraction Weight"
 
     in_metallic_flakes_weight = "Metallic Flakes Weight"
     in_metallic_flakes_weight_map = "Metallic Flakes Weight Map"
@@ -161,10 +141,10 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         sock_diffuse_map = self._color_socket(self.in_diffuse_map, parent=panel_base_diffuse)
 
         # Sockets: Bump
-        sock_normal_map = self._float_socket(self.in_normal_map, 1, parent=panel_bump)
-        sock_normal_map_map = self._color_socket(self.in_normal_map_map, parent=panel_bump)
-        sock_crumple_normal_map = self._float_socket(self.in_crumple_normal_map, 1, parent=panel_bump)
-        sock_crumple_normal_map_map = self._color_socket(self.in_crumple_normal_map_map, parent=panel_bump)
+        sock_normal = self._float_socket(self.in_base_normal, 1, parent=panel_bump)
+        sock_normal_map = self._color_socket(self.in_base_normal_map, parent=panel_bump)
+        sock_bump = self._float_socket(self.in_base_bump, 1, parent=panel_bump)
+        sock_bump_map = self._color_socket(self.in_base_bump_map, parent=panel_bump)
 
         # Sockets: Fiber Layer
         sock_fiber_layer_weight = self._float_socket(self.in_fiber_layer_weight, parent=panel_fiber_layer)
@@ -179,36 +159,23 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         sock_translucency_weight_map = self._color_socket(self.in_translucency_weight_map, parent=panel_fiber_layer)
         sock_translucency_color = self._color_socket(self.in_translucency_color, parent=panel_fiber_layer)
         sock_translucency_color_map = self._color_socket(self.in_translucency_color_map, parent=panel_fiber_layer)
-        sock_fiber_layer_weight_map_horizontal_tiles = self._float_socket(self.in_fiber_layer_weight_map_horizontal_tiles, 1, parent=panel_fiber_layer)
-        sock_fiber_layer_weight_map_horizontal_offset = self._float_socket(self.in_fiber_layer_weight_map_horizontal_offset, parent=panel_fiber_layer)
-        sock_fiber_layer_weight_map_vertical_tiles = self._float_socket(self.in_fiber_layer_weight_map_vertical_tiles, 1, parent=panel_fiber_layer)
-        sock_fiber_layer_weight_map_vertical_offset = self._float_socket(self.in_fiber_layer_weight_map_vertical_offset, parent=panel_fiber_layer)
 
         # Sockets: Fine Detail
-        sock_fine_detail_blend_weight = self._float_socket(self.in_fine_detail_blend_weight, parent=panel_fine_detail)
-        sock_fine_detail_map = self._color_socket(self.in_fine_detail_map, parent=panel_fine_detail)
-        sock_fine_detail_blend_mode = self._float_socket(self.in_fine_detail_blend_mode, 2, parent=panel_fine_detail)
         sock_fine_detail_glossy_reflectivity = self._float_socket(self.in_fine_detail_glossy_reflectivity, 0.5, parent=panel_fine_detail)
         sock_fine_detail_glossy_reflectivity_map = self._color_socket(self.in_fine_detail_glossy_reflectivity_map, parent=panel_fine_detail)
         sock_fine_detail_normal_map = self._float_socket(self.in_fine_detail_normal_map, 1, parent=panel_fine_detail)
-        sock_fine_detail_normal_map_map = self._color_socket(self.in_fine_detail_normal_map_map, parent=panel_fine_detail)
-        sock_fine_detail_and_crumple_normal = self._float_socket(self.in_fine_detail_and_crumple_normal, 1, parent=panel_fine_detail)
-        sock_fine_detail_and_crumple_normal_map = self._color_socket(self.in_fine_detail_and_crumple_normal_map, parent=panel_fine_detail)
-        sock_fine_detail_and_crumple_bump = self._float_socket(self.in_fine_detail_and_crumple_bump, 1, parent=panel_fine_detail)
-        sock_fine_detail_and_crumple_bump_map = self._color_socket(self.in_fine_detail_and_crumple_bump_map, parent=panel_fine_detail)
         sock_fine_detail_horizontal_tiles = self._float_socket(self.in_fine_detail_horizontal_tiles, 1, parent=panel_fine_detail)
         sock_fine_detail_horizontal_offset = self._float_socket(self.in_fine_detail_horizontal_offset, parent=panel_fine_detail)
         sock_fine_detail_vertical_tiles = self._float_socket(self.in_fine_detail_vertical_tiles, 1, parent=panel_fine_detail)
         sock_fine_detail_vertical_offset = self._float_socket(self.in_fine_detail_vertical_offset, parent=panel_fine_detail)
 
-        # Sockets: Geometry Cutout
+        # Sockets: Geometry
         sock_cutout_opacity = self._float_socket(self.in_cutout_opacity, 1, parent=panel_geometry)
         sock_cutout_opacity_map = self._color_socket(self.in_cutout_opacity_map, parent=panel_geometry)
         sock_displacement_strength = self._float_socket(self.in_displacement_strength, 1, parent=panel_geometry)
         sock_displacement_strength_map = self._color_socket(self.in_displacement_strength_map, parent=panel_geometry)
         sock_minimum_displacement = self._float_socket(self.in_minimum_displacement, -0.1, parent=panel_geometry)
         sock_maximum_displacement = self._float_socket(self.in_maximum_displacement, 0.1, parent=panel_geometry)
-        sock_subd_displacement_level = self._float_socket(self.in_subd_displacement_level, parent=panel_geometry)
         sock_horizontal_tiles = self._float_socket(self.in_horizontal_tiles, 1, parent=panel_geometry)
         sock_horizontal_offset = self._float_socket(self.in_horizontal_offset, parent=panel_geometry)
         sock_vertical_tiles = self._float_socket(self.in_vertical_tiles, 1, parent=panel_geometry)
@@ -221,38 +188,28 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         # Sockets: Glossy
         sock_glossy_layered_weight = self._float_socket(self.in_glossy_layered_weight, parent=panel_glossy)
         sock_glossy_layered_weight_map = self._color_socket(self.in_glossy_layered_weight_map, parent=panel_glossy)
-        sock_share_glossy_inputs = self._bool_socket(self.in_share_glossy_inputs, True, parent=panel_glossy)
         sock_glossy_color = self._color_socket(self.in_glossy_color, parent=panel_glossy)
         sock_glossy_color_map = self._color_socket(self.in_glossy_color_map, parent=panel_glossy)
         sock_glossy_reflectivity = self._float_socket(self.in_glossy_reflectivity, 0.5, parent=panel_glossy)
         sock_glossy_reflectivity_map = self._color_socket(self.in_glossy_reflectivity_map, parent=panel_glossy)
         sock_glossy_roughness = self._float_socket(self.in_glossy_roughness, parent=panel_glossy)
         sock_glossy_roughness_map = self._color_socket(self.in_glossy_roughness_map, parent=panel_glossy)
-        sock_glossy_anisotropy = self._float_socket(self.in_glossy_anisotropy, parent=panel_glossy)
-        sock_glossy_anisotropy_map = self._color_socket(self.in_glossy_anisotropy_map, parent=panel_glossy)
-        sock_glossy_anisotropy_rotations = self._float_socket(self.in_glossy_anisotropy_rotations, parent=panel_glossy)
-        sock_glossy_anisotropy_rotations_map = self._color_socket(self.in_glossy_anisotropy_rotations_map, parent=panel_glossy)
 
         # Sockets: Gradient Layer
+        sock_gradient_layer_normal_opacity = self._float_socket(self.in_gradient_layer_normal_opacity, parent=panel_gradient_layer)
+        sock_gradient_layer_normal_opacity_map = self._color_socket(self.in_gradient_layer_normal_opacity_map, parent=panel_gradient_layer)
+        sock_gradient_layer_grazing_opacity = self._float_socket(self.in_gradient_layer_grazing_opacity, 1, parent=panel_gradient_layer)
+        sock_gradient_layer_grazing_opacity_map = self._color_socket(self.in_gradient_layer_grazing_opacity_map, parent=panel_gradient_layer)
+        sock_gradient_layer_exponent = self._float_socket(self.in_gradient_layer_exponent, 1, parent=panel_gradient_layer)
+        sock_gradient_layer_exponent_map = self._color_socket(self.in_gradient_layer_exponent_map, parent=panel_gradient_layer)
         sock_gradient_layer_grazing_color = self._color_socket(self.in_gradient_layer_grazing_color, (0.0, 0.0, 0.0, 1.0), parent=panel_gradient_layer)
         sock_gradient_layer_grazing_color_map = self._color_socket(self.in_gradient_layer_grazing_color_map, parent=panel_gradient_layer)
         sock_gradient_layer_normal_tint = self._color_socket(self.in_gradient_layer_normal_tint, (0.0, 0.0, 0.0, 1.0), parent=panel_gradient_layer)
         sock_gradient_layer_normal_tint_map = self._color_socket(self.in_gradient_layer_normal_tint_map, parent=panel_gradient_layer)
         sock_gradient_layer_normal_tint_weight = self._float_socket(self.in_gradient_layer_normal_tint_weight, parent=panel_gradient_layer)
         sock_gradient_layer_normal_tint_weight_map = self._color_socket(self.in_gradient_layer_normal_tint_weight_map, parent=panel_gradient_layer)
-        sock_gradient_layer_normal_reflectivity = self._float_socket(self.in_gradient_layer_normal_reflectivity, parent=panel_gradient_layer)
-        sock_gradient_layer_normal_reflectivity_map = self._color_socket(self.in_gradient_layer_normal_reflectivity_map, parent=panel_gradient_layer)
-        sock_gradient_layer_grazing_reflectivity = self._float_socket(self.in_gradient_layer_grazing_reflectivity, 1, parent=panel_gradient_layer)
-        sock_gradient_layer_grazing_reflectivity_map = self._color_socket(self.in_gradient_layer_grazing_reflectivity_map, parent=panel_gradient_layer)
-        sock_gradient_layer_exponent = self._float_socket(self.in_gradient_layer_exponent, 1, parent=panel_gradient_layer)
-        sock_gradient_layer_exponent_map = self._color_socket(self.in_gradient_layer_exponent_map, parent=panel_gradient_layer)
-        sock_gradient_layer_strength = self._float_socket(self.in_gradient_layer_strength, 1, parent=panel_gradient_layer)
-        sock_gradient_layer_metallic_weight = self._float_socket(self.in_gradient_layer_metallic_weight, parent=panel_gradient_layer)
-        sock_gradient_layer_glossy_layered_weight = self._float_socket(self.in_gradient_layer_glossy_layered_weight, parent=panel_gradient_layer)
-        sock_gradient_layer_refraction_index = self._float_socket(self.in_gradient_layer_refraction_index, 1, parent=panel_gradient_layer)
-        sock_gradient_layer_refraction_weight = self._float_socket(self.in_gradient_layer_refraction_weight, 1, parent=panel_gradient_layer)
 
-        # Sockets: Metallic Flakes Flakes
+        # Sockets: Metallic Flakes
         sock_metallic_flakes_weight = self._float_socket(self.in_metallic_flakes_weight, parent=panel_metallic_flakes_flakes)
         sock_metallic_flakes_weight_map = self._color_socket(self.in_metallic_flakes_weight_map, parent=panel_metallic_flakes_flakes)
         sock_metallic_flakes_color = self._color_socket(self.in_metallic_flakes_color, parent=panel_metallic_flakes_flakes)
@@ -295,6 +252,8 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
 
 
 class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
+    mapping_node_location_offset = -50
+
     @staticmethod
     def group_name() -> str:
         return __GROUP_NAME__
@@ -306,126 +265,98 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         super().apply_shader_group(channels)
 
-        # @formatter:off
-        # in_diffuse
-        # in_diffuse_map
+        builder = IWaveTranslucentFabricShaderGroupBuilder
 
-#         in_normal_map
-#         in_normal_map_map
-#         in_crumple_normal_map
-#         in_crumple_normal_map_map
+        # # @formatter:off
+        # Base Diffuse
+        self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
 
-#         in_fiber_layer_weight
-#         in_fiber_layer_weight_map
-#         in_metallic_weight
-#         in_metallic_weight_map
-#         in_diffuse_overlay_color
-#         in_diffuse_overlay_color_map
-#         in_diffuse_roughness
-#         in_diffuse_roughness_map
-#         in_translucency_weight
-#         in_translucency_weight_map
-#         in_translucency_color
-#         in_translucency_color_map
-#         in_fiber_layer_weight_map_horizontal_tiles
-#         in_fiber_layer_weight_map_horizontal_offset
-#         in_fiber_layer_weight_map_vertical_tiles
-#         in_fiber_layer_weight_map_vertical_offset
+        geo_mapping_props = ["horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset"]
+        if self._channel_enabled(*geo_mapping_props):
+            self._set_material_mapping(*geo_mapping_props)
 
-#         in_fine_detail_blend_weight
-#         in_fine_detail_map
-#         in_fine_detail_blend_mode
-#         in_fine_detail_glossy_reflectivity
-#         in_fine_detail_glossy_reflectivity_map
-#         in_fine_detail_normal_map
-#         in_fine_detail_normal_map_map
-#         in_fine_detail_and_crumple_normal
-#         in_fine_detail_and_crumple_normal_map
-#         in_fine_detail_and_crumple_bump
-#         in_fine_detail_and_crumple_bump_map
-#         in_fine_detail_horizontal_tiles
-#         in_fine_detail_horizontal_offset
-#         in_fine_detail_vertical_tiles
-#         in_fine_detail_vertical_offset
+        # Bump
+        self._channel_to_inputs("normal_map", builder.in_base_normal, builder.in_base_normal_map)
+        self._channel_to_inputs("bump_strength", builder.in_base_bump, builder.in_base_bump_map)
 
-#         in_cutout_opacity
-#         in_cutout_opacity_map
-#         in_displacement_strength
-#         in_displacement_strength_map
-#         in_minimum_displacement
-#         in_maximum_displacement
-#         in_subd_displacement_level
-#         in_horizontal_tiles
-#         in_horizontal_offset
-#         in_vertical_tiles
-#         in_vertical_offset
-#         in_cutout_opacity_horizontal_tiles
-#         in_cutout_opacity_horizontal_offset
-#         in_cutout_opacity_vertical_tiles
-#         in_cutout_opacity_vertical_offset
+        # Fiber Layer
+        if self._channel_enabled("fiber_layer_weight"):
+            self._channel_to_inputs("metallic_weight", builder.in_metallic_weight, builder.in_metallic_weight_map)
+            self._channel_to_inputs("diffuse_overlay_color", builder.in_diffuse_overlay_color, builder.in_diffuse_overlay_color_map)
+            self._channel_to_inputs("diffuse_roughness", builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+            self._channel_to_inputs("translucency_weight", builder.in_translucency_weight, builder.in_translucency_weight_map)
+            self._channel_to_inputs("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map)
 
-#         in_glossy_layered_weight
-#         in_glossy_layered_weight_map
-#         in_share_glossy_inputs
-#         in_glossy_color
-#         in_glossy_color_map
-#         in_glossy_reflectivity
-#         in_glossy_reflectivity_map
-#         in_glossy_roughness
-#         in_glossy_roughness_map
-#         in_glossy_anisotropy
-#         in_glossy_anisotropy_map
-#         in_glossy_anisotropy_rotations
-#         in_glossy_anisotropy_rotations_map
+        # Fine Detail
+        node_fd_glossy_tex = self._channel_to_inputs("fine_detail_normal_map", builder.in_fine_detail_normal, builder.in_fine_detail_normal_map)
+        node_fd_normal_tex = self._channel_to_inputs("fine_detail_glossy_reflectivity", builder.in_fine_detail_glossy_reflectivity, builder.in_fine_detail_glossy_reflectivity_map)
 
-#         in_gradient_layer_grazing_color
-#         in_gradient_layer_grazing_color_map
-#         in_gradient_layer_normal_tint
-#         in_gradient_layer_normal_tint_map
-#         in_gradient_layer_normal_tint_weight
-#         in_gradient_layer_normal_tint_weight_map
-#         in_gradient_layer_normal_reflectivity
-#         in_gradient_layer_normal_reflectivity_map
-#         in_gradient_layer_grazing_reflectivity
-#         in_gradient_layer_grazing_reflectivity_map
-#         in_gradient_layer_exponent
-#         in_gradient_layer_exponent_map
-#         in_gradient_layer_strength
-#         in_gradient_layer_metallic_weight
-#         in_gradient_layer_glossy_layered_weight
-#         in_gradient_layer_refraction_index
-#         in_gradient_layer_refraction_weight
+        fd_mapping_props = ["fine_detail_horizontal_tiles", "fine_detail_horizontal_offset", "fine_detail_vertical_tiles", "fine_detail_vertical_offset"]
+        if self._channel_enabled(*fd_mapping_props) and (node_fd_normal_tex or node_fd_glossy_tex):
+            fd_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset), self._mapping.location.to_tuple())
+            fd_mapping_node = self._add_node("ShaderNodeMapping", "Fine Detail Mapping", fd_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
+            self._link_socket(self._uv_map, fd_mapping_node, 0, 0)
+            self._set_material_mapping(*fd_mapping_props, mapping_node=fd_mapping_node)
 
-#         in_metallic_flakes_weight
-#         in_metallic_flakes_weight_map
-#         in_metallic_flakes_color
-#         in_metallic_flakes_color_map
-#         in_metallic_flakes_roughness
-#         in_metallic_flakes_roughness_map
-#         in_metallic_flakes_size
-#         in_metallic_flakes_strength
-#         in_metallic_flakes_density
+            if node_fd_glossy_tex:
+                self._link_socket(fd_mapping_node, node_fd_glossy_tex, 0, 0)
+            if node_fd_normal_tex:
+                self._link_socket(fd_mapping_node, node_fd_normal_tex, 0, 0)
 
-#         in_thin_film_thickness
-#         in_thin_film_thickness_map
-#         in_thin_film_ior
-#         in_thin_film_ior_map
+        # Geometry
+        self._channel_to_inputs("displacement_strength", builder.in_displacement_strength, builder.in_displacement_strength_map)
+        self._channel_to_inputs("minimum_displacement", builder.in_minimum_displacement, None)
+        self._channel_to_inputs("maximum_displacement", builder.in_maximum_displacement, None)
 
-#         in_top_coat_weight
-#         in_top_coat_weight_map
-#         in_top_coat_color
-#         in_top_coat_color_map
-#         in_top_coat_roughness
-#         in_top_coat_roughness_map
-#         in_top_coat_reflectivity
-#         in_top_coat_reflectivity_map
-#         in_top_coat_normal
-#         in_top_coat_normal_map
-#         in_top_coat_bump
-#         in_top_coat_bump_map
-#         in_top_coat_anisotropy
-#         in_top_coat_anisotropy_map
-#         in_top_coat_rotations
-#         in_top_coat_rotations_map
+        node_cutout_tex = self._channel_to_inputs("cutout_opacity", builder.in_cutout_opacity, builder.in_cutout_opacity_map)
+        cutout_mapping_props = ["cutout_opacity_horizontal_tiles", "cutout_opacity_horizontal_offset", "cutout_opacity_vertical_tiles", "cutout_opacity_vertical_offset"]
+        if self._channel_enabled(*cutout_mapping_props) and node_cutout_tex:
+            cutout_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset * 2), self._mapping.location.to_tuple())
+            cutout_mapping_node = self._add_node("ShaderNodeMapping", "Cutout Opacity Mapping", cutout_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
+            self._link_socket(self._uv_map, cutout_mapping_node, 0, 0)
+            self._link_socket(cutout_mapping_node, node_cutout_tex, 0, 0)
+            self._set_material_mapping(*cutout_mapping_props, mapping_node=cutout_mapping_node)
+
+        # Glossy
+        if self._channel_enabled("glossy_layered_weight"):
+            self._channel_to_inputs("glossy_layered_weight", builder.in_glossy_layered_weight, builder.in_glossy_layered_weight_map)
+            self._channel_to_inputs("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
+            self._channel_to_inputs("glossy_reflectivity", builder.in_glossy_reflectivity, builder.in_glossy_reflectivity_map)
+            self._channel_to_inputs("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
+
+        # Gradient Layer
+        self._channel_to_inputs("gradient_layer_normal_reflectivity", builder.in_gradient_layer_normal_opacity, builder.in_gradient_layer_normal_opacity_map)
+        self._channel_to_inputs("gradient_layer_grazing_reflectivity", builder.in_gradient_layer_grazing_opacity, builder.in_gradient_layer_grazing_opacity_map)
+        self._channel_to_inputs("gradient_layer_exponent", builder.in_gradient_layer_exponent, builder.in_gradient_layer_exponent_map)
+        self._channel_to_inputs("gradient_layer_grazing_color", builder.in_gradient_layer_grazing_color, builder.in_gradient_layer_grazing_color_map)
+        self._channel_to_inputs("gradient_layer_normal_tint", builder.in_gradient_layer_normal_tint, builder.in_gradient_layer_normal_tint_map)
+        self._channel_to_inputs("gradient_layer_normal_tint_weight", builder.in_gradient_layer_normal_tint_weight, builder.in_gradient_layer_normal_tint_weight_map)
+
+        # Metallic Flakes
+        if self._channel_enabled("metallic_flakes_weight"):
+            self._channel_to_inputs("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
+            self._channel_to_inputs("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map)
+            self._channel_to_inputs("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
+            self._channel_to_inputs("metallic_flakes_size", builder.in_metallic_flakes_size, None)
+            self._channel_to_inputs("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
+            self._channel_to_inputs("metallic_flakes_density", builder.in_metallic_flakes_density, None)
+
+        # Thin Film
+        self._channel_to_inputs("thin_film_thickness", builder.in_thin_film_thickness, builder.in_thin_film_thickness_map)
+        self._channel_to_inputs("thin_film_ior", builder.in_thin_film_ior, builder.in_thin_film_ior_map)
+
+            # Top Coat General
+        if self._channel_enabled("top_coat_weight"):
+            self._channel_to_inputs("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
+            self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map)
+            self._channel_to_inputs("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
+            self._channel_to_inputs("top_coat_reflectivity", builder.in_top_coat_reflectivity, builder.in_top_coat_reflectivity_map)
+            self._channel_to_inputs("top_coat_anisotropy", builder.in_top_coat_anisotropy, builder.in_top_coat_anisotropy_map)
+            self._channel_to_inputs("top_coat_rotations", builder.in_top_coat_rotations, builder.in_top_coat_anisotropy_map)
+
+        if self._channel_enabled("top_coat_bump_mode"):
+            self._channel_to_inputs("top_coat_bump", builder.in_top_coat_bump, builder.in_top_coat_bump_map)
+        else:
+            self._channel_to_inputs("top_coat_normal", builder.in_top_coat_normal, builder.in_top_coat_normal_map)
         # @formatter:off
 

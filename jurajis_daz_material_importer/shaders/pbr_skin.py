@@ -315,7 +315,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
         builder = PBRSkinShaderGroupBuilder
 
         # @formatter:off
-        self._set_material_mapping(channels, "horizontal_tiles2", "horizontal_offset2", "vertical_tiles2", "vertical_offset2")
+        self._set_material_mapping("horizontal_tiles2", "horizontal_offset2", "vertical_tiles2", "vertical_offset2")
 
         self._channel_to_inputs('diffuse', builder.in_diffuse_color, builder.in_diffuse_color_map, False)
 
@@ -360,7 +360,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
                 detail_mapping_node = self._add_node("ShaderNodeMapping", "Detail Mapping", detail_mapping_node_loc, props={"vector_type": "POINT", "hide": True})
                 self._link_socket(self._uv_map, detail_mapping_node, 0, 0)
                 self._link_socket(detail_mapping_node, detail_map_tex_node, 0, 0)
-                self._set_material_mapping(channels, *detail_mapping_ids, mapping_node=detail_mapping_node)
+                self._set_material_mapping(*detail_mapping_ids, mapping_node=detail_mapping_node)
 
         if self._channel_enabled('bump_enable'):
             self._channel_to_inputs('bump_strength', builder.in_bump_strength, builder.in_bump_strength_map)

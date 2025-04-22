@@ -6,7 +6,7 @@ from .support import FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, S
     RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, DualLobeSpecularShaderGroupBuilder, \
     BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, WeightedTranslucencyShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
-from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonStringMaterialChannel
+from ..utils.dson import DsonMaterialChannel, DsonStringMaterialChannel
 
 __GROUP_NAME__ = "Iray Uber"
 __MATERIAL_TYPE_ID__ = "iray_uber"
@@ -41,9 +41,12 @@ class IrayUberShaderGroupBuilder(ShaderGroupBuilder):
         }
 
     def setup_group(self):
-        _IrayUberPBRMRShaderGroupBuilder(self.properties, self.node_trees).setup_group()
-        _IrayUberPBRSGShaderGroupBuilder(self.properties, self.node_trees).setup_group()
-        _IrayUberWeightedShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+        if not self.node_trees.get(_IrayUberPBRMRShaderGroupBuilder.group_name(), None):
+            _IrayUberPBRMRShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+        if not self.node_trees.get(_IrayUberPBRSGShaderGroupBuilder.group_name(), None):
+            _IrayUberPBRSGShaderGroupBuilder(self.properties, self.node_trees).setup_group()
+        if not self.node_trees.get(_IrayUberWeightedShaderGroupBuilder.group_name(), None):
+            _IrayUberWeightedShaderGroupBuilder(self.properties, self.node_trees).setup_group()
 
 
 class IrayUberShaderGroupApplier(ShaderGroupApplier):
@@ -601,7 +604,7 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         self._set_material_mapping("horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset")
 
         # Base Diffuse
-        self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map)
+        self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
         self._channel_to_inputs('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
         self._channel_to_inputs('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
 
@@ -610,7 +613,7 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs('glossy_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
         elif self._channel_enabled("glossy_color"):
             # Often the glossy roughness is used as diffuse roughness, override if it is.
-            self._channel_to_inputs('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+            self._channel_to_inputs('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map, False)
 
         # Base Bump
         self._channel_to_inputs("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
@@ -620,13 +623,13 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         if self._channel_enabled("diffuse_overlay_weight"):
             self._channel_to_inputs("diffuse_overlay_weight", builder.in_diffuse_overlay_weight, builder.in_diffuse_overlay_weight_map)
             self._channel_to_inputs("diffuse_overlay_weight_squared", builder.in_diffuse_overlay_weight_squared, None)
-            self._channel_to_inputs("diffuse_overlay_color", builder.in_diffuse_overlay_color, builder.in_diffuse_overlay_color_map)
+            self._channel_to_inputs("diffuse_overlay_color", builder.in_diffuse_overlay_color, builder.in_diffuse_overlay_color_map, False)
             self._channel_to_inputs("diffuse_overlay_roughness", builder.in_diffuse_overlay_roughness, builder.in_diffuse_overlay_roughness_map)
 
         # Base Diffuse Translucency
         if self._channel_enabled('translucency_weight'):
             self._channel_to_inputs("translucency_weight", builder.in_translucency_weight, builder.in_translucency_weight_map)
-            self._channel_to_inputs("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map)
+            self._channel_to_inputs("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map, False)
             self._channel_to_inputs("invert_transmission_normal", builder.in_invert_transmission_normal, None)
 
         # Base Dual Lobe Specular
@@ -667,7 +670,7 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         # Metallic Flakes Flakes
         if self._channel_enabled("metallic_flakes_weight"):
             self._channel_to_inputs("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
-            self._channel_to_inputs("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map)
+            self._channel_to_inputs("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map, False)
             self._channel_to_inputs("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
             self._channel_to_inputs("metallic_flakes_size", builder.in_metallic_flakes_size, None)
             self._channel_to_inputs("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
@@ -676,14 +679,14 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         # Top Coat General
         if self._channel_enabled("top_coat_weight"):
             self._channel_to_inputs("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
-            self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map)
+            self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map, False)
             self._channel_to_inputs("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
 
         # Volume Scattering
         if self._channel_enabled("sss_amount"):
             self._channel_to_inputs("sss_amount", builder.in_sss_weight, None)
             self._channel_to_inputs("scattering_measurement_distance", builder.in_scattering_measurement_distance, None)
-            self._channel_to_inputs("sss_color", builder.in_sss_color, None)
+            self._channel_to_inputs("sss_color", builder.in_sss_color, None, False)
             self._channel_to_inputs("sss_direction", builder.in_sss_direction, None)
 
         # Volume Transmission
@@ -691,7 +694,7 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs("refraction_weight", builder.in_refraction_weight, builder.in_refraction_weight_map)
             self._channel_to_inputs("refraction_index", builder.in_ior, None)
             self._channel_to_inputs("transmitted_measurement_distance", builder.in_transmitted_measurement_distance, None)
-            self._channel_to_inputs("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map)
+            self._channel_to_inputs("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map, False)
         # @formatter:on
 
     @staticmethod

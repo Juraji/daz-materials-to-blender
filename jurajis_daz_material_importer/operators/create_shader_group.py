@@ -4,7 +4,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator, Context
 
-from .operator_report_mixin import OperatorReportMixin
+from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupBuilder, SHADER_GROUP_BUILDERS
 

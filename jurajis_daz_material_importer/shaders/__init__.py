@@ -5,7 +5,8 @@ from .iwave_translucent_fabric import IWaveTranslucentFabricShaderGroupBuilder, 
 from .pbr_skin import PBRSkinShaderGroupBuilder, PBRSkinShaderGroupApplier
 from .support import ShaderGroupBuilder, ShaderGroupApplier, AsymmetricalDisplacementShaderGroupBuilder, \
     DualLobeSpecularShaderGroupBuilder, BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, \
-    WeightedTranslucencyShaderGroupBuilder, FakeGlassShaderGroupBuilder, FakeGlassShaderGroupApplier
+    WeightedTranslucencyShaderGroupBuilder, FakeGlassShaderGroupBuilder, FakeGlassShaderGroupApplier, \
+    GROUP_DESCRIPTION_PREFIX
 
 SHADER_GROUP_BUILDERS: list[Type[ShaderGroupBuilder]] = [
     # Helper Groups

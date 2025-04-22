@@ -5,7 +5,7 @@ from typing import Type
 import bpy
 from bpy.types import Operator, Object
 
-from .operator_report_mixin import OperatorReportMixin
+from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
 from ..utils.dson import DazDsonMaterialReader, DsonMaterial, DsonSceneNode

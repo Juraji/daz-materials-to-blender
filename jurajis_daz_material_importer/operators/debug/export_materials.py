@@ -6,16 +6,16 @@ import bpy
 from bpy.types import Operator
 from bpy import path as bpath
 
-from .operator_report_mixin import OperatorReportMixin
-from ..utils.dson import DazDsonMaterialReader
-from ..utils.json import DataclassJSONEncoder
+from ..base import OperatorReportMixin
+from jurajis_daz_material_importer.utils.dson import DazDsonMaterialReader
+from jurajis_daz_material_importer.utils.json import DataclassJSONEncoder
 
 
-class ExportMaterialsOperator(OperatorReportMixin, Operator):
-    bl_idname = "daz_import.export_materials"
-    bl_label = "Convert Materials"
-    bl_description = "Convert Materials from DAZ Scene to a JSON file."
-    bl_options = {"REGISTER"}
+class DebugExportMaterialsOperator(OperatorReportMixin, Operator):
+    bl_idname = "daz_import.debug_export_materials_json"
+    bl_label = "Export DAZ Materials as JSON"
+    bl_description = """Convert Materials from DAZ Scene to "Intermediate Representation" and saves it as a JSON file.
+The file will be saved in the same directory as this file, suffixed by ".materials-ir.json"."""
 
     @classmethod
     def poll(cls, context):
@@ -37,7 +37,7 @@ class ExportMaterialsOperator(OperatorReportMixin, Operator):
         dson_scene_nodes = dson_reader.read_materials(daz_save_file)
 
         directory = path.dirname(bpy.data.filepath)
-        output_name = f"{bpath.basename(str(daz_save_file))}.materials.json"
+        output_name = f"{bpath.basename(str(daz_save_file))}.materials-ir.json"
         output_path = path.join(directory, output_name)
 
         with open(output_path, "w") as f:

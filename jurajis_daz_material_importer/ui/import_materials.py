@@ -21,7 +21,8 @@ class ImportMaterialsPanelBase(Panel):
         tools_header, tools_panel = layout.panel("tools", default_closed=True)
         tools_header.label(text="Tools & Debugging")
         if tools_panel:
-            tools_panel.operator("daz_import.export_materials")
+            tools_panel.operator("daz_import.debug_export_materials_json")
+            tools_panel.operator("daz_import.debug_delete_all_groups")
 
         shader_groups_header, shader_groups_panel = layout.panel("shader_groups", default_closed=True)
         shader_groups_header.label(text="Shader Groups")

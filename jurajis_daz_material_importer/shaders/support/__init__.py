@@ -1,4 +1,4 @@
-from .base import ShaderGroupBuilder, ShaderGroupApplier, SupportShaderGroupBuilder, RerouteGroup
+from .base import ShaderGroupBuilder, ShaderGroupApplier, SupportShaderGroupBuilder, RerouteGroup, GROUP_DESCRIPTION_PREFIX
 from .displacement import AsymmetricalDisplacementShaderGroupBuilder
 from .dls import DualLobeSpecularShaderGroupBuilder
 from .emission import BlackbodyEmissionShaderGroupBuilder

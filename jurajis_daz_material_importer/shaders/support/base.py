@@ -13,6 +13,8 @@ from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonCol
     DsonBoolMaterialChannel
 from ...utils.slugify import slugify
 
+GROUP_DESCRIPTION_PREFIX = "Created by DAZ Material Importer"
+
 
 class _GroupNameMixin:
     @staticmethod
@@ -73,7 +75,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
         # noinspection PyTypeChecker
         self.node_group = self.node_trees.new(type="ShaderNodeTree", name=self.group_name())
         self.node_group.color_tag = "SHADER"
-        self.node_group.description = f'Created by DAZ Material Importer at {datetime.now()}'
+        self.node_group.description = f"{GROUP_DESCRIPTION_PREFIX} at {datetime.now()}"
         self.node_group.default_group_node_width = 400
 
     # Sockets

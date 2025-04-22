@@ -308,7 +308,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
     texture_node_location_y_offset = 50
     uv_map_location = (-1505, 0)
     mapping_location = (-1230, 0)
-    node_group_location = (-415, 0)
+    node_group_location = (-515, 0)
     material_output_location = (0, 0)
     output_socket_map = {
         "Surface": 0,

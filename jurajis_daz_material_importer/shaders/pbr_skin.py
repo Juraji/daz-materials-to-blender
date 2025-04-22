@@ -1,7 +1,6 @@
 from typing import Type
 
-from .support.base import ShaderGroupBuilder, ShaderGroupApplier
-from .support.dls import DualLobeSpecularShaderGroupBuilder
+from .support import ShaderGroupBuilder, ShaderGroupApplier, DualLobeSpecularShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
 from ..utils.dson import DsonMaterialChannel
 

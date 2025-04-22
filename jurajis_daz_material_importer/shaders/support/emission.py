@@ -1,10 +1,10 @@
-from .base import ShaderGroupBuilder
+from .base import ShaderGroupBuilder, SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Blackbody Emission"
 __MATERIAL_TYPE_ID__ = "blackbody_emission"
 
 
-class BlackbodyEmissionShaderGroupBuilder(ShaderGroupBuilder):
+class BlackbodyEmissionShaderGroupBuilder(SupportShaderGroupBuilder):
     in_color = "Color"
     in_color_map = "Color Map"
     in_temperature = "Temperature (K)"

@@ -1,4 +1,4 @@
-from .support.base import ShaderGroupApplier, ShaderGroupBuilder
+from .support import ShaderGroupApplier, ShaderGroupBuilder
 
 from ..utils.dson import DsonMaterialChannel
 
@@ -305,4 +305,127 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         super().apply_shader_group(channels)
+
+        # @formatter:off
+        # in_diffuse
+        # in_diffuse_map
+
+#         in_normal_map
+#         in_normal_map_map
+#         in_crumple_normal_map
+#         in_crumple_normal_map_map
+
+#         in_fiber_layer_weight
+#         in_fiber_layer_weight_map
+#         in_metallic_weight
+#         in_metallic_weight_map
+#         in_diffuse_overlay_color
+#         in_diffuse_overlay_color_map
+#         in_diffuse_roughness
+#         in_diffuse_roughness_map
+#         in_translucency_weight
+#         in_translucency_weight_map
+#         in_translucency_color
+#         in_translucency_color_map
+#         in_fiber_layer_weight_map_horizontal_tiles
+#         in_fiber_layer_weight_map_horizontal_offset
+#         in_fiber_layer_weight_map_vertical_tiles
+#         in_fiber_layer_weight_map_vertical_offset
+
+#         in_fine_detail_blend_weight
+#         in_fine_detail_map
+#         in_fine_detail_blend_mode
+#         in_fine_detail_glossy_reflectivity
+#         in_fine_detail_glossy_reflectivity_map
+#         in_fine_detail_normal_map
+#         in_fine_detail_normal_map_map
+#         in_fine_detail_and_crumple_normal
+#         in_fine_detail_and_crumple_normal_map
+#         in_fine_detail_and_crumple_bump
+#         in_fine_detail_and_crumple_bump_map
+#         in_fine_detail_horizontal_tiles
+#         in_fine_detail_horizontal_offset
+#         in_fine_detail_vertical_tiles
+#         in_fine_detail_vertical_offset
+
+#         in_cutout_opacity
+#         in_cutout_opacity_map
+#         in_displacement_strength
+#         in_displacement_strength_map
+#         in_minimum_displacement
+#         in_maximum_displacement
+#         in_subd_displacement_level
+#         in_horizontal_tiles
+#         in_horizontal_offset
+#         in_vertical_tiles
+#         in_vertical_offset
+#         in_cutout_opacity_horizontal_tiles
+#         in_cutout_opacity_horizontal_offset
+#         in_cutout_opacity_vertical_tiles
+#         in_cutout_opacity_vertical_offset
+
+#         in_glossy_layered_weight
+#         in_glossy_layered_weight_map
+#         in_share_glossy_inputs
+#         in_glossy_color
+#         in_glossy_color_map
+#         in_glossy_reflectivity
+#         in_glossy_reflectivity_map
+#         in_glossy_roughness
+#         in_glossy_roughness_map
+#         in_glossy_anisotropy
+#         in_glossy_anisotropy_map
+#         in_glossy_anisotropy_rotations
+#         in_glossy_anisotropy_rotations_map
+
+#         in_gradient_layer_grazing_color
+#         in_gradient_layer_grazing_color_map
+#         in_gradient_layer_normal_tint
+#         in_gradient_layer_normal_tint_map
+#         in_gradient_layer_normal_tint_weight
+#         in_gradient_layer_normal_tint_weight_map
+#         in_gradient_layer_normal_reflectivity
+#         in_gradient_layer_normal_reflectivity_map
+#         in_gradient_layer_grazing_reflectivity
+#         in_gradient_layer_grazing_reflectivity_map
+#         in_gradient_layer_exponent
+#         in_gradient_layer_exponent_map
+#         in_gradient_layer_strength
+#         in_gradient_layer_metallic_weight
+#         in_gradient_layer_glossy_layered_weight
+#         in_gradient_layer_refraction_index
+#         in_gradient_layer_refraction_weight
+
+#         in_metallic_flakes_weight
+#         in_metallic_flakes_weight_map
+#         in_metallic_flakes_color
+#         in_metallic_flakes_color_map
+#         in_metallic_flakes_roughness
+#         in_metallic_flakes_roughness_map
+#         in_metallic_flakes_size
+#         in_metallic_flakes_strength
+#         in_metallic_flakes_density
+
+#         in_thin_film_thickness
+#         in_thin_film_thickness_map
+#         in_thin_film_ior
+#         in_thin_film_ior_map
+
+#         in_top_coat_weight
+#         in_top_coat_weight_map
+#         in_top_coat_color
+#         in_top_coat_color_map
+#         in_top_coat_roughness
+#         in_top_coat_roughness_map
+#         in_top_coat_reflectivity
+#         in_top_coat_reflectivity_map
+#         in_top_coat_normal
+#         in_top_coat_normal_map
+#         in_top_coat_bump
+#         in_top_coat_bump_map
+#         in_top_coat_anisotropy
+#         in_top_coat_anisotropy_map
+#         in_top_coat_rotations
+#         in_top_coat_rotations_map
+        # @formatter:off
 

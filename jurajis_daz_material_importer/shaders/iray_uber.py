@@ -1,13 +1,8 @@
 from typing import Type
 
-from bpy.types import NodeSocket
-
-from .support.base import ShaderGroupApplier, ShaderGroupBuilder, RerouteGroup
-from .support.displacement import AsymmetricalDisplacementShaderGroupBuilder
-from .support.dls import DualLobeSpecularShaderGroupBuilder
-from .support.emission import BlackbodyEmissionShaderGroupBuilder
-from .support.metallic_flakes import MetallicFlakesShaderGroupBuilder
-from .support.translucency import WeightedTranslucencyShaderGroupBuilder
+from .support import FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, ShaderGroupApplier, ShaderGroupBuilder, \
+    RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, DualLobeSpecularShaderGroupBuilder, \
+    BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, WeightedTranslucencyShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
 from ..utils.dson import DsonMaterialChannel
 
@@ -144,6 +139,7 @@ class IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
             DualLobeSpecularShaderGroupBuilder,
             MetallicFlakesShaderGroupBuilder,
             WeightedTranslucencyShaderGroupBuilder,
+            FakeGlassShaderGroupBuilder,
         }
 
     def setup_group(self):
@@ -513,6 +509,11 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         return __MATERIAL_TYPE_ID__
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        if self._can_use_glass_shortcut(channels):
+            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
+            fake_glass.apply_shader_group(channels)
+            return
+
         super().apply_shader_group(channels)
 
         builder = IrayUberPBRMRShaderGroupBuilder
@@ -636,3 +637,15 @@ class IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             return base_luminance * multiplier
         else:
             return base_luminance
+
+    @staticmethod
+    def _can_use_glass_shortcut(channels):
+        """
+        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
+        fake glass shader group, instead of the full Iray Uber setup.
+        """
+        refraction_weight_ch = channels.get("refraction_weight", None)
+        refraction_index_ch = channels.get("refraction_index", None)
+
+        if refraction_weight_ch is not None and refraction_index_ch is not None:
+            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38

@@ -124,8 +124,7 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         sock_normal_map = self._color_socket(self.in_normal_map, (0.5, 0.5, 1.0, 1.0), parent=panel_normals_bump)
         sock_detail_weight = self._float_socket(self.in_detail_weight, parent=panel_normals_bump)
         sock_detail_weight_map = self._color_socket(self.in_detail_weight_map, parent=panel_normals_bump)
-        sock_detail_normal_map = self._color_socket(self.in_detail_normal_map, (0.5, 0.5, 1.0, 1.0),
-                                                    parent=panel_normals_bump)
+        sock_detail_normal_map = self._color_socket(self.in_detail_normal_map, (0.5, 0.5, 1.0, 1.0), parent=panel_normals_bump)
         sock_bump_strength = self._float_socket(self.in_bump_strength, parent=panel_normals_bump)
         sock_bump_strength_map = self._color_socket(self.in_bump_strength_map, parent=panel_normals_bump)
 

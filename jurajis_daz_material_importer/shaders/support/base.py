@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Literal, Any, cast, Type, TypeVar
+from typing import Literal, Any, Type, TypeVar
 
 import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
@@ -46,6 +46,7 @@ class RerouteGroup:
         self.direction = direction
         self.offset = offset
         self._counter = 0
+        self._reroute_nodes: set[Node] = set()
 
     def next_position(self) -> tuple[float, float]:
         x, y = self.location_x, self.location_y
@@ -60,6 +61,7 @@ class RerouteGroup:
 
 
 class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
+    group_node_width = 400
 
     @staticmethod
     def depends_on() -> set[Type[ShaderGroupBuilder]]:
@@ -139,13 +141,30 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                      target: Node,
                      source_socket: NodeTreeInterfaceSocket | int,
                      target_socket: NodeTreeInterfaceSocket | int,
-                     group: RerouteGroup | None = None):
+                     group: RerouteGroup | tuple[RerouteGroup, ...] | None = None):
 
-        if group:
-            node_reroute = self._add_node__reroute(group.next_position(), group.parent)
-            self._link_socket(source, node_reroute, source_socket, 0)
-            self._link_socket(node_reroute, target, 0, target_socket)
-            return
+        match group:
+            case None:
+                pass
+            case RerouteGroup():
+                node_reroute = self._add_node__reroute(group.next_position(), group.parent)
+                self._link_socket(source, node_reroute, source_socket, 0)
+                self._link_socket(node_reroute, target, 0, target_socket)
+                return
+            case tuple():  # tuple[RerouteGroup, ...]
+                prev_node = source
+                prev_socket = source_socket
+                reroute_nodes = []
+
+                for reroute_group in group:
+                    reroute_node = self._add_node__reroute(reroute_group.next_position(), reroute_group.parent)
+                    self._link_socket(prev_node, reroute_node, source_socket, 0)
+                    prev_node = reroute_node
+                    prev_socket = reroute_node.outputs[0]
+                    reroute_nodes.append(reroute_node)
+
+                self._link_socket(prev_node, target, prev_socket, target_socket)
+                return
 
         if isinstance(source_socket, NodeTreeInterfaceSocket):
             source_socket = source.outputs[source_socket.name]
@@ -274,7 +293,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                                 location: tuple[float, float],
                                 parent: Node = None,
                                 props: dict[str, Any] = {}):
-        props = {**props, "node_tree": self.node_trees[builder.group_name()]}
+        props = {**props, "node_tree": self.node_trees[builder.group_name()], "width": self.group_node_width}
         return self._add_node(ShaderNodeGroup, label, location, parent, props)
 
     def _add_node__reroute(self,
@@ -294,7 +313,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
 
         node = self.node_group.nodes.new(node_type_id)
         node.label = label
-        node.name = slugify(self.group_name(), node_type_id, label)
+        node.name = slugify(node_type_id, label)
         node.parent = parent
         node.location = location
 
@@ -304,6 +323,12 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                 setattr(node, prop, value)
 
         return node
+
+    def hide_all_nodes(self, *exempt_nodes: Node):
+        nodes_to_hide = [n for n in self.node_group.nodes if not n in exempt_nodes]
+
+        for n in nodes_to_hide:
+            n.hide = True
 
 
 class SupportShaderGroupBuilder(ShaderGroupBuilder):
@@ -399,7 +424,8 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
                            channel_id: str,
                            value_socket_name: str | None,
                            map_socket_name: str | None,
-                           non_color_map: bool = True) -> ShaderNodeTexImage | None:
+                           non_color_map: bool = True,
+                           force_new_image_node: bool = False) -> ShaderNodeTexImage | None:
         channel = self._channels.get(channel_id)
         if channel is None:
             return None
@@ -409,7 +435,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
             match channel:
                 case DsonFloatMaterialChannel() | DsonBoolMaterialChannel():
-                    value_socket.default_value = channel.value or 0.0
+                    value_socket.default_value = channel.value or 0
                 case DsonColorMaterialChannel() as c:
                     match value_socket:
                         case NodeSocketColor():
@@ -423,18 +449,19 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         image_texture: ShaderNodeTexImage | None = None
         if map_socket_name and channel.has_image():
-            image_texture = self._add_image_texture(channel.image_file, non_color_map)
+            image_texture = self._add_image_texture(channel.image_file, non_color_map, force_new_image_node)
             self._link_socket(self._mapping, image_texture, 0, 0)
             self._link_socket(image_texture, self._shader_group, 0, map_socket_name)
 
         return image_texture
 
-    def _add_image_texture(self, path: str, non_color: bool) -> ShaderNodeTexImage:
+    def _add_image_texture(self, path: str, non_color: bool, force_new_node: bool = False) -> ShaderNodeTexImage:
         img_name = os.path.basename(path)
 
-        for node in self._node_tree.nodes:
-            if isinstance(node, ShaderNodeTexImage) and node.image and node.image.name == img_name:
-                return node
+        if not force_new_node:
+            for node in self._node_tree.nodes:
+                if isinstance(node, ShaderNodeTexImage) and node.image and node.image.name == img_name:
+                    return node
 
         image = bpy.data.images.load(path, check_existing=True)
         # noinspection PyTypeChecker
@@ -498,12 +525,12 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             mapping_node.inputs[1].default_value[1] = scale
 
         if horizontal_tiling_channel_id in self._channels:
-            scale = 1 / self._channels[horizontal_tiling_channel_id].value
+            scale = self._channels[horizontal_tiling_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[0] = scale
 
         if vertical_tiling_channel_id in self._channels:
-            scale = 1 / self._channels[vertical_tiling_channel_id].value
+            scale = self._channels[vertical_tiling_channel_id].value
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[1] = scale
 

@@ -1,7 +1,9 @@
-from .base import ShaderGroupBuilder, ShaderGroupApplier, SupportShaderGroupBuilder, RerouteGroup, GROUP_DESCRIPTION_PREFIX
+from .base import ShaderGroupBuilder, ShaderGroupApplier, SupportShaderGroupBuilder, RerouteGroup, \
+    GROUP_DESCRIPTION_PREFIX
 from .displacement import AsymmetricalDisplacementShaderGroupBuilder
 from .dls import DualLobeSpecularShaderGroupBuilder
 from .emission import BlackbodyEmissionShaderGroupBuilder
 from .metallic_flakes import MetallicFlakesShaderGroupBuilder
 from .translucency import WeightedTranslucencyShaderGroupBuilder
 from .fake_glass import FakeGlassShaderGroupBuilder, FakeGlassShaderGroupApplier
+from .top_coat import AdvancedTopCoatShaderGroupBuilder

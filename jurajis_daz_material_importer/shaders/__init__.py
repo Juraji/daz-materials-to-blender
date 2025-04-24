@@ -6,10 +6,11 @@ from .pbr_skin import PBRSkinShaderGroupBuilder, PBRSkinShaderGroupApplier
 from .support import ShaderGroupBuilder, ShaderGroupApplier, AsymmetricalDisplacementShaderGroupBuilder, \
     DualLobeSpecularShaderGroupBuilder, BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, \
     WeightedTranslucencyShaderGroupBuilder, FakeGlassShaderGroupBuilder, FakeGlassShaderGroupApplier, \
-    GROUP_DESCRIPTION_PREFIX
+    GROUP_DESCRIPTION_PREFIX, AdvancedTopCoatShaderGroupBuilder
 
 SHADER_GROUP_BUILDERS: list[Type[ShaderGroupBuilder]] = [
     # Helper Groups
+    AdvancedTopCoatShaderGroupBuilder,
     AsymmetricalDisplacementShaderGroupBuilder,
     BlackbodyEmissionShaderGroupBuilder,
     DualLobeSpecularShaderGroupBuilder,

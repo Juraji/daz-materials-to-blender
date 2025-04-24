@@ -38,26 +38,19 @@ class RerouteGroup:
                  location_x: float,
                  location_y: float,
                  parent: Node | None = None,
-                 direction: Literal["HORIZONTAL", "VERTICAL"] = "VERTICAL",
                  offset: float = 20.0):
         self.location_x = location_x
         self.location_y = location_y
         self.parent = parent
-        self.direction = direction
         self.offset = offset
         self._counter = 0
-        self._reroute_nodes: set[Node] = set()
 
     def next_position(self) -> tuple[float, float]:
-        x, y = self.location_x, self.location_y
-
-        if self.direction == "HORIZONTAL":
-            x -= self.offset * self._counter
-        else:
-            y -= self.offset * self._counter
+        y = self.location_y
+        y -= self.offset * self._counter
 
         self._counter += 1
-        return x, y
+        return self.location_x, y
 
 
 class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):

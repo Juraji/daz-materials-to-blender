@@ -51,11 +51,11 @@ class WeightedTranslucencyShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_color_map, sock_color, 6)
         self._link_socket(node_group_input, node_mix_color_map, sock_color_map, 7)
 
-        node_mult_invert2 = self._add_node__math("Invert * 2",  (-460, -100.0))
-        self._set_socket(node_mult_invert2, 0, 2.0)
-        self._link_socket(node_group_input, node_mult_invert2, sock_invert_transmission_normal, 1)
+        node_mult_invert2 = self._add_node__math("Invert * 2",  (-460, -100.0), "MULTIPLY")
+        self._link_socket(node_group_input, node_mult_invert2, sock_invert_transmission_normal, 0)
+        self._set_socket(node_mult_invert2, 1, 2.0)
 
-        node_flip_factor = self._add_node__math("Flip invert factor", (-460, -140.0))
+        node_flip_factor = self._add_node__math("Flip invert factor", (-460, -140.0), "SUBTRACT")
         self._set_socket(node_flip_factor, 0, 1.0)
         self._link_socket(node_mult_invert2, node_flip_factor, 0, 1)
 

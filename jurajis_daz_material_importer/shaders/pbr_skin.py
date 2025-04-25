@@ -2,7 +2,7 @@ from typing import Type
 
 from bpy.types import ShaderNodeMapping
 
-from .support import ShaderGroupBuilder, ShaderGroupApplier, DualLobeSpecularShaderGroupBuilder
+from .support import ShaderGroupBuilder, ShaderGroupApplier, DualLobeSpecularShaderGroupBuilder, RerouteGroup
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
 from ..utils.dson import DsonMaterialChannel
 
@@ -152,85 +152,98 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
 
         # Frames
         frame_pbr = self._add_frame("PBR and Opacity")
+        reroute_pbr_in = RerouteGroup(-2320, 80.0, frame_pbr)
+        reroute_pbr_out = RerouteGroup(-1900, 80.0, frame_pbr)
+
         frame_normal_and_bump = self._add_frame("Normal, Detail and Bump")
+        reroute_normal_in = RerouteGroup(-2320, 300.0, frame_normal_and_bump)
+
         frame_top_coat = self._add_frame("Top Coat")
+        reroute_top_coat_in = RerouteGroup(-1620, -740.00, frame_top_coat)
+        reroute_top_coat_out = RerouteGroup(-1380, -740.0, frame_top_coat)
+
         frame_makeup_layer = self._add_frame("Makeup Layer")
+        reroute_makeup_in = RerouteGroup(-1620, -940.0, frame_makeup_layer)
+        reroute_makeup_out = RerouteGroup(-880, -940.0, frame_makeup_layer)
+
+        reroute_sss_in = RerouteGroup(-1620, -560.0)
+        reroute_sss_out = RerouteGroup(-1280, -560.0)
 
         # Nodes: Group Input
-        node_group_input = self._add_node__group_input("Group Input", (-1045, -90))
+        node_group_input = self._add_node__group_input("Group Input", (-2640, 60.0))
 
         # Nodes: PBR
-        node_combine_diffuse = self._add_node__mix("Combine diffuse", (-158, -39), parent=frame_pbr)
-        self._link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color_map, 6)
-        self._link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color, 7)
+        node_combine_diffuse = self._add_node__mix("Combine diffuse", (-2280, 80), parent=frame_pbr)
+        self._link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color_map, 6, reroute_pbr_in)
+        self._link_socket(node_group_input, node_combine_diffuse, sock_diffuse_color, 7, reroute_pbr_in)
 
-        node_combine_roughness = self._add_node__hsv("Combine Roughness", (28, -39), frame_pbr)
-        self._link_socket(node_group_input, node_combine_roughness, sock_roughness_weight, 2)
-        self._link_socket(node_group_input, node_combine_roughness, in_roughness_weight_map, 4)
+        node_combine_roughness = self._add_node__hsv("Combine Roughness", (-2280, 40), frame_pbr)
+        self._link_socket(node_group_input, node_combine_roughness, sock_roughness_weight, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_combine_roughness, in_roughness_weight_map, 4, reroute_pbr_in)
 
-        node_combine_metallic = self._add_node__hsv("Combine Metallic", (240, -39), frame_pbr)
-        self._link_socket(node_group_input, node_combine_metallic, sock_metallic_weight, 2)
-        self._link_socket(node_group_input, node_combine_metallic, sock_metallic_weight_map, 4)
+        node_combine_metallic = self._add_node__hsv("Combine Metallic", (-2280, 0), frame_pbr)
+        self._link_socket(node_group_input, node_combine_metallic, sock_metallic_weight, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_combine_metallic, sock_metallic_weight_map, 4, reroute_pbr_in)
 
-        node_combine_opacity = self._add_node__hsv("Combine Opacity", (446, -43), frame_pbr)
-        self._link_socket(node_group_input, node_combine_opacity, sock_opacity, 2)
-        self._link_socket(node_group_input, node_combine_opacity, sock_opacity_map, 4)
+        node_combine_opacity = self._add_node__hsv("Combine Opacity", (-2280, -40), frame_pbr)
+        self._link_socket(node_group_input, node_combine_opacity, sock_opacity, 2, reroute_pbr_in)
+        self._link_socket(node_group_input, node_combine_opacity, sock_opacity_map, 4, reroute_pbr_in)
 
         # Nodes: Normal/Bump
-        node_normal_map = self._add_node__normal_map("Normal Map", (248, -88), frame_normal_and_bump)
-        self._link_socket(node_group_input, node_normal_map, sock_normal_weight, 0)
-        self._link_socket(node_group_input, node_normal_map, sock_normal_map, 1)
+        node_normal_map = self._add_node__normal_map("Normal Map", (-2280, 320.0), frame_normal_and_bump)
+        self._link_socket(node_group_input, node_normal_map, sock_normal_weight, 0, reroute_normal_in)
+        self._link_socket(node_group_input, node_normal_map, sock_normal_map, 1, reroute_normal_in)
 
-        node_combine_detail_weight = self._add_node__hsv("Combine Detail Weight", (28, -240), frame_normal_and_bump)
-        self._link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight, 2)
-        self._link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight_map, 4)
+        node_combine_detail_weight = self._add_node__hsv("Combine Detail Weight", (-2280, 280.0), frame_normal_and_bump)
+        self._link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight, 2, reroute_normal_in)
+        self._link_socket(node_group_input, node_combine_detail_weight, sock_detail_weight_map, 4, reroute_normal_in)
 
-        node_detail_normal_map = self._add_node__normal_map("Detail Normal Map", (247, -266), frame_normal_and_bump)
+        node_detail_normal_map = self._add_node__normal_map("Detail Normal Map", (-2280, 240.0), frame_normal_and_bump)
         self._link_socket(node_combine_detail_weight, node_detail_normal_map, 0, 0)
-        self._link_socket(node_group_input, node_detail_normal_map, sock_detail_normal_map, 1)
+        self._link_socket(node_group_input, node_detail_normal_map, sock_detail_normal_map, 1, reroute_normal_in)
 
-        node_combine_normal_and_detail_vectors = self._add_node__math_vector("Combine normal and detail vectors", (458, -151), parent=frame_normal_and_bump)
+        node_combine_normal_and_detail_vectors = self._add_node__math_vector("Combine normal and detail vectors", (-2080, 300.0), parent=frame_normal_and_bump)
         self._link_socket(node_normal_map, node_combine_normal_and_detail_vectors, 0, 0)
         self._link_socket(node_detail_normal_map, node_combine_normal_and_detail_vectors, 0, 1)
 
-        node_bump_map = self._add_node__bump("Bump map", (683, -39), frame_normal_and_bump)
-        self._link_socket(node_group_input, node_bump_map, sock_bump_strength, 0)
-        self._link_socket(node_group_input, node_bump_map, sock_bump_strength_map, 2)
+        node_bump_map = self._add_node__bump("Bump map", (-2080, 260.0), frame_normal_and_bump)
+        self._link_socket(node_group_input, node_bump_map, sock_bump_strength, 0, reroute_normal_in)
+        self._link_socket(node_group_input, node_bump_map, sock_bump_strength_map, 2, reroute_normal_in)
         self._link_socket(node_combine_normal_and_detail_vectors, node_bump_map, 0, 3)
 
         # Nodes: Top Coat
-        node_combine_top_coat_weight = self._add_node__hsv("Combine Top Coat Weight", (36, -44), frame_top_coat)
-        self._link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight, 2)
-        self._link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight_map, 4)
+        node_combine_top_coat_weight = self._add_node__hsv("Combine Top Coat Weight", (-1580, -740.0), frame_top_coat)
+        self._link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight, 2, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_combine_top_coat_weight, sock_top_coat_weight_map, 4, reroute_top_coat_in)
 
-        node_combine_top_coat_roughness = self._add_node__hsv("Combine Top Coat Roughness", (232, -39), frame_top_coat)
-        self._link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness, 2)
-        self._link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness_map, 4)
+        node_combine_top_coat_roughness = self._add_node__hsv("Combine Top Coat Roughness", (-1580, -820.0), frame_top_coat)
+        self._link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness, 2, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_combine_top_coat_roughness, sock_top_coat_roughness_map, 4, reroute_top_coat_in)
 
-        node_combine_top_coat_color = self._add_node__mix("Combine Top Coat Color", (31, -240), parent=frame_top_coat)
-        self._link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color_map, 6)
-        self._link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color, 7)
+        node_combine_top_coat_color = self._add_node__mix("Combine Top Coat Color", (-1580, -780.0), parent=frame_top_coat)
+        self._link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color_map, 6, reroute_top_coat_in)
+        self._link_socket(node_group_input, node_combine_top_coat_color, sock_top_coat_color, 7, reroute_top_coat_in)
 
         # Nodes: Base Layer BDSF
         s = PrincipledBSDFSockets
-        node_base_layer_bdsf = self._add_node__princ_bdsf("Base Layer BDSF", (776, 0), props={"subsurface_method": "RANDOM_WALK_SKIN"})
-        self._link_socket(node_combine_diffuse, node_base_layer_bdsf, 2, s.BASE_COLOR)
-        self._link_socket(node_combine_metallic, node_base_layer_bdsf, 0, s.METALLIC)
-        self._link_socket(node_combine_roughness, node_base_layer_bdsf, 0, s.ROUGHNESS)
-        self._link_socket(node_combine_opacity, node_base_layer_bdsf, 0, s.ALPHA)
+        node_base_layer_bdsf = self._add_node__princ_bdsf("Base Layer BDSF", (-820, -40.0), props={"subsurface_method": "RANDOM_WALK_SKIN"})
+        self._link_socket(node_combine_diffuse, node_base_layer_bdsf, 2, s.BASE_COLOR, reroute_pbr_out)
+        self._link_socket(node_combine_metallic, node_base_layer_bdsf, 0, s.METALLIC, reroute_pbr_out)
+        self._link_socket(node_combine_roughness, node_base_layer_bdsf, 0, s.ROUGHNESS, reroute_pbr_out)
+        self._link_socket(node_combine_opacity, node_base_layer_bdsf, 0, s.ALPHA, reroute_pbr_out)
         self._link_socket(node_bump_map, node_base_layer_bdsf, 0, s.NORMAL)
-        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_weight, s.SUBSURFACE_WEIGHT)
-        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_radius, s.SUBSURFACE_RADIUS)
-        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_scale, s.SUBSURFACE_SCALE)
-        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_direction, s.SUBSURFACE_ANISOTROPY)
-        self._link_socket(node_combine_top_coat_weight, node_base_layer_bdsf, 0, s.COAT_WEIGHT)
-        self._link_socket(node_combine_top_coat_roughness, node_base_layer_bdsf, 0, s.COAT_ROUGHNESS)
-        self._link_socket(node_combine_top_coat_color, node_base_layer_bdsf, 2, s.COAT_TINT)
+        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_weight, s.SUBSURFACE_WEIGHT, (reroute_sss_in, reroute_sss_out))
+        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_radius, s.SUBSURFACE_RADIUS, (reroute_sss_in, reroute_sss_out))
+        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_scale, s.SUBSURFACE_SCALE, (reroute_sss_in, reroute_sss_out))
+        self._link_socket(node_group_input, node_base_layer_bdsf, sock_sss_direction, s.SUBSURFACE_ANISOTROPY, (reroute_sss_in, reroute_sss_out))
+        self._link_socket(node_combine_top_coat_weight, node_base_layer_bdsf, 0, s.COAT_WEIGHT, reroute_top_coat_out)
+        self._link_socket(node_combine_top_coat_roughness, node_base_layer_bdsf, 0, s.COAT_ROUGHNESS, reroute_top_coat_out)
+        self._link_socket(node_combine_top_coat_color, node_base_layer_bdsf, 2, s.COAT_TINT, reroute_top_coat_out)
         self._link_socket(node_bump_map, node_base_layer_bdsf, 0, s.COAT_NORMAL)
 
         # Nodes: Dual Lobe Specular Layer
         dls_builder = DualLobeSpecularShaderGroupBuilder
-        node_dls_group = self._add_node__shader_group("DLS", dls_builder, (18, 218))
+        node_dls_group = self._add_node__shader_group("DLS", dls_builder, (-1620, -180.0))
         self._link_socket(node_group_input, node_dls_group, sock_dls_weight, dls_builder.in_weight)
         self._link_socket(node_group_input, node_dls_group, sock_dls_weight_map, dls_builder.in_weight_map)
         self._link_socket(node_group_input, node_dls_group, sock_dls_reflectivity, dls_builder.in_reflectivity)
@@ -245,58 +258,64 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_bump_map, node_dls_group, 0, dls_builder.in_normal)
 
         # Nodes: Makeup Layer
-        node_combine_makeup_weight = self._add_node__hsv("Combine Makeup Weight", (29, -39), frame_makeup_layer)
-        self._link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight, 2)
-        self._link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight_map, 4)
+        node_combine_makeup_weight = self._add_node__hsv("Combine Makeup Weight", (-1580, -940.0), frame_makeup_layer)
+        self._link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight, 2, reroute_makeup_in)
+        self._link_socket(node_group_input, node_combine_makeup_weight, sock_makeup_weight_map, 4, reroute_makeup_in)
 
-        node_combine_makeup_base_color = self._add_node__mix("Combine Makeup Base Color", (33, -222), parent=frame_makeup_layer)
-        self._link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color, 6)
-        self._link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color_map, 7)
+        node_combine_makeup_base_color = self._add_node__mix("Combine Makeup Base Color", (-1580, -980.0), parent=frame_makeup_layer)
+        self._link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color, 6, reroute_makeup_in)
+        self._link_socket(node_group_input, node_combine_makeup_base_color, sock_makeup_base_color_map, 7, reroute_makeup_in)
 
-        node_combine_makeup_roughness_mult = self._add_node__hsv("Combine Makeup Roughness Mult", (32, -449), frame_makeup_layer)
-        self._link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult, 2)
-        self._link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult_map, 4)
+        node_combine_makeup_roughness_mult = self._add_node__hsv("Combine Makeup Roughness Mult", (-1580, -1020.0), frame_makeup_layer)
+        self._link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult, 2, reroute_makeup_in)
+        self._link_socket(node_group_input, node_combine_makeup_roughness_mult, sock_makeup_roughness_mult_map, 4, reroute_makeup_in)
 
-        node_combine_makeup_metalic_weight = self._add_node__hsv("Combine Makeup Metalic Weight", (38, -629), frame_makeup_layer)
-        self._link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight, 2)
-        self._link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight_map, 4)
+        node_combine_makeup_metalic_weight = self._add_node__hsv("Combine Makeup Metalic Weight", (-1580, -1060.0), frame_makeup_layer)
+        self._link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight, 2, reroute_makeup_in)
+        self._link_socket(node_group_input, node_combine_makeup_metalic_weight, sock_makeup_metallic_weight_map, 4, reroute_makeup_in)
 
-        node_combine_diff_dls_roughness_for_makeup = self._add_node__mix("Combine Diffuse and DLS Roughness Maps for Makeup", (307, -131), parent=frame_makeup_layer)
-        self._link_socket(node_combine_roughness, node_combine_diff_dls_roughness_for_makeup, 0, 6)
-        self._link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_dls_l1_roughness_map,7)
+        node_combine_diff_dls_roughness_for_makeup = self._add_node__mix("Combine Diffuse and DLS Roughness Maps for Makeup", (-1380, -960.0), parent=frame_makeup_layer)
+        self._link_socket(node_combine_roughness, node_combine_diff_dls_roughness_for_makeup, 0, 6, (reroute_pbr_out, reroute_makeup_in))
+        self._link_socket(node_group_input, node_combine_diff_dls_roughness_for_makeup, sock_dls_l1_roughness_map,7, reroute_makeup_in)
 
-        node_multiply_makeup_base_roughness = self._add_node__mix("Multiply Makeup Base Roughness", (543, -135), parent=frame_makeup_layer)
+        node_multiply_makeup_base_roughness = self._add_node__mix("Multiply Makeup Base Roughness", (-1380, -1000.0), parent=frame_makeup_layer)
         self._link_socket(node_combine_diff_dls_roughness_for_makeup, node_multiply_makeup_base_roughness, 2, 6)
         self._link_socket(node_combine_makeup_roughness_mult, node_multiply_makeup_base_roughness, 0, 7)
 
-        node_makeup_normal_interpolation_base_value = self._add_node__normal_map("Makeup Normal Interpolation Base Value", (384, -617), frame_makeup_layer)
+        node_makeup_normal_interpolation_base_value = self._add_node__normal_map("Makeup Normal Interpolation Base Value", (-1580, -1140.0), frame_makeup_layer)
 
-        node_interpolate_makeup_normal = self._add_node__mix("Interpolate Makeup Normal", (615, -407), data_type="VECTOR", parent=frame_makeup_layer)
-        self._link_socket(node_group_input, node_interpolate_makeup_normal, sock_makeup_reduce_normals, 0)
-        self._link_socket(node_bump_map, node_interpolate_makeup_normal, 0, 4)
+        node_interpolate_makeup_normal = self._add_node__mix("Interpolate Makeup Normal", (-1380, -1100.0), data_type="VECTOR", parent=frame_makeup_layer)
+        self._link_socket(node_group_input, node_interpolate_makeup_normal, sock_makeup_reduce_normals, 0, reroute_makeup_in)
+        self._link_socket(node_bump_map, node_interpolate_makeup_normal, 0, 4, reroute_makeup_in)
         self._link_socket(node_makeup_normal_interpolation_base_value, node_interpolate_makeup_normal, 0, 5)
 
-        node_makeup_layer_bsdf = self._add_node__princ_bdsf("Makeup Layer BSDF", (811, -201), frame_makeup_layer)
+        node_makeup_layer_bsdf = self._add_node__princ_bdsf("Makeup Layer BSDF", (-1180, -940.0), frame_makeup_layer)
         self._link_socket(node_combine_makeup_base_color, node_makeup_layer_bsdf, 2, s.BASE_COLOR)
         self._link_socket(node_combine_makeup_metalic_weight, node_makeup_layer_bsdf, 0, s.METALLIC)
         self._link_socket(node_multiply_makeup_base_roughness, node_makeup_layer_bsdf, 2, s.ROUGHNESS)
         self._link_socket(node_interpolate_makeup_normal, node_makeup_layer_bsdf, 1, s.NORMAL)
 
         # Nodes: Mix Layers
-        node_mix_makeup_shader = self._add_node__mix_shader("Mix Makeup Shader", (1141, -85))
-        self._link_socket(node_combine_makeup_weight, node_mix_makeup_shader, 0, 0)
+        node_mix_makeup_shader = self._add_node__mix_shader("Mix Makeup Shader", (-200, 40.0))
+        self._link_socket(node_combine_makeup_weight, node_mix_makeup_shader, 0, 0, reroute_makeup_out)
         self._link_socket(node_base_layer_bdsf, node_mix_makeup_shader, 0, 1)
-        self._link_socket(node_makeup_layer_bsdf, node_mix_makeup_shader, 0, 2)
+        self._link_socket(node_makeup_layer_bsdf, node_mix_makeup_shader, 0, 2, reroute_makeup_out)
 
-        node_mix_dls_shader = self._add_node__mix_shader("Mix DLS Shader", (1348, 52))
+        node_mix_dls_shader = self._add_node__mix_shader("Mix DLS Shader", (-200, 0.0))
         self._link_socket(node_dls_group, node_mix_dls_shader, 0, 0)
         self._link_socket(node_mix_makeup_shader, node_mix_dls_shader, 0, 1)
         self._link_socket(node_dls_group, node_mix_dls_shader, 1, 2)
 
         # Group Output
-        node_group_output = self._add_node__group_output("NodeGroupOutput", (1612, 9))
+        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
         self._link_socket(node_mix_dls_shader, node_group_output, 0, sock_out_surface)
         # @formatter:on
+
+        self.hide_all_nodes(node_group_input,
+                            node_base_layer_bdsf,
+                            node_makeup_layer_bsdf,
+                            node_dls_group,
+                            node_group_output)
 
 
 class PBRSkinShaderGroupApplier(ShaderGroupApplier):

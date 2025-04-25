@@ -37,35 +37,37 @@ class AsymmetricalDisplacementShaderGroupBuilder(SupportShaderGroupBuilder):
         sock_out_displacement = self._vector_socket(self.out_displacement, in_out="OUTPUT")
 
         # Nodes: Group Input
-        node_group_input = self._add_node__group_input('Group Input', (-764, 12))
+        node_group_input = self._add_node__group_input('Group Input', (-850, 0.0))
 
         # Nodes: Asymmetrical Displacement
-        node_adj_strength_min = self._add_node__math("Min Adjusted Strength", (-187, 119), "SUBTRACT")
+        node_adj_strength_min = self._add_node__math("Min Adjusted Strength", (-590, 20.0), "SUBTRACT")
         self._link_socket(node_group_input, node_adj_strength_min, sock_strength_map, 0)
         self._link_socket(node_group_input, node_adj_strength_min, sock_min_displacement, 1)
 
-        node_norm_min_max = self._add_node__math("Normalized Min/Max", (-326, -84), "SUBTRACT")
+        node_norm_min_max = self._add_node__math("Normalized Min/Max", (-590, -40.0), "SUBTRACT")
         self._link_socket(node_group_input, node_norm_min_max, sock_max_displacement, 0)
         self._link_socket(node_group_input, node_norm_min_max, sock_min_displacement, 1)
 
-        node_strength_div_norm = self._add_node__math("Strength / Normalized", (72, 118), "DIVIDE")
+        node_strength_div_norm = self._add_node__math("Strength / Normalized", (-370, 0.0), "DIVIDE")
         self._link_socket(node_adj_strength_min, node_strength_div_norm, 0, 0)
         self._link_socket(node_norm_min_max, node_strength_div_norm, 0, 1)
 
-        node_abs_min = self._add_node__math("Abs Min", (-66, -84), "MULTIPLY")
+        node_abs_min = self._add_node__math("Abs Min", (-589, -100.0), "MULTIPLY")
         self._link_socket(node_group_input, node_abs_min, sock_min_displacement, 0)
         self._set_socket(node_abs_min, 1, -1.0)
 
-        node_norm_div_abs_min = self._add_node__math("Normalized / Abs Min", (193, -81), "DIVIDE")
+        node_norm_div_abs_min = self._add_node__math("Normalized / Abs Min", (-370, -80.0), "DIVIDE")
         self._link_socket(node_norm_min_max, node_norm_div_abs_min, 0, 0)
         self._link_socket(node_abs_min, node_norm_div_abs_min, 0, 1)
 
-        node_displacement = self._add_node(ShaderNodeDisplacement, "Displacement", (419, 39), props={"space": "OBJECT"})
+        node_displacement = self._add_node(ShaderNodeDisplacement, "Displacement", (-190, -40.0), props={"space": "OBJECT"})
         self._link_socket(node_strength_div_norm, node_displacement, 0, 0)
         self._link_socket(node_norm_div_abs_min, node_displacement, 0, 1)
         self._link_socket(node_group_input, node_displacement, sock_strength, 2)
         self._link_socket(node_group_input, node_displacement, sock_normal, 3)
 
         # Group Output
-        node_group_output = self._add_node__group_output('Group Output', (609, 0))
+        node_group_output = self._add_node__group_output('Group Output', (0, 0))
         self._link_socket(node_displacement, node_group_output, 0, sock_out_displacement)
+
+        self.hide_all_nodes(node_group_input, node_group_output)

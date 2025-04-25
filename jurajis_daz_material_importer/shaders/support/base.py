@@ -186,7 +186,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                 for reroute_group in group:
                     node_reroute = reroute_group.reroute_node_by_source_socket(
                         r_source_socket, lambda pos, parent: self._add_node__reroute(pos, parent))
-                    self._link_socket(prev_node, node_reroute, source_socket, 0)
+                    self._link_socket(prev_node, node_reroute, prev_socket, 0)
                     prev_node = node_reroute
                     prev_socket = node_reroute.outputs[0]
 

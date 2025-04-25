@@ -40,35 +40,37 @@ class WeightedTranslucencyShaderGroupBuilder(SupportShaderGroupBuilder):
         sock_out_shader = self._shader_socket(self.out_shader, in_out="OUTPUT")
 
         # Nodes: Group Input
-        node_group_input = self._add_node__group_input("Group Input", (-972, 0))
+        node_group_input = self._add_node__group_input("Group Input", (-740, 0.0))
 
         # Nodes: Translucency
-        node_mix_weight_map = self._add_node__mix("Mix Weight Map", (-156, 237))
+        node_mix_weight_map = self._add_node__mix("Mix Weight Map", (-460, 20.0))
         self._link_socket(node_group_input, node_mix_weight_map, sock_weight, 6)
         self._link_socket(node_group_input, node_mix_weight_map, sock_weight_map, 7)
 
-        node_mix_color_map = self._add_node__mix("Mix Color Map", (-153, -23))
+        node_mix_color_map = self._add_node__mix("Mix Color Map", (-460, -20.0))
         self._link_socket(node_group_input, node_mix_color_map, sock_color, 6)
         self._link_socket(node_group_input, node_mix_color_map, sock_color_map, 7)
 
-        node_mult_invert2 = self._add_node__math("Invert * 2",  (-672, -280))
+        node_mult_invert2 = self._add_node__math("Invert * 2",  (-460, -100.0))
         self._set_socket(node_mult_invert2, 0, 2.0)
         self._link_socket(node_group_input, node_mult_invert2, sock_invert_transmission_normal, 1)
 
-        node_flip_factor = self._add_node__math("Flip invert factor", (-412, -280))
+        node_flip_factor = self._add_node__math("Flip invert factor", (-460, -140.0))
         self._set_socket(node_flip_factor, 0, 1.0)
         self._link_socket(node_mult_invert2, node_flip_factor, 0, 1)
 
-        node_flip_normal = self._add_node__math_vector("Flip normal", (-152, -297), "MULTIPLY")
+        node_flip_normal = self._add_node__math_vector("Flip normal", (-460, -180.0), "MULTIPLY")
         self._link_socket(node_flip_factor, node_flip_normal, 0, 0)
         self._link_socket(node_group_input, node_flip_normal, sock_normal, 1)
 
-        node_trans_bsdf = self._add_node(ShaderNodeBsdfTranslucent, "Translucent BSDF", (230, 8))
+        node_trans_bsdf = self._add_node(ShaderNodeBsdfTranslucent, "Translucent BSDF", (-220, -60.0))
         self._link_socket(node_mix_color_map, node_trans_bsdf, 2, 0)
         self._link_socket(node_flip_normal, node_trans_bsdf, 0, 1)
 
         # Group Output
-        node_group_output = self._add_node__group_output("NodeGroupOutput", (533, 0))
+        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
         self._link_socket(node_mix_weight_map, node_group_output, 2, sock_out_fac)
         self._link_socket(node_trans_bsdf, node_group_output, 0, sock_out_shader)
         # @formatter:on
+
+        self.hide_all_nodes(node_group_input, node_group_output)

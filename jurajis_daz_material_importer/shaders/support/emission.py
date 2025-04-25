@@ -40,26 +40,28 @@ class BlackbodyEmissionShaderGroupBuilder(SupportShaderGroupBuilder):
         sock_out_color = self._color_socket(self.out_color, in_out="OUTPUT")
 
         # Nodes: Group Input
-        node_group_input = self._add_node__group_input("Group Input", (310, 0))
+        node_group_input = self._add_node__group_input("Group Input", (-680, 0.0))
 
         # Nodes: Emission
-        node_mix_luminance = self._add_node__hsv("Mix Luminance and Map", (-120, 209))
+        node_mix_luminance = self._add_node__hsv("Mix Luminance and Map", (-430, 0.0))
         self._link_socket(node_group_input, node_mix_luminance, sock_luminance, 2)
         self._link_socket(node_group_input, node_mix_luminance, sock_luminance_map, 4)
 
-        node_mix_color = self._add_node__mix("Mix Color and Map", (-111, 30))
+        node_mix_color = self._add_node__mix("Mix Color and Map", (-420, -40.0))
         self._link_socket(node_group_input, node_mix_color, sock_color, 6)
         self._link_socket(node_group_input, node_mix_color, sock_color_map, 7)
 
-        node_blackbody = self._add_node(ShaderNodeBlackbody, "Blackbody", (-111, -209))
+        node_blackbody = self._add_node(ShaderNodeBlackbody, "Blackbody", (-420, -80.0))
         self._link_socket(node_group_input, node_blackbody, sock_temperature, 0)
 
-        node_mix_color_temp = self._add_node__mix("Mix Color and Temp", (120, -10))
+        node_mix_color_temp = self._add_node__mix("Mix Color and Temp", (-180, -60.0))
         self._link_socket(node_mix_color, node_mix_color_temp, 2, 6)
         self._link_socket(node_blackbody, node_mix_color_temp, 0, 7)
 
         # Group Output
-        node_group_output = self._add_node__group_output("NodeGroupOutput", (310.0, 0.0))
+        node_group_output = self._add_node__group_output("NodeGroupOutput", (0.0, 0.0))
         self._link_socket(node_mix_luminance, node_group_output, 0, sock_out_weight)
         self._link_socket(node_mix_color_temp, node_group_output, 2, sock_out_color)
         # @formatter:on
+
+        self.hide_all_nodes(node_group_input, node_group_output)

@@ -137,21 +137,12 @@ class AdvancedTopCoatShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_tc_bump, node_mix_tc_bump_vector, 0, 0)
         self._link_socket(node_group_input, node_mix_tc_bump_vector, sock_top_coat_normal_and_bump_vector, 1)
 
-        node_tc_ior = self._add_node__math("TC IOR", (-660.0, -380.0))
+        node_tc_ior = self._add_node__math("TC IOR", (-660.0, -420.0))
         self._set_socket(node_tc_ior, 0, 1.0)
         self._link_socket(node_mix_tc_reflectivity, node_tc_ior, 0, 1)
 
-        node_tc_bf_ior = self._add_node__math("TC Backface IOR", (-660.0, -420.0), "DIVIDE")
-        self._set_socket(node_tc_bf_ior, 0, 1.0)
-        self._link_socket(node_tc_ior, node_tc_bf_ior, 0, 1)
-
-        node_tc_mix_iors = self._add_node__mix("TC Mix IOR", (-460.0, -380.0),
-                                               data_type="FLOAT", blend_type="MIX", default_factor=0.5)
-        self._link_socket(node_tc_ior, node_tc_mix_iors, 0, 2)
-        self._link_socket(node_tc_bf_ior, node_tc_mix_iors, 0, 3)
-
         node_tc_fresnel = self._add_node(ShaderNodeFresnel, "TC Fresnel", (-460.0, -420.0))
-        self._link_socket(node_tc_mix_iors, node_tc_fresnel, 0, 0)
+        self._link_socket(node_tc_ior, node_tc_fresnel, 0, 0)
         self._link_socket(node_mix_tc_bump_vector, node_tc_fresnel, 0, 1)
 
         # Nodes: Thin Film Calculations

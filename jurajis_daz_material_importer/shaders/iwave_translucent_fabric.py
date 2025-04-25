@@ -527,18 +527,18 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
 
         # # @formatter:off
         # Base Diffuse
-        self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
+        self._channel_to_sockets("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
 
         # Geometry
         geo_mapping_props = ["horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset"]
         if self._channel_enabled(*geo_mapping_props):
             self._set_material_mapping(*geo_mapping_props)
 
-        self._channel_to_inputs("displacement_strength", builder.in_displacement_strength, builder.in_displacement_strength_map)
-        self._channel_to_inputs("minimum_displacement", builder.in_minimum_displacement, None)
-        self._channel_to_inputs("maximum_displacement", builder.in_maximum_displacement, None)
+        self._channel_to_sockets("displacement_strength", builder.in_displacement_strength, builder.in_displacement_strength_map)
+        self._channel_to_sockets("minimum_displacement", builder.in_minimum_displacement, None)
+        self._channel_to_sockets("maximum_displacement", builder.in_maximum_displacement, None)
 
-        node_cutout_tex = self._channel_to_inputs("cutout_opacity", builder.in_cutout_opacity, builder.in_cutout_opacity_map)
+        node_cutout_tex = self._channel_to_sockets("cutout_opacity", builder.in_cutout_opacity, builder.in_cutout_opacity_map)
         cutout_mapping_props = ["cutout_opacity_horizontal_tiles", "cutout_opacity_horizontal_offset", "cutout_opacity_vertical_tiles", "cutout_opacity_vertical_offset"]
         if self._channel_enabled(*cutout_mapping_props) and node_cutout_tex:
             cutout_mapping_node_loc = tuple_zip_sum((0, self.mapping_node_location_offset * 2), self._mapping.location.to_tuple())
@@ -548,19 +548,19 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
             self._set_material_mapping(*cutout_mapping_props, mapping_node=cutout_mapping_node)
 
         # Bump
-        self._channel_to_inputs("normal_map", builder.in_base_normal, builder.in_base_normal_map)
-        self._channel_to_inputs("bump_strength", builder.in_base_bump, builder.in_base_bump_map)
+        self._channel_to_sockets("normal_map", builder.in_base_normal, builder.in_base_normal_map)
+        self._channel_to_sockets("bump_strength", builder.in_base_bump, builder.in_base_bump_map)
 
         # Fiber Layer
         if self._channel_enabled("fiber_layer_weight"):
-            self._channel_to_inputs("metallic_weight", builder.in_fiber_layer_metallic_weight, builder.in_fiber_layer_metallic_weight_map)
-            self._channel_to_inputs("diffuse_overlay_color", builder.in_fiber_layer_color, builder.in_fiber_layer_color_map)
-            self._channel_to_inputs("diffuse_roughness", builder.in_fiber_layer_roughness, builder.in_fiber_layer_roughness_map)
-            self._channel_to_inputs("translucency_weight", builder.in_fiber_layer_translucency_weight, builder.in_fiber_layer_translucency_weight_map)
-            self._channel_to_inputs("translucency_color", builder.in_fiber_layer_translucency_color, builder.in_fiber_layer_translucency_color_map)
+            self._channel_to_sockets("metallic_weight", builder.in_fiber_layer_metallic_weight, builder.in_fiber_layer_metallic_weight_map)
+            self._channel_to_sockets("diffuse_overlay_color", builder.in_fiber_layer_color, builder.in_fiber_layer_color_map)
+            self._channel_to_sockets("diffuse_roughness", builder.in_fiber_layer_roughness, builder.in_fiber_layer_roughness_map)
+            self._channel_to_sockets("translucency_weight", builder.in_fiber_layer_translucency_weight, builder.in_fiber_layer_translucency_weight_map)
+            self._channel_to_sockets("translucency_color", builder.in_fiber_layer_translucency_color, builder.in_fiber_layer_translucency_color_map)
 
         # Fine Detail
-        node_fd_normal_tex = self._channel_to_inputs("fine_detail_normal_map", builder.in_fine_detail_normal, builder.in_fine_detail_normal_map, force_new_image_node=True)
+        node_fd_normal_tex = self._channel_to_sockets("fine_detail_normal_map", builder.in_fine_detail_normal, builder.in_fine_detail_normal_map, force_new_image_node=True)
 
         fd_mapping_props = ["fine_detail_horizontal_tiles", "fine_detail_horizontal_offset", "fine_detail_vertical_tiles", "fine_detail_vertical_offset"]
         if self._channel_enabled(*fd_mapping_props) and node_fd_normal_tex:
@@ -574,43 +574,43 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
 
         # Glossy
         if self._channel_enabled("glossy_layered_weight"):
-            self._channel_to_inputs("glossy_layered_weight", builder.in_glossy_layered_weight, builder.in_glossy_layered_weight_map)
-            self._channel_to_inputs("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
-            self._channel_to_inputs("glossy_reflectivity", builder.in_glossy_reflectivity, builder.in_glossy_reflectivity_map)
-            self._channel_to_inputs("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
+            self._channel_to_sockets("glossy_layered_weight", builder.in_glossy_layered_weight, builder.in_glossy_layered_weight_map)
+            self._channel_to_sockets("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
+            self._channel_to_sockets("glossy_reflectivity", builder.in_glossy_reflectivity, builder.in_glossy_reflectivity_map)
+            self._channel_to_sockets("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
 
         # Gradient Layer
-        self._channel_to_inputs("gradient_layer_normal_reflectivity", builder.in_gradient_layer_normal_opacity, builder.in_gradient_layer_normal_opacity_map)
-        self._channel_to_inputs("gradient_layer_grazing_reflectivity", builder.in_gradient_layer_grazing_opacity, builder.in_gradient_layer_grazing_opacity_map)
-        self._channel_to_inputs("gradient_layer_exponent", builder.in_gradient_layer_exponent, builder.in_gradient_layer_exponent_map)
-        self._channel_to_inputs("gradient_layer_grazing_color", builder.in_gradient_layer_grazing_color, builder.in_gradient_layer_grazing_color_map)
-        self._channel_to_inputs("gradient_layer_normal_tint", builder.in_gradient_layer_normal_tint, builder.in_gradient_layer_normal_tint_map)
-        self._channel_to_inputs("gradient_layer_normal_tint_weight", builder.in_gradient_layer_normal_tint_weight, builder.in_gradient_layer_normal_tint_weight_map)
+        self._channel_to_sockets("gradient_layer_normal_reflectivity", builder.in_gradient_layer_normal_opacity, builder.in_gradient_layer_normal_opacity_map)
+        self._channel_to_sockets("gradient_layer_grazing_reflectivity", builder.in_gradient_layer_grazing_opacity, builder.in_gradient_layer_grazing_opacity_map)
+        self._channel_to_sockets("gradient_layer_exponent", builder.in_gradient_layer_exponent, builder.in_gradient_layer_exponent_map)
+        self._channel_to_sockets("gradient_layer_grazing_color", builder.in_gradient_layer_grazing_color, builder.in_gradient_layer_grazing_color_map)
+        self._channel_to_sockets("gradient_layer_normal_tint", builder.in_gradient_layer_normal_tint, builder.in_gradient_layer_normal_tint_map)
+        self._channel_to_sockets("gradient_layer_normal_tint_weight", builder.in_gradient_layer_normal_tint_weight, builder.in_gradient_layer_normal_tint_weight_map)
 
         # Metallic Flakes
         if self._channel_enabled("metallic_flakes_weight"):
-            self._channel_to_inputs("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
-            self._channel_to_inputs("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map)
-            self._channel_to_inputs("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
-            self._channel_to_inputs("metallic_flakes_size", builder.in_metallic_flakes_size, None)
-            self._channel_to_inputs("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
-            self._channel_to_inputs("metallic_flakes_density", builder.in_metallic_flakes_density, None)
+            self._channel_to_sockets("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
+            self._channel_to_sockets("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map)
+            self._channel_to_sockets("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
+            self._channel_to_sockets("metallic_flakes_size", builder.in_metallic_flakes_size, None)
+            self._channel_to_sockets("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
+            self._channel_to_sockets("metallic_flakes_density", builder.in_metallic_flakes_density, None)
 
             # Top Coat General
         if self._channel_enabled("top_coat_weight"):
-            self._channel_to_inputs("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
-            self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map)
-            self._channel_to_inputs("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
-            self._channel_to_inputs("top_coat_reflectivity", builder.in_top_coat_reflectivity, builder.in_top_coat_reflectivity_map)
-            self._channel_to_inputs("top_coat_anisotropy", builder.in_top_coat_anisotropy, builder.in_top_coat_anisotropy_map)
-            self._channel_to_inputs("top_coat_rotations", builder.in_top_coat_rotations, builder.in_top_coat_anisotropy_map)
+            self._channel_to_sockets("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
+            self._channel_to_sockets("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map)
+            self._channel_to_sockets("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
+            self._channel_to_sockets("top_coat_reflectivity", builder.in_top_coat_reflectivity, builder.in_top_coat_reflectivity_map)
+            self._channel_to_sockets("top_coat_anisotropy", builder.in_top_coat_anisotropy, builder.in_top_coat_anisotropy_map)
+            self._channel_to_sockets("top_coat_rotations", builder.in_top_coat_rotations, builder.in_top_coat_anisotropy_map)
 
-            self._channel_to_inputs("top_coat_normal", builder.in_top_coat_normal, builder.in_top_coat_normal_map)
-            self._channel_to_inputs("top_coat_bump", builder.in_top_coat_bump, builder.in_top_coat_bump_map)
+            self._channel_to_sockets("top_coat_normal", builder.in_top_coat_normal, builder.in_top_coat_normal_map)
+            self._channel_to_sockets("top_coat_bump", builder.in_top_coat_bump, builder.in_top_coat_bump_map)
 
         # Thin Film
         if self._channel_enabled("thin_film_thickness"):
             self._set_socket(self._shader_group, builder.in_thin_film_weight, 0.5)
-            self._channel_to_inputs("thin_film_thickness", builder.in_thin_film_thickness, builder.in_thin_film_thickness_map)
-            self._channel_to_inputs("thin_film_ior", builder.in_thin_film_ior, builder.in_thin_film_ior_map)
+            self._channel_to_sockets("thin_film_thickness", builder.in_thin_film_thickness, builder.in_thin_film_thickness_map)
+            self._channel_to_sockets("thin_film_ior", builder.in_thin_film_ior, builder.in_thin_film_ior_map)
         # @formatter:on

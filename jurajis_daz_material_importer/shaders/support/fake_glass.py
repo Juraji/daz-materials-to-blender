@@ -90,4 +90,4 @@ class FakeGlassShaderGroupApplier(ShaderGroupApplier):
         super().apply_shader_group(channels)
 
         builder = FakeGlassShaderGroupBuilder
-        self._channel_to_inputs("normal_map", builder.in_normal, builder.in_normal_map)
+        self._channel_to_sockets("normal_map", builder.in_normal, builder.in_normal_map)

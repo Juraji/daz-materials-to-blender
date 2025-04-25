@@ -436,12 +436,12 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
                 return channel.is_set()
         return False
 
-    def _channel_to_inputs(self,
-                           channel_id: str,
-                           value_socket_name: str | None,
-                           map_socket_name: str | None,
-                           non_color_map: bool = True,
-                           force_new_image_node: bool = False) -> ShaderNodeTexImage | None:
+    def _channel_to_sockets(self,
+                            channel_id: str,
+                            value_socket_name: str | None,
+                            map_socket_name: str | None,
+                            non_color_map: bool = True,
+                            force_new_image_node: bool = False) -> ShaderNodeTexImage | None:
         channel = self._channels.get(channel_id)
         if channel is None:
             return None

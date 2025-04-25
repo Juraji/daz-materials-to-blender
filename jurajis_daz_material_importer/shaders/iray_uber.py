@@ -604,97 +604,97 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         self._set_material_mapping("horizontal_tiles", "horizontal_offset", "vertical_tiles", "vertical_offset")
 
         # Base Diffuse
-        self._channel_to_inputs("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
-        self._channel_to_inputs('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
-        self._channel_to_inputs('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+        self._channel_to_sockets("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
+        self._channel_to_sockets('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
+        self._channel_to_sockets('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
 
         if self._channel_enabled("glossy_roughness"):
             # Often the glossy roughness is used as diffuse roughness, override if it is.
-            self._channel_to_inputs('glossy_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
+            self._channel_to_sockets('glossy_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
         elif self._channel_enabled("glossy_color"):
             # Often the glossy roughness is used as diffuse roughness, override if it is.
-            self._channel_to_inputs('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map, False)
+            self._channel_to_sockets('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map, False)
 
         # Base Bump
-        self._channel_to_inputs("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
-        self._channel_to_inputs("normal_map", builder.in_normal_map, builder.in_normal_map_map)
+        self._channel_to_sockets("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
+        self._channel_to_sockets("normal_map", builder.in_normal_map, builder.in_normal_map_map)
 
         # Base Diffuse Overlay
         if self._channel_enabled("diffuse_overlay_weight"):
-            self._channel_to_inputs("diffuse_overlay_weight", builder.in_diffuse_overlay_weight, builder.in_diffuse_overlay_weight_map)
-            self._channel_to_inputs("diffuse_overlay_weight_squared", builder.in_diffuse_overlay_weight_squared, None)
-            self._channel_to_inputs("diffuse_overlay_color", builder.in_diffuse_overlay_color, builder.in_diffuse_overlay_color_map, False)
-            self._channel_to_inputs("diffuse_overlay_roughness", builder.in_diffuse_overlay_roughness, builder.in_diffuse_overlay_roughness_map)
+            self._channel_to_sockets("diffuse_overlay_weight", builder.in_diffuse_overlay_weight, builder.in_diffuse_overlay_weight_map)
+            self._channel_to_sockets("diffuse_overlay_weight_squared", builder.in_diffuse_overlay_weight_squared, None)
+            self._channel_to_sockets("diffuse_overlay_color", builder.in_diffuse_overlay_color, builder.in_diffuse_overlay_color_map, False)
+            self._channel_to_sockets("diffuse_overlay_roughness", builder.in_diffuse_overlay_roughness, builder.in_diffuse_overlay_roughness_map)
 
         # Base Diffuse Translucency
         if self._channel_enabled('translucency_weight'):
-            self._channel_to_inputs("translucency_weight", builder.in_translucency_weight, builder.in_translucency_weight_map)
-            self._channel_to_inputs("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map, False)
-            self._channel_to_inputs("invert_transmission_normal", builder.in_invert_transmission_normal, None)
+            self._channel_to_sockets("translucency_weight", builder.in_translucency_weight, builder.in_translucency_weight_map)
+            self._channel_to_sockets("translucency_color", builder.in_translucency_color, builder.in_translucency_color_map, False)
+            self._channel_to_sockets("invert_transmission_normal", builder.in_invert_transmission_normal, None)
 
         # Base Dual Lobe Specular
         if self._channel_enabled('sock_dual_lobe_specular_weight'):
-            self._channel_to_inputs('dual_lobe_specular_weight', builder.in_dual_lobe_specular_weight, builder.in_dual_lobe_specular_weight_map)
+            self._channel_to_sockets('dual_lobe_specular_weight', builder.in_dual_lobe_specular_weight, builder.in_dual_lobe_specular_weight_map)
             if self._properties.dls_weight_multiplier != 1.0:
                 self._set_socket(self._shader_group, builder.in_dual_lobe_specular_weight, self._properties.dls_weight_multiplier, "MULTIPLY")
 
-            self._channel_to_inputs('dual_lobe_specular_reflectivity', builder.in_dual_lobe_specular_reflectivity, builder.in_dual_lobe_specular_reflectivity_map)
-            self._channel_to_inputs('specular_lobe_1_roughness', builder.in_specular_lobe_1_roughness, builder.in_specular_lobe_1_roughness_map)
-            self._channel_to_inputs('specular_lobe_2_roughness', builder.in_specular_lobe_2_roughness, builder.in_specular_lobe_2_roughness_map)
-            self._channel_to_inputs('dual_lobe_specular_ratio', builder.in_dual_lobe_specular_ratio, builder.in_dual_lobe_specular_ratio_map)
+            self._channel_to_sockets('dual_lobe_specular_reflectivity', builder.in_dual_lobe_specular_reflectivity, builder.in_dual_lobe_specular_reflectivity_map)
+            self._channel_to_sockets('specular_lobe_1_roughness', builder.in_specular_lobe_1_roughness, builder.in_specular_lobe_1_roughness_map)
+            self._channel_to_sockets('specular_lobe_2_roughness', builder.in_specular_lobe_2_roughness, builder.in_specular_lobe_2_roughness_map)
+            self._channel_to_sockets('dual_lobe_specular_ratio', builder.in_dual_lobe_specular_ratio, builder.in_dual_lobe_specular_ratio_map)
 
         # Base Thin Film
-        self._channel_to_inputs("base_thin_film", builder.in_base_thin_film, None)
-        self._channel_to_inputs("base_thin_film_ior", builder.in_base_thin_film_ior, builder.in_base_thin_film_ior_map)
+        self._channel_to_sockets("base_thin_film", builder.in_base_thin_film, None)
+        self._channel_to_sockets("base_thin_film_ior", builder.in_base_thin_film_ior, builder.in_base_thin_film_ior_map)
 
         # Emission
-        self._channel_to_inputs("emission_color", builder.in_emission_color, None)
-        self._channel_to_inputs("emission_temperature", builder.in_emission_temperature, None)
+        self._channel_to_sockets("emission_color", builder.in_emission_color, None)
+        self._channel_to_sockets("emission_temperature", builder.in_emission_temperature, None)
 
         if self._channel_enabled('luminance'):
-            self._channel_to_inputs('luminance', builder.in_luminance, builder.in_luminance_map)
+            self._channel_to_sockets('luminance', builder.in_luminance, builder.in_luminance_map)
 
             # Override luminance using units and efficacy
             b_luminance = self._convert_emission_luminance(channels)
             self._set_socket(self._shader_group, builder.in_luminance, b_luminance)
 
         # Geometry Cutout
-        self._channel_to_inputs("cutout_opacity", builder.in_cutout_opacity, builder.in_cutout_opacity_map)
+        self._channel_to_sockets("cutout_opacity", builder.in_cutout_opacity, builder.in_cutout_opacity_map)
 
         # Geometry Displacement
         if self._channel_enabled("displacement_strength"):
-            self._channel_to_inputs("displacement_strength", builder.in_displacement_strength, builder.in_displacement_strength_map)
-            self._channel_to_inputs("minimum_displacement", builder.in_minimum_displacement, None)
-            self._channel_to_inputs("maximum_displacement", builder.in_maximum_displacement, None)
+            self._channel_to_sockets("displacement_strength", builder.in_displacement_strength, builder.in_displacement_strength_map)
+            self._channel_to_sockets("minimum_displacement", builder.in_minimum_displacement, None)
+            self._channel_to_sockets("maximum_displacement", builder.in_maximum_displacement, None)
 
         # Metallic Flakes Flakes
         if self._channel_enabled("metallic_flakes_weight"):
-            self._channel_to_inputs("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
-            self._channel_to_inputs("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map, False)
-            self._channel_to_inputs("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
-            self._channel_to_inputs("metallic_flakes_size", builder.in_metallic_flakes_size, None)
-            self._channel_to_inputs("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
-            self._channel_to_inputs("metallic_flakes_density", builder.in_metallic_flakes_density, None)
+            self._channel_to_sockets("metallic_flakes_weight", builder.in_metallic_flakes_weight, builder.in_metallic_flakes_weight_map)
+            self._channel_to_sockets("metallic_flakes_color", builder.in_metallic_flakes_color, builder.in_metallic_flakes_color_map, False)
+            self._channel_to_sockets("metallic_flakes_roughness", builder.in_metallic_flakes_roughness, builder.in_metallic_flakes_roughness_map)
+            self._channel_to_sockets("metallic_flakes_size", builder.in_metallic_flakes_size, None)
+            self._channel_to_sockets("metallic_flakes_strength", builder.in_metallic_flakes_strength, None)
+            self._channel_to_sockets("metallic_flakes_density", builder.in_metallic_flakes_density, None)
 
         # Top Coat General
         if self._channel_enabled("top_coat_weight"):
-            self._channel_to_inputs("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
-            self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map, False)
-            self._channel_to_inputs("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
+            self._channel_to_sockets("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
+            self._channel_to_sockets("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map, False)
+            self._channel_to_sockets("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
 
         # Volume Scattering
         if self._channel_enabled("sss_amount"):
-            self._channel_to_inputs("sss_amount", builder.in_sss_weight, None)
-            self._channel_to_inputs("scattering_measurement_distance", builder.in_scattering_measurement_distance, None)
-            self._channel_to_inputs("sss_color", builder.in_sss_color, None, False)
-            self._channel_to_inputs("sss_direction", builder.in_sss_direction, None)
+            self._channel_to_sockets("sss_amount", builder.in_sss_weight, None)
+            self._channel_to_sockets("scattering_measurement_distance", builder.in_scattering_measurement_distance, None)
+            self._channel_to_sockets("sss_color", builder.in_sss_color, None, False)
+            self._channel_to_sockets("sss_direction", builder.in_sss_direction, None)
 
         # Volume Transmission
         if self._channel_enabled("refraction_weight"):
-            self._channel_to_inputs("refraction_weight", builder.in_refraction_weight, builder.in_refraction_weight_map)
-            self._channel_to_inputs("refraction_index", builder.in_ior, None)
-            self._channel_to_inputs("transmitted_measurement_distance", builder.in_transmitted_measurement_distance, None)
-            self._channel_to_inputs("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map, False)
+            self._channel_to_sockets("refraction_weight", builder.in_refraction_weight, builder.in_refraction_weight_map)
+            self._channel_to_sockets("refraction_index", builder.in_ior, None)
+            self._channel_to_sockets("transmitted_measurement_distance", builder.in_transmitted_measurement_distance, None)
+            self._channel_to_sockets("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map, False)
         # @formatter:on
 
     @staticmethod

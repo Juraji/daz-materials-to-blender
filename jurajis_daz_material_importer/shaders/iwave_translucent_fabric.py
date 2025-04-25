@@ -601,13 +601,12 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_inputs("top_coat_weight", builder.in_top_coat_weight, builder.in_top_coat_weight_map)
             self._channel_to_inputs("top_coat_color", builder.in_top_coat_color, builder.in_top_coat_color_map)
             self._channel_to_inputs("top_coat_roughness", builder.in_top_coat_roughness, builder.in_top_coat_roughness_map)
+            self._channel_to_inputs("top_coat_reflectivity", builder.in_top_coat_reflectivity, builder.in_top_coat_reflectivity_map)
             self._channel_to_inputs("top_coat_anisotropy", builder.in_top_coat_anisotropy, builder.in_top_coat_anisotropy_map)
             self._channel_to_inputs("top_coat_rotations", builder.in_top_coat_rotations, builder.in_top_coat_anisotropy_map)
 
-        if self._channel_enabled("top_coat_bump_mode"):
-            self._channel_to_inputs("top_coat_bump", builder.in_top_coat_bump, builder.in_top_coat_bump_map)
-        else:
             self._channel_to_inputs("top_coat_normal", builder.in_top_coat_normal, builder.in_top_coat_normal_map)
+            self._channel_to_inputs("top_coat_bump", builder.in_top_coat_bump, builder.in_top_coat_bump_map)
 
         # Thin Film
         if self._channel_enabled("thin_film_thickness"):

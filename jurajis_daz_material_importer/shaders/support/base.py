@@ -430,10 +430,10 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
             channel = self._channels.get(feat_name)
             if not channel:
                 continue
-            if isinstance(channel, DsonBoolMaterialChannel):
-                return channel.value
-            else:
-                return channel.is_set()
+            if isinstance(channel, DsonBoolMaterialChannel) and channel.value:
+                return True
+            elif channel.is_set():
+                return True
         return False
 
     def _channel_to_sockets(self,

@@ -15,10 +15,10 @@ from ..utils.math import tuple_zip_sum
 class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
     in_diffuse_color = "Diffuse Color"
     in_diffuse_color_map = "Diffuse Color Map"
-    in_roughness_weight = "Roughness Weight"
-    in_roughness_weight_map = "Roughness Weight Map"
-    in_metallic_weight = "Metallic Weight"
-    in_metallic_weight_map = "Metallic Weight Map"
+    in_roughness = "Roughness"
+    in_roughness_map = "Roughness Map"
+    in_metallic = "Metallic"
+    in_metallic_map = "Metallic Map"
     in_opacity = "Opacity"
     in_opacity_map = "Opacity Map"
 
@@ -93,10 +93,10 @@ class PBRSkinShaderGroupBuilder(ShaderGroupBuilder):
         # Input Sockets: PBR
         sock_diffuse_color = self._color_socket(self.in_diffuse_color, parent=panel_pbr)
         sock_diffuse_color_map = self._color_socket(self.in_diffuse_color_map, parent=panel_pbr)
-        sock_roughness_weight = self._float_socket(self.in_roughness_weight, 1.0, parent=panel_pbr)
-        in_roughness_weight_map = self._color_socket(self.in_roughness_weight_map, parent=panel_pbr)
-        sock_metallic_weight = self._float_socket(self.in_metallic_weight, parent=panel_pbr)
-        sock_metallic_weight_map = self._color_socket(self.in_metallic_weight_map, parent=panel_pbr)
+        sock_roughness_weight = self._float_socket(self.in_roughness, 1.0, parent=panel_pbr)
+        in_roughness_weight_map = self._color_socket(self.in_roughness_map, parent=panel_pbr)
+        sock_metallic_weight = self._float_socket(self.in_metallic, parent=panel_pbr)
+        sock_metallic_weight_map = self._color_socket(self.in_metallic_map, parent=panel_pbr)
         sock_opacity = self._float_socket(self.in_opacity, 1.0, parent=panel_pbr)
         sock_opacity_map = self._color_socket(self.in_opacity_map, parent=panel_pbr)
 
@@ -342,9 +342,9 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
         if self._channel_enabled('diffuse_roughness'):
             # For some reason the diffuse roughness is set to 0 by default.
             # This makes the shader very glossy in Blender, hence we only set it if it's non-zero.
-            self._channel_to_sockets('diffuse_roughness', builder.in_roughness_weight, builder.in_roughness_weight_map)
+            self._channel_to_sockets('diffuse_roughness', builder.in_roughness, builder.in_roughness_map)
 
-        self._channel_to_sockets('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
+        self._channel_to_sockets('metallic_weight', builder.in_metallic, builder.in_metallic_map)
         self._channel_to_sockets('cutout_opacity', builder.in_opacity, builder.in_opacity_map)
 
         if self._channel_enabled('dual_lobe_specular_enable'):

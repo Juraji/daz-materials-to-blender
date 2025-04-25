@@ -2,11 +2,12 @@ from typing import Type
 
 from bpy.types import ShaderNodeBsdfDiffuse, ShaderNodeVolumeAbsorption
 
-from .support import FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, ShaderGroupApplier, ShaderGroupBuilder, \
-    RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, DualLobeSpecularShaderGroupBuilder, \
-    BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, WeightedTranslucencyShaderGroupBuilder
+from .support import AdvancedTopCoatShaderGroupBuilder, FakeGlassShaderGroupApplier, FakeGlassShaderGroupBuilder, \
+    ShaderGroupApplier, ShaderGroupBuilder, RerouteGroup, AsymmetricalDisplacementShaderGroupBuilder, \
+    DualLobeSpecularShaderGroupBuilder, BlackbodyEmissionShaderGroupBuilder, MetallicFlakesShaderGroupBuilder, \
+    WeightedTranslucencyShaderGroupBuilder
 from ..utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
-from ..utils.dson import DsonMaterialChannel, DsonStringMaterialChannel
+from ..utils.dson import DsonMaterialChannel
 
 __GROUP_NAME__ = "Iray Uber"
 __MATERIAL_TYPE_ID__ = "iray_uber"
@@ -14,107 +15,13 @@ __MATERIAL_TYPE_ID__ = "iray_uber"
 
 class IrayUberShaderGroupBuilder(ShaderGroupBuilder):
     """
-    This implementation is an adapter for the PBR Metalicity/Roughness,
-    PBR Specular/Glossiness and Weighted implementations of Iray Uber.
-
-    Since all of these subtypes identify as Iray Uver in the DAZ Scene,
-    we need to use some delegation here, based on the Base Mixing property
-    """
-
-    @staticmethod
-    def group_name() -> str:
-        return __GROUP_NAME__
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    @staticmethod
-    def depends_on() -> set[Type[ShaderGroupBuilder]]:
-        return {
-            AsymmetricalDisplacementShaderGroupBuilder,
-            BlackbodyEmissionShaderGroupBuilder,
-            DualLobeSpecularShaderGroupBuilder,
-            MetallicFlakesShaderGroupBuilder,
-            WeightedTranslucencyShaderGroupBuilder,
-            FakeGlassShaderGroupBuilder,
-        }
-
-    def setup_group(self):
-        if not self.node_trees.get(_IrayUberPBRMRShaderGroupBuilder.group_name(), None):
-            _IrayUberPBRMRShaderGroupBuilder(self.properties, self.node_trees).setup_group()
-        if not self.node_trees.get(_IrayUberPBRSGShaderGroupBuilder.group_name(), None):
-            _IrayUberPBRSGShaderGroupBuilder(self.properties, self.node_trees).setup_group()
-        if not self.node_trees.get(_IrayUberWeightedShaderGroupBuilder.group_name(), None):
-            _IrayUberWeightedShaderGroupBuilder(self.properties, self.node_trees).setup_group()
-
-
-class IrayUberShaderGroupApplier(ShaderGroupApplier):
-    """
-    This implementation is an adapter for the PBR Metalicity/Roughness,
-    PBR Specular/Glossiness and Weighted implementations of Iray Uber.
-
-    Since all of these subtypes identify as Iray Uver in the DAZ Scene,
-    we need to use some delegation here, based on the Base Mixing property
-    """
-
-    @staticmethod
-    def group_name() -> str:
-        return __GROUP_NAME__
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        if self._can_use_glass_shortcut(channels):
-            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
-            fake_glass.apply_shader_group(channels)
-            return
-
-        # NOTE: The upstream enum is serialized as its index (DsonStringMaterialChannel).
-        mixing_type_opt = self._determing_mixing_type_opt(channels)
-        match mixing_type_opt:
-            case "0":  # PBR Metallicity/Roughness
-                builder_cls = _IrayUberPBRMRShaderGroupApplier
-            case "1":  # PBR Specular/Glossiness
-                builder_cls = _IrayUberPBRSGShaderGroupApplier
-            case "2":  # Weighted
-                builder_cls = _IrayUberWeightedShaderGroupApplier
-            case _:
-                raise RuntimeError(f"Unknown Iray Uber mixing type {mixing_type_opt}!")
-
-        builder_cls(self._properties, self._node_tree).apply_shader_group(channels)
-
-    @staticmethod
-    def _can_use_glass_shortcut(channels):
-        """
-        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
-        fake glass shader group, instead of the full Iray Uber setup.
-        """
-        refraction_weight_ch = channels.get("refraction_weight", None)
-        refraction_index_ch = channels.get("refraction_index", None)
-
-        if refraction_weight_ch is not None and refraction_index_ch is not None:
-            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38
-
-    @staticmethod
-    def _determing_mixing_type_opt(channels: dict[str, DsonMaterialChannel]) -> str:
-        mixing_ch = channels.get("base_mixing", None)
-        if mixing_ch is not None and isinstance(mixing_ch, DsonStringMaterialChannel):
-            return mixing_ch.value
-        return "__NO_VALUE__"
-
-
-class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
-    """
     About Iray Uber, decisions had to be made.
     Given Iray Uber has 166 adjustable properties (counting values and maps separately).
     If all properties were to be implemented, this group would become a massive undertaking.
 
     So here's the decisions taken:
     - Only map and implement commonly used properties
-    - Only support PBR Metallicity/Roughness mixing
+    - Instead of building a shader for each Base Mising Type, this shader tries it's best to be the middle ground.
     """
 
     # Base Diffuse
@@ -159,11 +66,19 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_dual_lobe_specular_ratio = "Dual Lobe Specular Ratio"
     in_dual_lobe_specular_ratio_map = "Dual Lobe Specular Ratio Map"
 
-    # Base Thin Film
-    in_base_thin_film = "Base Thin Film"
-    in_base_thin_film_map = "Base Thin Film Map"
-    in_base_thin_film_ior = "Base Thin Film IOR"
-    in_base_thin_film_ior_map = "Base Thin Film IOR Map"
+    # Glossy
+    in_glossy_weight = "Glossy Weight"
+    in_glossy_weight_map = "Glossy Weight Map"
+    in_glossy_color = "Glossy Color"
+    in_glossy_color_map = "Glossy Color Map"
+    in_glossy_reflectivity = "Glossy Reflectivity"
+    in_glossy_reflectivity_map = "Glossy Reflectivity Map"
+    in_glossy_roughness = "Glossy Roughness"
+    in_glossy_roughness_map = "Glossy Roughness Map"
+    in_glossy_anisotropy = "Glossy Anisotropy"
+    in_glossy_anisotropy_map = "Glossy Anisotropy Map"
+    in_glossy_anisotropy_rotations = "Glossy Anisotropy Rotations"
+    in_glossy_anisotropy_rotations_map = "Glossy Anisotropy Rotations Map"
 
     # Emission
     in_emission_color = "Emission Color"
@@ -201,6 +116,14 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
     in_top_coat_roughness = "Top Coat Roughness"
     in_top_coat_roughness_map = "Top Coat Roughness Map"
 
+    # Base Thin Film
+    in_thin_film_weight = "Thin Film Weight"
+    in_thin_film_rotations = "Thin Film Iridescent Rotations"
+    in_thin_film_thickness = "Thin Film Thickness"
+    in_thin_film_thickness_map = "Thin Film Thickness Map"
+    in_thin_film_ior = "Thin Film IOR"
+    in_thin_film_ior_map = "Thin Film IOR Map"
+
     # Volume Scattering
     in_sss_weight = "SSS Weight"
     in_sss_color = "SSS Color"
@@ -221,28 +144,41 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
     @staticmethod
     def group_name() -> str:
-        return f"{__GROUP_NAME__} (PBR Metalicity/Roughness)"
+        return __GROUP_NAME__
 
     @staticmethod
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
+
+    @staticmethod
+    def depends_on() -> set[Type[ShaderGroupBuilder]]:
+        return {
+            AdvancedTopCoatShaderGroupBuilder,
+            AsymmetricalDisplacementShaderGroupBuilder,
+            BlackbodyEmissionShaderGroupBuilder,
+            DualLobeSpecularShaderGroupBuilder,
+            MetallicFlakesShaderGroupBuilder,
+            WeightedTranslucencyShaderGroupBuilder,
+            FakeGlassShaderGroupBuilder,
+        }
 
     def setup_group(self):
         super().setup_group()
 
         # @formatter:off
         # Panels
-        panel_base_diffuse = self._add_panel("Base Diffuse", False)
-        panel_base_bump = self._add_panel("Base Bump", False)
-        panel_base_diffuse_overlay = self._add_panel("Base Diffuse Overlay")
-        panel_base_diffuse_translucency = self._add_panel("Base Diffuse Translucency")
-        panel_base_dual_lobe_specular = self._add_panel("Base Dual Lobe Specular")
-        panel_base_thin_film = self._add_panel("Base Thin Film")
+        panel_base_diffuse = self._add_panel("Diffuse", False)
+        panel_base_bump = self._add_panel("Bump", False)
+        panel_base_diffuse_overlay = self._add_panel("Diffuse Overlay")
+        panel_base_diffuse_translucency = self._add_panel("Diffuse Translucency")
+        panel_base_dual_lobe_specular = self._add_panel("Dual Lobe Specular")
+        panel_glossy = self._add_panel("Glossy")
         panel_emission = self._add_panel("Emission")
         panel_geometry_cutout = self._add_panel("Geometry Cutout")
         panel_geometry_displacement = self._add_panel("Geometry Displacement")
         panel_metallic_flakes_flakes = self._add_panel("Metallic Flakes Flakes")
         panel_top_coat_general = self._add_panel("Top Coat")
+        panel_base_thin_film = self._add_panel("Thin Film")
         panel_volume_scattering = self._add_panel("Volume Scattering")
         panel_volume_transmission = self._add_panel("Volume Transmission")
 
@@ -288,11 +224,19 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_dual_lobe_specular_ratio = self._float_socket(self.in_dual_lobe_specular_ratio, 0.85, parent=panel_base_dual_lobe_specular)
         sock_dual_lobe_specular_ratio_map = self._color_socket(self.in_dual_lobe_specular_ratio_map, parent=panel_base_dual_lobe_specular)
 
-        # Sockets: Base Thin Film
-        sock_base_thin_film = self._float_socket(self.in_base_thin_film, parent=panel_base_thin_film)
-        sock_base_thin_film_map = self._color_socket(self.in_base_thin_film_map, parent=panel_base_thin_film)
-        sock_base_thin_film_ior = self._float_socket(self.in_base_thin_film_ior, 1.5, parent=panel_base_thin_film)
-        sock_base_thin_film_ior_map = self._color_socket(self.in_base_thin_film_ior_map, parent=panel_base_thin_film)
+        # Sockets: Glossy Layer
+        sock_glossy_weight = self._float_socket(self.in_glossy_weight, parent=panel_glossy)
+        sock_glossy_weight_map = self._color_socket(self.in_glossy_weight_map, parent=panel_glossy)
+        sock_glossy_color = self._color_socket(self.in_glossy_color, parent=panel_glossy)
+        sock_glossy_color_map = self._color_socket(self.in_glossy_color_map, parent=panel_glossy)
+        sock_glossy_reflectivity = self._float_socket(self.in_glossy_reflectivity, 0.5, parent=panel_glossy)
+        sock_glossy_reflectivity_map = self._color_socket(self.in_glossy_reflectivity_map, parent=panel_glossy)
+        sock_glossy_roughness = self._float_socket(self.in_glossy_roughness, parent=panel_glossy)
+        sock_glossy_roughness_map = self._color_socket(self.in_glossy_roughness_map, parent=panel_glossy)
+        sock_glossy_anisotropy = self._float_socket(self.in_glossy_anisotropy, parent=panel_glossy)
+        sock_glossy_anisotropy_map = self._color_socket(self.in_glossy_anisotropy_map, parent=panel_glossy)
+        sock_glossy_anisotropy_rotations = self._float_socket(self.in_glossy_anisotropy_rotations, parent=panel_glossy)
+        sock_glossy_anisotropy_rotations_map = self._color_socket(self.in_glossy_anisotropy_rotations_map, parent=panel_glossy)
 
         # Sockets: Emission
         sock_emission_color = self._color_socket(self.in_emission_color, (0.0, 0.0, 0.0, 1.0), parent=panel_emission)
@@ -330,6 +274,14 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_top_coat_roughness = self._float_socket(self.in_top_coat_roughness, parent=panel_top_coat_general)
         sock_top_coat_roughness_map = self._color_socket(self.in_top_coat_roughness_map, parent=panel_top_coat_general)
 
+        # Sockets: Base Thin Film
+        sock_thin_film_weight = self._float_socket(self.in_thin_film_weight, parent=panel_base_thin_film)
+        sock_thin_film_rotations = self._float_socket(self.in_thin_film_rotations, parent=panel_base_thin_film)
+        sock_thin_film_thickness = self._float_socket(self.in_thin_film_thickness, parent=panel_base_thin_film)
+        sock_thin_film_thickness_map = self._color_socket(self.in_thin_film_thickness_map, parent=panel_base_thin_film)
+        sock_thin_film_ior = self._float_socket(self.in_thin_film_ior, 1.5, parent=panel_base_thin_film)
+        sock_thin_film_ior_map = self._color_socket(self.in_thin_film_ior_map, parent=panel_base_thin_film)
+
         # Sockets: Volume Scattering
         sock_sss_weight = self._float_socket(self.in_sss_weight, parent=panel_volume_scattering)
         sock_sss_color = self._color_socket(self.in_sss_color, (0.0, 0.0, 0.0, 1.0), parent=panel_volume_scattering)
@@ -341,7 +293,7 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         sock_refraction_weight_map = self._color_socket(self.in_refraction_weight_map, parent=panel_volume_transmission)
         sock_ior = self._float_socket(self.in_ior, 1.5, parent=panel_volume_transmission)
         sock_transmitted_distance = self._float_socket(self.in_transmitted_measurement_distance, 0.1, parent=panel_volume_transmission)
-        sock_transmitted_color = self._color_socket(self.in_transmitted_color, (0.0, 0.0, 0.0, 1.0), parent=panel_volume_transmission)
+        sock_transmitted_color = self._color_socket(self.in_transmitted_color, parent=panel_volume_transmission)
         sock_transmitted_color_map = self._color_socket(self.in_transmitted_color_map, parent=panel_volume_transmission)
 
         # Output Sockets:
@@ -361,19 +313,12 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         reroute_diff_overlay_in = RerouteGroup(-1980.0, 440.0, frame_diff_overlay)
         reroute_diff_overlay_out = RerouteGroup(-1540.0, 440.0, frame_diff_overlay)
 
-        frame_thin_film = self._add_frame("Thin Film")
-        reroute_thin_film_in = RerouteGroup(-1920.0, -420.0, frame_thin_film)
-
-        frame_top_coat = self._add_frame("Top coat")
-        reroute_top_coat_in = RerouteGroup(-1980.0, -1520.0, frame_top_coat)
-        reroute_top_coat_out = RerouteGroup(-1540.0, -1520.0, frame_top_coat)
-
         frame_transmission = self._add_frame("Refraction and Tranmission")
-        reroute_transmission_in = RerouteGroup(-1980.0, -1740.0, frame_transmission)
-        reroute_transmission_out = RerouteGroup(-1540.0, -1740.0, frame_transmission)
+        reroute_transmission_in = RerouteGroup(-1980.0, -1780, frame_transmission)
+        reroute_transmission_out = RerouteGroup(-1540.0, -1780, frame_transmission)
 
-        reroute_sss_ior_in = RerouteGroup(-1980.0, -1340.0)
-        reroute_sss_ior_out = RerouteGroup(-1540.0, -1340.0)
+        reroute_passthrough_in = RerouteGroup(-1980.0, -1140)
+        reroute_sss_ior_out = RerouteGroup(-1540.0, -1140)
 
         # Nodes: Group Input
         node_group_input = self._add_node__group_input("Group Input", (-3320.0, 400.0))
@@ -462,18 +407,9 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_dls, sock_dual_lobe_specular_ratio_map, builder_dls.in_ratio_map)
         self._link_socket(node_normal_reroute_left, node_dls, 0, builder_trans.in_normal)
 
-        # Nodes: Thin Film
-        node_mix_thin_film = self._add_node__hsv("Mix Thin Film and Map", (-2000.0, -420.0), parent=frame_thin_film)
-        self._link_socket(node_group_input, node_mix_thin_film, sock_base_thin_film, 2, reroute_thin_film_in)
-        self._link_socket(node_group_input, node_mix_thin_film, sock_base_thin_film_map, 4, reroute_thin_film_in)
-
-        node_mix_thin_film_ior = self._add_node__hsv("Mix Thin Film IOR and Map", (-2000.0, -460.0), parent=frame_thin_film)
-        self._link_socket(node_group_input, node_mix_thin_film_ior, sock_base_thin_film_ior, 2, reroute_thin_film_in)
-        self._link_socket(node_group_input, node_mix_thin_film_ior, sock_base_thin_film_ior_map, 4, reroute_thin_film_in)
-
         # Nodes: Blackbody Emission
         builder_emiss = BlackbodyEmissionShaderGroupBuilder
-        node_bb_emission = self._add_node__shader_group("Blackbody Emission", builder_emiss, (-2000.0, -560.0))
+        node_bb_emission = self._add_node__shader_group("Blackbody Emission", builder_emiss, (-2000.0, -380))
         self._link_socket(node_group_input, node_bb_emission, sock_emission_color, builder_emiss.in_color)
         self._link_socket(node_group_input, node_bb_emission, sock_emission_color_map, builder_emiss.in_color_map)
         self._link_socket(node_group_input, node_bb_emission, sock_emission_temperature, builder_emiss.in_temperature)
@@ -482,7 +418,7 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
         # Nodes: Displacement
         builder_disp = AsymmetricalDisplacementShaderGroupBuilder
-        node_displacement = self._add_node__shader_group("Displacement", builder_disp, (-2000.0, -780.0))
+        node_displacement = self._add_node__shader_group("Displacement", builder_disp, (-2000.0, -600))
         self._link_socket(node_group_input, node_displacement, sock_displacement_strength, builder_disp.in_strength)
         self._link_socket(node_group_input, node_displacement, sock_displacement_strength_map, builder_disp.in_strength_map)
         self._link_socket(node_group_input, node_displacement, sock_minimum_displacement, builder_disp.in_min_displacement)
@@ -491,7 +427,7 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
 
         # Nodes: Metallic Flakes
         builder_flakes = MetallicFlakesShaderGroupBuilder
-        node_flakes = self._add_node__shader_group("Metallic Flakes", builder_flakes, (-2000.0, -980.0))
+        node_flakes = self._add_node__shader_group("Metallic Flakes", builder_flakes, (-2000.0, -800))
         self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_weight, builder_flakes.in_weight)
         self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_weight_map, builder_flakes.in_weight_map)
         self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_color, builder_flakes.in_color)
@@ -503,58 +439,73 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_flakes, sock_metallic_flakes_density, builder_flakes.in_flake_density)
         self._link_socket(node_normal_reroute_left, node_flakes, 0, builder_flakes.in_normal)
 
-        # Nodes: Top Coat
-        node_mix_top_coat_weight = self._add_node__hsv("Mix Top Coat Weight and Map", (-1940.0, -1520.0), parent=frame_top_coat)
-        self._link_socket(node_group_input, node_mix_top_coat_weight, sock_top_coat_weight, 2, reroute_top_coat_in)
-        self._link_socket(node_group_input, node_mix_top_coat_weight, sock_top_coat_weight_map, 4, reroute_top_coat_in)
-
-        node_mix_top_coat_color = self._add_node__mix("Mix Top Coat Color and Map", (-1940.0, -1560.0), parent=frame_top_coat)
-        self._link_socket(node_group_input, node_mix_top_coat_color, sock_top_coat_color, 6, reroute_top_coat_in)
-        self._link_socket(node_group_input, node_mix_top_coat_color, sock_top_coat_color_map, 7, reroute_top_coat_in)
-
-        node_mix_top_coat_roughness = self._add_node__hsv("Mix Top Coat Roughness and Map", (-1940.0, -1600.0), parent=frame_top_coat)
-        self._link_socket(node_group_input, node_mix_top_coat_roughness, sock_top_coat_roughness, 2, reroute_top_coat_in)
-        self._link_socket(node_group_input, node_mix_top_coat_roughness, sock_top_coat_roughness_map, 4, reroute_top_coat_in)
-
         # Nodes: Refraction and Transmission
-        node_mix_refraction_weight = self._add_node__hsv("Mix Refraction Weight and Map", (-1940.0, -1720.0), parent=frame_transmission)
+        node_mix_refraction_weight = self._add_node__hsv("Mix Refraction Weight and Map", (-1940.0, -1800), parent=frame_transmission)
         self._link_socket(node_group_input, node_mix_refraction_weight, sock_refraction_weight, 2, reroute_transmission_in)
         self._link_socket(node_group_input, node_mix_refraction_weight, sock_refraction_weight_map, 4, reroute_transmission_in)
 
-        node_limit_trans_distance = self._add_node__math("Limit Transmitted Distance", (-1940.0, -1760.0), "MAXIMUM", parent=frame_transmission)
+        node_limit_trans_distance = self._add_node__math("Limit Transmitted Distance", (-1940.0, -1840), "MAXIMUM", parent=frame_transmission)
         self._link_socket(node_group_input, node_limit_trans_distance, sock_transmitted_distance, 0, reroute_transmission_in)
         self._set_socket(node_limit_trans_distance, 0, 0.0001)
 
-        node_mix_transmitted_color = self._add_node__mix("Mix Transmitted Color", (-1940.0, -1800.0), parent=frame_transmission)
+        node_mix_transmitted_color = self._add_node__mix("Mix Transmitted Color", (-1940.0, -1880), parent=frame_transmission)
         self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color, 6, reroute_transmission_in)
         self._link_socket(node_group_input, node_mix_transmitted_color, sock_transmitted_color_map, 7, reroute_transmission_in)
 
-        node_transmitted_vol = self._add_node(ShaderNodeVolumeAbsorption, "Transmitted Volume Absorpsion", (-1800.0, -1700.0), parent=frame_transmission)
+        node_transmitted_vol = self._add_node(ShaderNodeVolumeAbsorption, "Transmitted Volume Absorpsion", (-1740.0, -1840), parent=frame_transmission)
         self._link_socket(node_mix_transmitted_color, node_transmitted_vol, 2,0)
         self._link_socket(node_limit_trans_distance, node_transmitted_vol, 0,1)
 
-        # Nodes: Surface and mixing
-        s = PrincipledBSDFSockets
+        # Nodes: Main Layer
+        principled_b = PrincipledBSDFSockets
         node_main_layer_bsdf = self._add_node__princ_bdsf("Main Layer BSDF", (-880.0, -240.0))
-        self._link_socket(node_mix_diffuse_color, node_main_layer_bsdf, 2, s.BASE_COLOR, reroute_pbr_out)
-        self._link_socket(node_mix_metallic_weight, node_main_layer_bsdf, 0, s.METALLIC, reroute_pbr_out)
-        self._link_socket(node_mix_roughness_weight, node_main_layer_bsdf, 0, s.ROUGHNESS, reroute_pbr_out)
-        self._link_socket(node_group_input, node_main_layer_bsdf, sock_ior, s.IOR, (reroute_sss_ior_in, reroute_sss_ior_out))
-        self._link_socket(node_mix_opacity, node_main_layer_bsdf, 0, s.ALPHA, reroute_pbr_out)
-        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, s.NORMAL)
-        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_weight, s.SUBSURFACE_WEIGHT, (reroute_sss_ior_in, reroute_sss_ior_out))
-        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_color, s.SUBSURFACE_RADIUS, (reroute_sss_ior_in, reroute_sss_ior_out))
-        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_scale, s.SUBSURFACE_SCALE, (reroute_sss_ior_in, reroute_sss_ior_out))
-        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_direction, s.SUBSURFACE_ANISOTROPY, (reroute_sss_ior_in, reroute_sss_ior_out))
-        self._link_socket(node_mix_refraction_weight, node_main_layer_bsdf, 0, s.TRANSMISSION_WEIGHT, reroute_transmission_out)
-        self._link_socket(node_mix_top_coat_weight, node_main_layer_bsdf, 0, s.COAT_WEIGHT, reroute_top_coat_out)
-        self._link_socket(node_mix_top_coat_roughness, node_main_layer_bsdf, 0, s.COAT_ROUGHNESS, reroute_top_coat_out)
-        self._link_socket(node_mix_top_coat_color, node_main_layer_bsdf, 2, s.COAT_TINT, reroute_top_coat_out)
-        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, s.COAT_NORMAL)
-        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_color, s.EMISSION)
-        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_weight, s.EMISSION_STRENGTH)
-        self._link_socket(node_mix_thin_film, node_main_layer_bsdf, 0, s.THIN_FILM_THICKNESS)
-        self._link_socket(node_mix_thin_film_ior, node_main_layer_bsdf, 0, s.THIN_FILM_IOR)
+        self._link_socket(node_mix_diffuse_color, node_main_layer_bsdf, 2, principled_b.BASE_COLOR, reroute_pbr_out)
+        self._link_socket(node_mix_metallic_weight, node_main_layer_bsdf, 0, principled_b.METALLIC, reroute_pbr_out)
+        self._link_socket(node_mix_roughness_weight, node_main_layer_bsdf, 0, principled_b.ROUGHNESS, reroute_pbr_out)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_ior, principled_b.IOR, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_mix_opacity, node_main_layer_bsdf, 0, principled_b.ALPHA, reroute_pbr_out)
+        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, principled_b.NORMAL)
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_weight, principled_b.SUBSURFACE_WEIGHT, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_color, principled_b.SUBSURFACE_RADIUS, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_scale, principled_b.SUBSURFACE_SCALE, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_main_layer_bsdf, sock_sss_direction, principled_b.SUBSURFACE_ANISOTROPY, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_mix_refraction_weight, node_main_layer_bsdf, 0, principled_b.TRANSMISSION_WEIGHT, reroute_transmission_out)
+        self._link_socket(node_normal_reroute_right, node_main_layer_bsdf, 0, principled_b.COAT_NORMAL)
+        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_color, principled_b.EMISSION)
+        self._link_socket(node_bb_emission, node_main_layer_bsdf, builder_emiss.out_weight, principled_b.EMISSION_STRENGTH)
+
+        # Nodes: Glossy Layer
+        top_coat_b = AdvancedTopCoatShaderGroupBuilder
+        node_glossy = self._add_node__shader_group("Glossy", top_coat_b, (-880.0, -580.0))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_weight, top_coat_b.in_top_coat_weight, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_weight_map, top_coat_b.in_top_coat_weight_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_color, top_coat_b.in_top_coat_color, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_color_map, top_coat_b.in_top_coat_color_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_reflectivity, top_coat_b.in_top_coat_reflectivity, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_reflectivity_map, top_coat_b.in_top_coat_reflectivity_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_roughness, top_coat_b.in_top_coat_roughness, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_roughness_map, top_coat_b.in_top_coat_roughness_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_anisotropy, top_coat_b.in_top_coat_anisotropy, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_anisotropy_map, top_coat_b.in_top_coat_anisotropy_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_anisotropy_rotations, top_coat_b.in_top_coat_rotations, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_glossy, sock_glossy_anisotropy_rotations_map, top_coat_b.in_top_coat_rotations_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_normal_reroute_right, node_glossy, 0, top_coat_b.in_top_coat_bump_vector)
+
+        # Nodes: Top Coat
+        node_top_coat = self._add_node__shader_group("Top Coat", top_coat_b, (-880.0, -1220.0))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_weight, top_coat_b.in_top_coat_weight, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_weight_map, top_coat_b.in_top_coat_weight_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_color, top_coat_b.in_top_coat_color, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_color_map, top_coat_b.in_top_coat_color_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_roughness, top_coat_b.in_top_coat_roughness, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_top_coat_roughness_map, top_coat_b.in_top_coat_roughness_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_weight, top_coat_b.in_thin_film_weight, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_rotations, top_coat_b.in_thin_film_rotations, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_thickness, top_coat_b.in_thin_film_thickness, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_thickness_map, top_coat_b.in_thin_film_thickness_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_ior, top_coat_b.in_thin_film_ior, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_group_input, node_top_coat, sock_thin_film_ior_map, top_coat_b.in_thin_film_ior_map, (reroute_passthrough_in, reroute_sss_ior_out))
+        self._link_socket(node_normal_reroute_right, node_top_coat, 0, top_coat_b.in_top_coat_bump_vector)
 
         node_mix_shader_trans = self._add_node__mix_shader("Mix Translucency Shader", (-220.0, 80.0))
         self._link_socket(node_translucency, node_mix_shader_trans, builder_trans.out_fac,0)
@@ -566,19 +517,29 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_mix_shader_trans, node_mix_shader_overlay, 0,1)
         self._link_socket(node_overlay_bsdf, node_mix_shader_overlay, 0,2, reroute_diff_overlay_out)
 
-        node_mix_shader_dls = self._add_node__mix_shader("Mix DLS Shader", (-220.0, 0.0))
+        node_mix_shader_flakes = self._add_node__mix_shader("Mix Metallic Flakes Shader", (-220.0, 0.0))
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_fac,0)
+        self._link_socket(node_mix_shader_overlay, node_mix_shader_flakes, 0,1)
+        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_shader,2)
+
+        node_mix_shader_dls = self._add_node__mix_shader("Mix DLS Shader", (-220.0, -40.0))
         self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_fac,0)
-        self._link_socket(node_mix_shader_overlay, node_mix_shader_dls, 0,1)
+        self._link_socket(node_mix_shader_flakes, node_mix_shader_dls, 0,1)
         self._link_socket(node_dls, node_mix_shader_dls, builder_dls.out_shader, 2)
 
-        node_mix_shader_flakes = self._add_node__mix_shader("Mix Metallic Flakes Shader", (-220.0, -40.0))
-        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_fac,0)
-        self._link_socket(node_mix_shader_dls, node_mix_shader_flakes, 0,1)
-        self._link_socket(node_flakes, node_mix_shader_flakes, builder_flakes.out_shader,2)
+        node_mix_shader_glossy = self._add_node__mix_shader("Mix Glossy Shader", (-220.0, -80.0))
+        self._link_socket(node_glossy, node_mix_shader_glossy, top_coat_b.out_fac,0)
+        self._link_socket(node_mix_shader_dls, node_mix_shader_glossy, 0,1)
+        self._link_socket(node_glossy, node_mix_shader_glossy, top_coat_b.out_shader,2)
+
+        node_mix_shader_top_coat = self._add_node__mix_shader("Mix Top Coat Shader", (-220.0, -120.0))
+        self._link_socket(node_top_coat, node_mix_shader_top_coat, top_coat_b.out_fac,0)
+        self._link_socket(node_mix_shader_glossy, node_mix_shader_top_coat, 0,1)
+        self._link_socket(node_top_coat, node_mix_shader_top_coat, top_coat_b.out_shader,2)
 
         # Group Output
         node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
-        self._link_socket(node_mix_shader_flakes, node_group_output, 0, sock_out_surface)
+        self._link_socket(node_mix_shader_top_coat, node_group_output, 0, sock_out_surface)
         self._link_socket(node_transmitted_vol, node_group_output, 0, sock_out_volume, reroute_transmission_out)
         self._link_socket(node_displacement, node_group_output, builder_disp.out_displacement, sock_out_displacement)
         # @formatter:on
@@ -590,23 +551,30 @@ class _IrayUberPBRMRShaderGroupBuilder(ShaderGroupBuilder):
                             node_displacement,
                             node_flakes,
                             node_main_layer_bsdf,
+                            node_glossy,
+                            node_top_coat,
                             node_group_output)
 
 
-class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
+class IrayUberShaderGroupApplier(ShaderGroupApplier):
 
     @staticmethod
     def group_name() -> str:
-        return f"{__GROUP_NAME__} (PBR Metalicity/Roughness)"
+        return __GROUP_NAME__
 
     @staticmethod
     def material_type_id() -> str:
         return __MATERIAL_TYPE_ID__
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+        if self._can_use_glass_shortcut(channels):
+            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
+            fake_glass.apply_shader_group(channels)
+            return
+
         super().apply_shader_group(channels)
 
-        builder = _IrayUberPBRMRShaderGroupBuilder
+        builder = IrayUberShaderGroupBuilder
 
         # @formatter:off
         # Geometry Tiling
@@ -615,14 +583,11 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         # Base Diffuse
         self._channel_to_sockets("diffuse", builder.in_diffuse, builder.in_diffuse_map, False)
         self._channel_to_sockets('metallic_weight', builder.in_metallic_weight, builder.in_metallic_weight_map)
-        self._channel_to_sockets('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
 
-        if self._channel_enabled("glossy_roughness"):
-            # Often the glossy roughness is used as diffuse roughness, override if it is.
-            self._channel_to_sockets('glossy_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
-        elif self._channel_enabled("glossy_color"):
-            # Often the glossy roughness is used as diffuse roughness, override if it is.
-            self._channel_to_sockets('glossy_color', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map, False)
+        if self._channel_enabled('diffuse_roughness'):
+            # For some reason the diffuse roughness is set to 0 by default.
+            # This makes the shader very glossy in Blender, hence we only set it if it's non-zero.
+            self._channel_to_sockets('diffuse_roughness', builder.in_diffuse_roughness, builder.in_diffuse_roughness_map)
 
         # Base Bump
         self._channel_to_sockets("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
@@ -652,9 +617,25 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets('specular_lobe_2_roughness', builder.in_specular_lobe_2_roughness, builder.in_specular_lobe_2_roughness_map)
             self._channel_to_sockets('dual_lobe_specular_ratio', builder.in_dual_lobe_specular_ratio, builder.in_dual_lobe_specular_ratio_map)
 
+        # Glossy Layer
+        self._channel_to_sockets("in_glossy_weight", builder.in_glossy_weight, builder.in_glossy_weight_map)
+        self._channel_to_sockets("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
+        self._channel_to_sockets("glossy_reflectivity", builder.in_glossy_reflectivity, builder.in_glossy_reflectivity_map)
+        self._channel_to_sockets("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
+        self._channel_to_sockets("glossy_anisotropy", builder.in_glossy_anisotropy, builder.in_glossy_anisotropy_map)
+        self._channel_to_sockets("glossy_anisotropy_rotations", builder.in_glossy_anisotropy_rotations, builder.in_glossy_anisotropy_rotations)
+
+        if not self._channel_enabled("in_glossy_weight") and self._channel_enabled("glossy_color", "glossy_reflectivity", "glossy_roughness"):
+            # Glossy Weight is only set in weighted mode.
+            # So if it's set we leave it alone, else we check whether any of its props are set.
+            # When that is true we set the weight to 1.
+            self._set_socket(self._shader_group, builder.in_glossy_weight, 1.0)
+
         # Base Thin Film
-        self._channel_to_sockets("base_thin_film", builder.in_base_thin_film, None)
-        self._channel_to_sockets("base_thin_film_ior", builder.in_base_thin_film_ior, builder.in_base_thin_film_ior_map)
+        if self._channel_enabled("thin_film_thickness"):
+            self._set_socket(self._shader_group, builder.in_thin_film_weight, 0.5)
+            self._channel_to_sockets("thin_film_thickness", builder.in_thin_film_thickness, builder.in_thin_film_thickness_map)
+            self._channel_to_sockets("thin_film_ior", builder.in_thin_film_ior, builder.in_thin_film_ior_map)
 
         # Emission
         self._channel_to_sockets("emission_color", builder.in_emission_color, None)
@@ -707,6 +688,18 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
         # @formatter:on
 
     @staticmethod
+    def _can_use_glass_shortcut(channels):
+        """
+        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
+        fake glass shader group, instead of the full Iray Uber setup.
+        """
+        refraction_weight_ch = channels.get("refraction_weight", None)
+        refraction_index_ch = channels.get("refraction_index", None)
+
+        if refraction_weight_ch is not None and refraction_index_ch is not None:
+            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38
+
+    @staticmethod
     def _convert_emission_luminance(channels) -> float:
         base_luminance = channels['luminance'].value
 
@@ -730,103 +723,3 @@ class _IrayUberPBRMRShaderGroupApplier(ShaderGroupApplier):
             return base_luminance * multiplier
         else:
             return base_luminance
-
-
-class _IrayUberPBRSGShaderGroupBuilder(ShaderGroupBuilder):
-    out_surface = "Surface"
-
-    @staticmethod
-    def group_name() -> str:
-        return f"{__GROUP_NAME__} (PBR Specular/Glossiness)"
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    def setup_group(self):
-        super().setup_group()
-
-        # Output Sockets:
-        sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
-
-        # Nodes: WHITE BSDF
-        node_diffuse_bsdf = self._add_node(ShaderNodeBsdfDiffuse, "Default", (-300, 0))
-        self._set_socket(node_diffuse_bsdf, 0, (0.5, 0.5, 0.5, 0.1))
-        self._set_socket(node_diffuse_bsdf, 1, 1.0)
-
-        # Group Output
-        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
-        self._link_socket(node_diffuse_bsdf, node_group_output, 0, sock_out_surface)
-
-
-class _IrayUberPBRSGShaderGroupApplier(ShaderGroupApplier):
-
-    @staticmethod
-    def group_name() -> str:
-        return f"{__GROUP_NAME__} (PBR Specular/Glossiness)"
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        """
-        NOT IMPLEMENTED!
-        The applier currently just adds all images from the channels to the material,
-        but group set up is left to the user.
-        """
-        super().apply_shader_group(channels)
-
-        for channel in channels.values():
-            if channel.has_image():
-                self._add_image_texture(channel.image_file, False)
-
-
-class _IrayUberWeightedShaderGroupBuilder(ShaderGroupBuilder):
-    out_surface = "Surface"
-
-    @staticmethod
-    def group_name() -> str:
-        return f"{__GROUP_NAME__} (Weighted)"
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    def setup_group(self):
-        super().setup_group()
-
-        # Output Sockets:
-        sock_out_surface = self._shader_socket(self.out_surface, in_out="OUTPUT")
-
-        # Nodes: WHITE BSDF
-        node_diffuse_bsdf = self._add_node(ShaderNodeBsdfDiffuse, "Default", (-300, 0))
-        self._set_socket(node_diffuse_bsdf, 0, (0.5, 0.5, 0.5, 0.1))
-        self._set_socket(node_diffuse_bsdf, 1, 1.0)
-
-        # Group Output
-        node_group_output = self._add_node__group_output("NodeGroupOutput", (0, 0))
-        self._link_socket(node_diffuse_bsdf, node_group_output, 0, sock_out_surface)
-
-
-class _IrayUberWeightedShaderGroupApplier(ShaderGroupApplier):
-
-    @staticmethod
-    def group_name() -> str:
-        return f"{__GROUP_NAME__} (Weighted)"
-
-    @staticmethod
-    def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
-
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        """
-        NOT IMPLEMENTED!
-        The applier currently just adds all images from the channels to the material,
-        but group set up is left to the user.
-        """
-        super().apply_shader_group(channels)
-
-        for channel in channels.values():
-            if channel.has_image():
-                self._add_image_texture(channel.image_file, False)

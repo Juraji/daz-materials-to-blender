@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from datetime import datetime
 from typing import Literal, Any, Type, TypeVar
 
@@ -16,6 +17,7 @@ from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonCol
 from ...utils.slugify import slugify
 
 _TNode = TypeVar('_TNode', bound=Node)
+_RerouteNodeGenerator = Callable[[tuple[float, float], NodeFrame | None], NodeReroute]
 
 GROUP_DESCRIPTION_PREFIX = "Created by DAZ Material Importer"
 
@@ -37,15 +39,32 @@ class RerouteGroup:
     def __init__(self,
                  location_x: float,
                  location_y: float,
-                 parent: Node | None = None,
+                 parent: NodeFrame | None = None,
                  offset: float = 20.0):
         self.location_x = location_x
         self.location_y = location_y
         self.parent = parent
         self.offset = offset
         self._counter = 0
+        self.node_register: dict[NodeSocket, NodeReroute] = {}
 
-    def next_position(self) -> tuple[float, float]:
+    def reroute_node_by_source_socket(self,
+                                      source_socket: NodeSocket,
+                                      generator: _RerouteNodeGenerator) -> NodeReroute | None:
+        """
+        Get the existing node or use the generator to create and register a new node for the source socket.
+        :param source_socket: The source/origin socket for this reroute.
+        :param generator: A callable that accepts the next node position and an optional parent and returns a new reroute node.
+        :return: The reroute node from the register or the newly generated node.
+        """
+        if source_socket in self.node_register:
+            return self.node_register[source_socket]
+        else:
+            node = generator(self._next_position(), self.parent)
+            self.node_register[source_socket] = node
+            return node
+
+    def _next_position(self) -> tuple[float, float]:
         y = self.location_y
         y -= self.offset * self._counter
 
@@ -132,43 +151,49 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
     def _link_socket(self,
                      source: Node,
                      target: Node,
-                     source_socket: NodeTreeInterfaceSocket | int,
-                     target_socket: NodeTreeInterfaceSocket | int,
+                     source_socket: NodeTreeInterfaceSocket | NodeSocket | int | str,
+                     target_socket: NodeTreeInterfaceSocket | NodeSocket | int | str,
                      group: RerouteGroup | tuple[RerouteGroup, ...] | None = None):
 
+        match source_socket:
+            case int() | str():
+                r_source_socket = source.outputs[source_socket]
+            case NodeTreeInterfaceSocket() | NodeSocket():
+                r_source_socket = source.outputs[source_socket.name]
+            case _:
+                raise Exception(f"Unknown source socket type {type(source_socket)} ({source.name}[{source_socket}])")
+        match target_socket:
+            case int() | str():
+                r_target_socket = target.inputs[target_socket]
+            case NodeTreeInterfaceSocket() | NodeSocket():
+                r_target_socket = target.inputs[target_socket.name]
+            case _:
+                raise Exception(f"Unknown target socket type {type(target_socket)} ({target.name}[{target_socket}])")
+
         match group:
-            case None:
-                pass
-            case RerouteGroup():
-                node_reroute = self._add_node__reroute(group.next_position(), group.parent)
+            case None:  # No Reroute Group
+                self.node_group.links.new(r_source_socket, r_target_socket)
+            case RerouteGroup():  # Single Reroute Group
+                node_reroute = group.reroute_node_by_source_socket(
+                    r_source_socket, lambda pos, parent: self._add_node__reroute(pos, parent))
                 self._link_socket(source, node_reroute, source_socket, 0)
                 self._link_socket(node_reroute, target, 0, target_socket)
                 return
-            case tuple():  # tuple[RerouteGroup, ...]
+            case tuple():  # Reroute Group chain
                 prev_node = source
                 prev_socket = source_socket
                 reroute_nodes = []
 
                 for reroute_group in group:
-                    reroute_node = self._add_node__reroute(reroute_group.next_position(), reroute_group.parent)
-                    self._link_socket(prev_node, reroute_node, source_socket, 0)
-                    prev_node = reroute_node
-                    prev_socket = reroute_node.outputs[0]
-                    reroute_nodes.append(reroute_node)
+                    node_reroute = reroute_group.reroute_node_by_source_socket(
+                        r_source_socket, lambda pos, parent: self._add_node__reroute(pos, parent))
+                    self._link_socket(prev_node, node_reroute, source_socket, 0)
+                    prev_node = node_reroute
+                    prev_socket = node_reroute.outputs[0]
+                    reroute_nodes.append(node_reroute)
 
                 self._link_socket(prev_node, target, prev_socket, target_socket)
                 return
-
-        if isinstance(source_socket, NodeTreeInterfaceSocket):
-            source_socket = source.outputs[source_socket.name]
-        else:
-            source_socket = source.outputs[source_socket]
-        if isinstance(target_socket, NodeTreeInterfaceSocket):
-            target_socket = target.inputs[target_socket.name]
-        else:
-            target_socket = target.inputs[target_socket]
-
-        self.node_group.links.new(source_socket, target_socket)
 
     def _add_socket(self,
                     socket_type: str,
@@ -194,7 +219,7 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                    default_closed: bool = True) -> NodeTreeInterfacePanel:
         return self.node_group.interface.new_panel(name, default_closed=default_closed)
 
-    def _add_frame(self, label: str) -> Node:
+    def _add_frame(self, label: str):
         return self._add_node(NodeFrame, label, (0, 0))
 
     def _add_node__group_input(self,

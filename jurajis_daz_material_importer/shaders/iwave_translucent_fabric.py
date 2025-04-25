@@ -387,11 +387,11 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_group_input, node_mix_gradient_grazing_color, sock_gradient_layer_grazing_color, 6, reroute_gradient_layer_in)
         self._link_socket(node_group_input, node_mix_gradient_grazing_color, sock_gradient_layer_grazing_color_map, 7, reroute_gradient_layer_in)
 
-        node_mix_gradient_normal_tint = self._add_node__mix("Mix Gradient Layer Normal Tint", (-1940.0, -860), parent=frame_gradient_layer)
+        node_mix_gradient_normal_tint = self._add_node__mix("Mix Gradient Layer Normal Tint", (-1940.0, -900), parent=frame_gradient_layer)
         self._link_socket(node_group_input, node_mix_gradient_normal_tint, sock_gradient_layer_normal_tint, 6, reroute_gradient_layer_in)
         self._link_socket(node_group_input, node_mix_gradient_normal_tint, sock_gradient_layer_normal_tint_map, 7, reroute_gradient_layer_in)
 
-        node_mix_gradient_normal_tint_weight = self._add_node__hsv("Mix Gradient Layer Normal Tint Weight", (-1940.0, -820), frame_gradient_layer)
+        node_mix_gradient_normal_tint_weight = self._add_node__hsv("Mix Gradient Layer Normal Tint Weight", (-1940.0, -940), frame_gradient_layer)
         self._link_socket(node_group_input, node_mix_gradient_normal_tint_weight, sock_gradient_layer_normal_tint_weight, 2, reroute_gradient_layer_in)
         self._link_socket(node_group_input, node_mix_gradient_normal_tint_weight, sock_gradient_layer_normal_tint_weight_map, 4, reroute_gradient_layer_in)
 
@@ -402,15 +402,15 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         self._link_socket(node_gradient_layer_weight, node_gradient_apply_exponent, 1, 0)
         self._link_socket(node_mix_gradient_exponent, node_gradient_apply_exponent, 0, 1)
 
-        node_mix_gradient_normal_vs_grazing_op = self._add_node__mix("Mix Gradient Layer Normal vs Grazing Opacity", (-1520.0, -800), parent=frame_gradient_layer)
+        node_mix_gradient_normal_vs_grazing_op = self._add_node__mix("Mix Gradient Layer Normal vs Grazing Opacity", (-1520.0, -800), blend_type="MIX", parent=frame_gradient_layer)
         self._link_socket(node_gradient_apply_exponent, node_mix_gradient_normal_vs_grazing_op, 0, 0)
         self._link_socket(node_mix_gradient_normal_op, node_mix_gradient_normal_vs_grazing_op, 0, 6)
         self._link_socket(node_mix_gradient_grazing_op, node_mix_gradient_normal_vs_grazing_op, 0, 7)
 
-        node_mix_gradient_normal_vs_grazing_color = self._add_node__mix("Mix Gradient Layer Normal vs Grazing Color", (-1520.0, -880), parent=frame_gradient_layer)
+        node_mix_gradient_normal_vs_grazing_color = self._add_node__mix("Mix Gradient Layer Normal vs Grazing Color", (-1520.0, -880), blend_type="MIX", parent=frame_gradient_layer)
         self._link_socket(node_gradient_apply_exponent, node_mix_gradient_normal_vs_grazing_color, 0, 0)
-        self._link_socket(node_mix_gradient_normal_tint, node_mix_gradient_normal_vs_grazing_color, 0, 6)
-        self._link_socket(node_mix_gradient_grazing_color, node_mix_gradient_normal_vs_grazing_color, 0, 7)
+        self._link_socket(node_mix_gradient_normal_tint, node_mix_gradient_normal_vs_grazing_color, 2, 6)
+        self._link_socket(node_mix_gradient_grazing_color, node_mix_gradient_normal_vs_grazing_color, 2, 7)
 
         node_gradient_transparent_bsdf = self._add_node(ShaderNodeBsdfTransparent, "Gradient Layer Transparent BSDF", (-1300.0, -760), frame_gradient_layer)
 

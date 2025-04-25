@@ -182,7 +182,6 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
             case tuple():  # Reroute Group chain
                 prev_node = source
                 prev_socket = source_socket
-                reroute_nodes = []
 
                 for reroute_group in group:
                     node_reroute = reroute_group.reroute_node_by_source_socket(
@@ -190,7 +189,6 @@ class ShaderGroupBuilder(_GroupNameMixin, _MaterialTypeIdMixin):
                     self._link_socket(prev_node, node_reroute, source_socket, 0)
                     prev_node = node_reroute
                     prev_socket = node_reroute.outputs[0]
-                    reroute_nodes.append(node_reroute)
 
                 self._link_socket(prev_node, target, prev_socket, target_socket)
                 return

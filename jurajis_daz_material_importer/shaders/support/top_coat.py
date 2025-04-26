@@ -71,11 +71,12 @@ class AdvancedTopCoatShaderGroupBuilder(SupportShaderGroupBuilder):
         sock_top_coat_color_map = self._color_socket(self.in_top_coat_color_map, parent=panel_top_coat)
         sock_top_coat_roughness = self._float_socket(self.in_top_coat_roughness, parent=panel_top_coat)
         sock_top_coat_roughness_map = self._color_socket(self.in_top_coat_roughness_map, parent=panel_top_coat)
-        sock_top_coat_reflectivity = self._float_socket(self.in_top_coat_reflectivity, parent=panel_top_coat)
-        sock_top_coat_reflectivity_map = self._color_socket(self.in_top_coat_reflectivity_map, (0.5, 0.5, 1.0, 1.0), parent=panel_top_coat)
-        sock_top_coat_normal = self._float_socket(self.in_top_coat_normal, 0, parent=panel_top_coat)
-        sock_top_coat_normal_map = self._color_socket(self.in_top_coat_normal_map, (0.5, 0.5, 1.0, 1.0), parent=panel_top_coat)
-        sock_top_coat_bump = self._float_socket(self.in_top_coat_bump, 0, parent=panel_top_coat)
+        sock_top_coat_reflectivity = self._float_socket(self.in_top_coat_reflectivity, 0.5, parent=panel_top_coat)
+        sock_top_coat_reflectivity_map = self._color_socket(self.in_top_coat_reflectivity_map, parent=panel_top_coat)
+        sock_top_coat_normal = self._float_socket(self.in_top_coat_normal, parent=panel_top_coat)
+        sock_top_coat_normal_map = self._color_socket(self.in_top_coat_normal_map,
+                                                      (0.5, 0.5, 1.0, 1.0), parent=panel_top_coat)
+        sock_top_coat_bump = self._float_socket(self.in_top_coat_bump, parent=panel_top_coat)
         sock_top_coat_bump_map = self._color_socket(self.in_top_coat_bump_map, parent=panel_top_coat)
         sock_top_coat_normal_and_bump_vector = self._vector_socket(self.in_top_coat_bump_vector,
                                                                    (0.5, 0.5, 1.0), parent=panel_top_coat)
@@ -87,7 +88,7 @@ class AdvancedTopCoatShaderGroupBuilder(SupportShaderGroupBuilder):
         # Sockets: Thin Film
         sock_thin_film_weight = self._float_socket(self.in_thin_film_weight, parent=panel_thin_film)
         sock_thin_film_rotations = self._float_socket(self.in_thin_film_rotations, 30, parent=panel_thin_film)
-        sock_thin_film_thickness = self._float_socket(self.in_thin_film_thickness, parent=panel_thin_film)
+        sock_thin_film_thickness = self._float_socket(self.in_thin_film_thickness, 0.001, parent=panel_thin_film)
         sock_thin_film_thickness_map = self._color_socket(self.in_thin_film_thickness_map, parent=panel_thin_film)
         sock_thin_film_ior = self._float_socket(self.in_thin_film_ior, 1.5, parent=panel_thin_film)
         sock_thin_film_ior_map = self._color_socket(self.in_thin_film_ior_map, parent=panel_thin_film)

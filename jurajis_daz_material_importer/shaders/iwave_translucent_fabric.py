@@ -147,7 +147,7 @@ class IWaveTranslucentFabricShaderGroupBuilder(ShaderGroupBuilder):
         # Sockets: Bump
         sock_normal = self._float_socket(self.in_base_normal, 1, parent=panel_bump)
         sock_normal_map = self._color_socket(self.in_base_normal_map, (0.5, 0.5, 1.0, 1.0), parent=panel_bump)
-        sock_bump = self._float_socket(self.in_base_bump, 1, parent=panel_bump)
+        sock_bump = self._float_socket(self.in_base_bump, parent=panel_bump)
         sock_bump_map = self._color_socket(self.in_base_bump_map, parent=panel_bump)
 
         # Sockets: Fiber Layer

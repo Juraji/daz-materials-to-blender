@@ -7,6 +7,7 @@ tagline = "Another DAZ-Blender bridge. But this time the user is in control!"
 type = "add-on"
 
 maintainer = "Juraji <github@juraji.nl>"
+website = "https://github.com/Juraji/daz-materials-to-blender"
 tags = ["Import-Export", "Material", "Shader", "Texturing", "UI", "Utility"]
 
 license = ["SPDX:GPL-2.0-or-later"]

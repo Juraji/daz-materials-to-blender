@@ -115,20 +115,28 @@ class DazDsonMaterialReader:
                 channels[ch.id] = ch
 
             # Map scene materials
-            extra_channels = scene_mat.get('extra', [])
-            if len(extra_channels) == 2:
-                for ch_data in extra_channels[1]['channels']:
-                    ch = self._map_channel(ch_data['channel'])
-                    channels[ch.id] = ch
+            mat_extra = scene_mat.get('extra', [])
+            mat_channels = []
+            for entry in mat_extra:
+                if entry['type'] == "studio_material_channels":
+                    mat_channels = entry['channels']
+
+            for ch_data in mat_channels:
+                ch = self._map_channel(ch_data['channel'])
+                channels[ch.id] = ch
 
             # Map library materials if missing from scene material
             if lib_mat:
-                lib_extra_channels = lib_mat.get('extra', [])
-                if len(lib_extra_channels) == 2:
-                    for ch_data in lib_extra_channels[1]['channels']:
-                        ch = self._map_channel(ch_data['channel'])
-                        if not ch.id in channels:
-                            channels[ch.id] = ch
+                lib_extra = lib_mat.get('extra', [])
+                lib_channels = []
+                for entry in lib_extra:
+                    if entry['type'] == "studio_material_channels":
+                        lib_channels = entry['channels']
+
+                for ch_data in lib_channels:
+                    ch = self._map_channel(ch_data['channel'])
+                    if not ch.id in channels:
+                        channels[ch.id] = ch
 
             node.materials.append(DsonMaterial(mat_name, mat_type, channels))
 

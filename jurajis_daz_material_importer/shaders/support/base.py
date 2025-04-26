@@ -425,6 +425,10 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._shader_group = shader_group
         self._channels = channels
 
+    def _channel_value(self, channel_id) -> Any | None:
+        ch = self._channels[channel_id]
+        return ch.value if ch.is_set() else ch.default_value
+
     def _channel_enabled(self, *feat_names: str) -> bool:
         for feat_name in feat_names:
             channel = self._channels.get(feat_name)
@@ -442,7 +446,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
                             map_socket_name: str | None,
                             non_color_map: bool = True,
                             force_new_image_node: bool = False) -> ShaderNodeTexImage | None:
-        channel = self._channels.get(channel_id)
+        channel = self._channels.get(channel_id, None)
         if channel is None:
             return None
 

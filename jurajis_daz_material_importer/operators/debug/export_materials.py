@@ -28,7 +28,7 @@ The file will be saved in the same directory as this file, suffixed by ".materia
         props: MaterialImportProperties = context.scene.daz_import__material_import_properties
 
         # Read and convert DAZ scene
-        daz_save_file = Path(props.daz_scene_file)
+        daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
         if not daz_save_file.exists():
             self.report_error(f"File {daz_save_file} does not exist")
             return {"CANCELLED"}

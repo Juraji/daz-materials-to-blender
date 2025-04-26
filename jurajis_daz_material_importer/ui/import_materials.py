@@ -52,6 +52,10 @@ class ImportMaterialsPanelBase(Panel):
             options_panel.label(text="PBR Skin")
             options_panel.prop(props, "pbr_skin_normal_multiplier")
 
+            options_panel.label(text="Iray Uber")
+            options_panel.prop(props, "iray_uber_remap_glossy_color_to_roughness")
+            options_panel.prop(props, "iray_uber_clamp_emission")
+
         layout.prop(props, "daz_scene_file")
         layout.operator("daz_import.import_all_materials")
 

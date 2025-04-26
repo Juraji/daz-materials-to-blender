@@ -1,6 +1,6 @@
-from bpy.types import ShaderNodeBlackbody, ShaderNodeEmission, ShaderNodeClamp
+from bpy.types import ShaderNodeBlackbody, ShaderNodeEmission, ShaderNodeSeparateColor
 
-from .base import ShaderGroupBuilder, SupportShaderGroupBuilder
+from .base import SupportShaderGroupBuilder
 
 __GROUP_NAME__ = "Blackbody Emission"
 __MATERIAL_TYPE_ID__ = "blackbody_emission"
@@ -58,10 +58,8 @@ class BlackbodyEmissionShaderGroupBuilder(SupportShaderGroupBuilder):
         self._link_socket(node_mix_color, node_mix_color_temp, 2, 6)
         self._link_socket(node_blackbody, node_mix_color_temp, 0, 7)
 
-        node_clamp_fac = self._add_node(ShaderNodeClamp, "Clamp Factor", (-200.0, -40.0))
-        self._link_socket(node_mix_luminance, node_clamp_fac, 0, 0)
-        self._set_socket(node_clamp_fac,1, 0)
-        self._set_socket(node_clamp_fac,2, 1)
+        node_extract_fac = self._add_node(ShaderNodeSeparateColor, "Extract Fac", (-200.0, -40.0), props={"mode": "HSV"})
+        self._link_socket(node_mix_color, node_extract_fac, 2, 0)
 
         node_emission_shader = self._add_node(ShaderNodeEmission, "Emission Shader", (-200.0, -80.0))
         self._link_socket(node_mix_color_temp, node_emission_shader, 0, 0)
@@ -69,7 +67,7 @@ class BlackbodyEmissionShaderGroupBuilder(SupportShaderGroupBuilder):
 
         # Group Output
         node_group_output = self._add_node__group_output("NodeGroupOutput", (0.0, 0.0))
-        self._link_socket(node_clamp_fac, node_group_output, 0, sock_out_fac)
+        self._link_socket(node_extract_fac, node_group_output, 2, sock_out_fac)
         self._link_socket(node_emission_shader, node_group_output, 0, sock_out_shader)
         # @formatter:on
 

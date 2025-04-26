@@ -595,7 +595,9 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         return __MATERIAL_TYPE_ID__
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        if self._can_use_glass_shortcut(channels):
+        self._channels = channels
+
+        if self._can_use_glass_shortcut():
             fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
             fake_glass.apply_shader_group(channels)
             return
@@ -621,6 +623,9 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         self._channel_to_sockets("bump_strength", builder.in_bump_strength, builder.in_bump_strength_map)
         self._channel_to_sockets("normal_map", builder.in_normal_map, builder.in_normal_map_map)
 
+        if self._channel_enabled("bump_strength"):
+            self._set_socket(self._shader_group, builder.in_bump_strength, 0.01, "MULTIPLY")
+
         # Base Diffuse Overlay
         if self._channel_enabled("diffuse_overlay_weight"):
             self._channel_to_sockets("diffuse_overlay_weight", builder.in_diffuse_overlay_weight, builder.in_diffuse_overlay_weight_map)
@@ -635,7 +640,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets("invert_transmission_normal", builder.in_invert_transmission_normal, None)
 
         # Base Dual Lobe Specular
-        if self._channel_enabled('sock_dual_lobe_specular_weight'):
+        if self._channel_enabled('dual_lobe_specular_weight'):
             self._channel_to_sockets('dual_lobe_specular_weight', builder.in_dual_lobe_specular_weight, builder.in_dual_lobe_specular_weight_map)
             if self._properties.dls_weight_multiplier != 1.0:
                 self._set_socket(self._shader_group, builder.in_dual_lobe_specular_weight, self._properties.dls_weight_multiplier, "MULTIPLY")
@@ -646,14 +651,21 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets('dual_lobe_specular_ratio', builder.in_dual_lobe_specular_ratio, builder.in_dual_lobe_specular_ratio_map)
 
         # Glossy Layer
-        self._channel_to_sockets("in_glossy_weight", builder.in_glossy_weight, builder.in_glossy_weight_map)
-        self._channel_to_sockets("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
+        self._channel_to_sockets("glossy_weight", builder.in_glossy_weight, builder.in_glossy_weight_map)
         self._channel_to_sockets("glossy_reflectivity", builder.in_glossy_reflectivity, builder.in_glossy_reflectivity_map)
-        self._channel_to_sockets("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
         self._channel_to_sockets("glossy_anisotropy", builder.in_glossy_anisotropy, builder.in_glossy_anisotropy_map)
         self._channel_to_sockets("glossy_anisotropy_rotations", builder.in_glossy_anisotropy_rotations, builder.in_glossy_anisotropy_rotations)
 
-        if not self._channel_enabled("in_glossy_weight") and self._channel_enabled("glossy_color", "glossy_reflectivity", "glossy_roughness"):
+        # Remap Glossy Color to Roughness
+        if (self._properties.iray_uber_remap_glossy_color_to_roughness
+                and self._channel_enabled("glossy_color")
+                and not self._channel_enabled("glossy_roughness")):
+            self._channel_to_sockets("glossy_color", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
+        else:
+            self._channel_to_sockets("glossy_color", builder.in_glossy_color, builder.in_glossy_color_map)
+            self._channel_to_sockets("glossy_roughness", builder.in_glossy_roughness, builder.in_glossy_roughness_map)
+
+        if not self._channel_enabled("glossy_weight") and self._channel_enabled("glossy_color", "glossy_reflectivity", "glossy_roughness"):
             # Glossy Weight is only set in weighted mode.
             # So if it's set we leave it alone, else we check whether any of its props are set.
             # When that is true we set the weight to 1.
@@ -666,14 +678,20 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets("thin_film_ior", builder.in_thin_film_ior, builder.in_thin_film_ior_map)
 
         # Emission
-        self._channel_to_sockets("emission_color", builder.in_emission_color, None)
+        self._channel_to_sockets("emission_color", builder.in_emission_color, builder.in_emission_color_map)
         self._channel_to_sockets("emission_temperature", builder.in_emission_temperature, None)
+
+        # Emission clamping
+        emission_color = self._channel_value("emission_color")
+        emission_max_rgb = max(emission_color[0], emission_color[1], emission_color[2])
+        if 0 <= emission_max_rgb <= self._properties.iray_uber_clamp_emission:
+            self._set_socket(self._shader_group, builder.in_emission_color, (0.0, 0.0, 0.0, 1.0))
 
         if self._channel_enabled('luminance'):
             self._channel_to_sockets('luminance', builder.in_luminance, builder.in_luminance_map)
 
             # Override luminance using units and efficacy
-            b_luminance = self._convert_emission_luminance(channels)
+            b_luminance = self._calculate_emission_luminance()
             self._set_socket(self._shader_group, builder.in_luminance, b_luminance)
 
         # Geometry Cutout
@@ -715,39 +733,30 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets("transmitted_color", builder.in_transmitted_color, builder.in_transmitted_color_map, False)
         # @formatter:on
 
-    @staticmethod
-    def _can_use_glass_shortcut(channels):
+    def _can_use_glass_shortcut(self):
         """
-        If the refraction weight is 1 and the refraction index is 1.38 we can take a shortcut and use the
+        If the refraction weight is 1 and the refraction index is in between 1.3 and 1.4 we can take a shortcut and use the
         fake glass shader group, instead of the full Iray Uber setup.
         """
-        refraction_weight_ch = channels.get("refraction_weight", None)
-        refraction_index_ch = channels.get("refraction_index", None)
+        refraction_weight = self._channel_value("refraction_weight")
+        refraction_index = self._channel_value("refraction_index")
 
-        if refraction_weight_ch is not None and refraction_index_ch is not None:
-            return refraction_weight_ch.value == 1 and refraction_index_ch.value == 1.38
+        return refraction_weight == 1 and 1.3 <= refraction_index <= 1.4
 
-    @staticmethod
-    def _convert_emission_luminance(channels) -> float:
-        base_luminance = channels['luminance'].value
+    def _calculate_emission_luminance(self) -> float:
+        base_luminance = self._channel_value("luminance")
+        unit_opt = self._channel_value("luminance_units")
+        efficacy = self._channel_value("luminous_efficacy")
 
-        if "luminance_units" in channels:
-            unit_opt = channels['luminance_units'].value
+        if unit_opt == 1:  # kcd/m^2
+            multiplier = 1000
+        elif unit_opt == 2:  # cd/ft^2
+            multiplier = 10.7639
+        elif unit_opt == 3:  # cd/cm^2
+            multiplier = 10000
+        elif unit_opt == 4:  # lumen → Watts using efficacy
+            multiplier = 1.0 / efficacy
+        else:  # cd/m^2 and Watts
+            multiplier = 1
 
-            if unit_opt == 1:  # kcd/m^2
-                multiplier = 1000
-            elif unit_opt == 2:  # cd/ft^2
-                multiplier = 10.7639
-            elif unit_opt == 3:  # cd/cm^2
-                multiplier = 10000
-            elif unit_opt == 4:  # lumen → Watts using efficacy
-                if "luminous_efficacy" in channels:
-                    multiplier = 1.0 / max(channels['luminous_efficacy'].value, 1e-6)
-                else:
-                    multiplier = 1.0 / 15
-            else:  # cd/m^2 and Watts
-                multiplier = 1
-
-            return base_luminance * multiplier
-        else:
-            return base_luminance
+        return base_luminance * multiplier

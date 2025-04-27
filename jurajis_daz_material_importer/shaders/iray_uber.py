@@ -738,6 +738,10 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         If the refraction weight is 1 and the refraction index is in between 1.3 and 1.4 we can take a shortcut and use the
         fake glass shader group, instead of the full Iray Uber setup.
         """
+
+        if not self._properties.use_fake_glass_fallback:
+            return False
+
         refraction_weight = self._channel_value("refraction_weight")
         refraction_index = self._channel_value("refraction_index")
 

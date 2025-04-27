@@ -44,6 +44,13 @@ Some skin textures look better when normals are x2.0.""",
     )
 
     # Iray Uber Modifiers
+    use_fake_glass_fallback: BoolProperty(
+        name="Use Fake Glass",
+        description="""Use a cheaper fake glass instead of full Iray Uber shader for surfaces like eye moisture.
+When the refraction weight of a surface is set to 1.0 and it's refraction index is 1.3 to 1.5, a cheaper glossy shader will be used.""",
+        default = True
+    )
+
     iray_uber_remap_glossy_color_to_roughness: BoolProperty(
         name="Remap Glossy Color to Roughness",
         description="""Remaps Glossy Color to Roughness.

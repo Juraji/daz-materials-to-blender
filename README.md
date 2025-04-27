@@ -36,9 +36,7 @@ _(!) You will find the UI for this plugin in the `Shader Node Editor` as well as
 under `Juraji's Tools`!_
 
 ### In DAZ Studio
-
-<div style="display: flex">
-<div style="flex-grow: 1">
+<img src="images/daz-obj-export-opts.png" width="300" height="321" alt="DAZ OBJ Export Options"/>
 
 1. Set up your scene. _You know how this works._
 2. Save your scene and remember where. _A good Studio user knows to save often._
@@ -50,14 +48,8 @@ under `Juraji's Tools`!_
     - Check out the settings, on the right. Especially the `Write Groups` and `Write Surfaces` settings. _You can write
       the MTLs, but we're going to ignore them later anyway._
 
-</div>
-<img src="images/daz-obj-export-opts.png" width="300" height="321" alt="DAZ OBJ Export Options" style="margin-left: 0.5rem"/>
-</div>
-
 ### In Blender
-
-<div style="display: flex">
-<div style="flex-grow: 1">
+<img src="images/plugin-collapsed-marked.png" width="300" height="205" alt="Plugin UI Import"/>
 
 1. Import the `OBJ`s and/or `FBX`s you've exported from DAZ.  
    _IMPORTANT: Do NOT rename any objects or materials! This plugin uses some real magic to determine which material in
@@ -67,9 +59,6 @@ under `Juraji's Tools`!_
 4. Click `Import All Materials`.
 5. Blender should freeze for a moment and if all went well all of your objects should have the correct materials set up.
 
-</div>
-<img src="images/plugin-collapsed-marked.png" width="300" height="205" alt="Plugin UI Import" style="margin-left: 0.5rem"/>
-</div>
 
 ## Supported Shaders
 
@@ -122,9 +111,7 @@ This will delete all groups from the Blender data blocks that are created by thi
 _Note that this is a slight hack, as it looks at the group's description._
 
 ### Shader groups
-
-<div style="display: flex">
-<div style="flex-grow: 1">
+<img src="images/plugin-shader-groups.png" width="200" height="308" alt="Plugin UI Import Options"/>
 
 As explained earlier in the deep-dive, this plugin uses node groups to represent DAZ Shaders. The Import action will
 automatically create any group it needs to fulfill the import requirements. So if you scene uses the PBRSkin shader, it
@@ -144,14 +131,8 @@ they might prove useful.
 
 These are the full-blown mimic shader groups. Each has options gallore!
 
-</div>
-<img src="images/plugin-shader-groups.png" width="200" height="308" alt="Plugin UI Import Options" style="margin-left: 0.5rem"/>
-</div>
-
 ### Import Options
-
-<div style="display: flex">
-<div style="flex-grow: 1">
+<img src="images/plugin-import-options.png" width="200" height="308" alt="Plugin UI Import Options"/>
 
 #### Renaming
 
@@ -167,9 +148,9 @@ These options apply to all shaders.
 
 These options apply to specific shaders.
 
-</div>
-<img src="images/plugin-import-options.png" width="200" height="308" alt="Plugin UI Import Options" style="margin-left: 0.5rem"/>
-</div>
-
 ## Special Thanks
+While I wrote this plugin mostly by myself there are some credits to mention:
+
+* [Blender Guru](https://www.blenderguru.com) Especially for the base of the "Fake Glass" shader group. A lot of headaches have been saved!  
+Check out [this video](https://www.youtube.com/watch?v=KyXRBu7gn2o), where he explains exactly why it's better than just shoving in a Glass BSDF:
 

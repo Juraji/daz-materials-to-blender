@@ -8,6 +8,7 @@ from bpy.types import Operator, Object
 from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties
 from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
+from ..shaders.support import FallbackShaderGroupApplier
 from ..utils.dson import DazDsonMaterialReader, DsonMaterial, DsonSceneNode
 
 
@@ -91,7 +92,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             if not applier_cls:
                 self.report_error("No shader group available for material type "
                                   f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
-                return
+                applier_cls = FallbackShaderGroupApplier # Fallback
 
             material.use_nodes = True
             node_tree = material.node_tree

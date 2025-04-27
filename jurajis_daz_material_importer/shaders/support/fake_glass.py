@@ -1,11 +1,11 @@
 from bpy.types import ShaderNodeLightPath, ShaderNodeFresnel, ShaderNodeBsdfAnisotropic, ShaderNodeBsdfTransparent
 
 from .base import SupportShaderGroupBuilder, ShaderGroupApplier
+from ...utils.dson import DsonMaterialChannel
 
 __GROUP_NAME__ = "Fake Glass"
 __MATERIAL_TYPE_ID__ = "fake_glass"
 
-from jurajis_daz_material_importer.utils.dson import DsonMaterialChannel
 
 
 class FakeGlassShaderGroupBuilder(SupportShaderGroupBuilder):

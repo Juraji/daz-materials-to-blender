@@ -9,7 +9,8 @@ import bpy
 from bpy.types import BlendDataNodeTrees, ShaderNodeTree, Node, NodeTree, NodeTreeInterfacePanel, NodeSocket, \
     NodeTreeInterfaceSocket, ShaderNodeTexImage, NodeSocketVector, NodeSocketColor, NodeSocketFloat, NodeReroute, \
     NodeFrame, NodeGroupInput, NodeGroupOutput, ShaderNodeHueSaturation, ShaderNodeMix, ShaderNodeMixShader, \
-    ShaderNodeMath, ShaderNodeVectorMath, ShaderNodeNormalMap, ShaderNodeBump, ShaderNodeBsdfPrincipled, ShaderNodeGroup
+    ShaderNodeMath, ShaderNodeVectorMath, ShaderNodeNormalMap, ShaderNodeBump, ShaderNodeBsdfPrincipled, \
+    ShaderNodeGroup, ShaderNodeMapping, ShaderNodeUVMap, ShaderNodeOutputMaterial
 
 from ...properties import MaterialImportProperties
 from ...utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
@@ -384,45 +385,24 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
         self._channels: dict[str, DsonMaterialChannel] = {}
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        mapping = self._node_tree.nodes.new("ShaderNodeMapping")
-        mapping.name = "Mapping"
-        mapping.vector_type = 'POINT'
-        mapping.hide = True
-        mapping.location = self.mapping_location
-        self._mapping = mapping
+        self._uv_map = self._add_node(ShaderNodeUVMap, "UV Map", self.uv_map_location, props={"from_instancer": False, "uv_map": "UVMap"})
+        self._mapping = self._add_node(ShaderNodeMapping, "Mapping", self.mapping_location, props={"vector_type": "POINT", "hide": True})
+        self._material_ouput = self._add_node(ShaderNodeOutputMaterial, "Material Output", self.material_output_location, props={"is_active_output": True, "target": "ALL"})
+        self._link_socket(self._uv_map, self._mapping, 0, 0)
 
-        # node UV Map
-        uv_map = self._node_tree.nodes.new("ShaderNodeUVMap")
-        uv_map.name = "UV Map"
-        uv_map.from_instancer = False
-        uv_map.uv_map = "UVMap"
-        uv_map.location = self.uv_map_location
-        self._link_socket(uv_map, mapping, 0, 0)
-        self._uv_map = uv_map
+        self._shader_group = self._add_node(ShaderNodeGroup, self.group_name(), self.node_group_location, props={
+            "width": self.group_node_width,
+            "node_tree": bpy.data.node_groups[self.group_name()]
+        })
 
-        material_output = self._node_tree.nodes.new("ShaderNodeOutputMaterial")
-        material_output.name = "Material Output"
-        material_output.is_active_output = True
-        material_output.target = 'ALL'
-        material_output.location = self.material_output_location
-        self._material_ouput = material_output
-
-        shader_group = self._node_tree.nodes.new("ShaderNodeGroup")
-        shader_group.label = self.group_name()
-        shader_group.name = slugify(self.group_name())
-        shader_group.location = self.node_group_location
-        shader_group.width = self.group_node_width
-        shader_group.node_tree = bpy.data.node_groups[self.group_name()]
-
-        for out_sock in shader_group.outputs:
+        for out_sock in self._shader_group.outputs:
             target_sock = self.output_socket_map.get(out_sock.name)
             if target_sock is None:
                 raise Exception(
                     f"Output socket {out_sock.name} in group {self.group_name()} has no target socket in Material Output.")
 
-            self._link_socket(shader_group, self._material_ouput, out_sock, target_sock)
+            self._link_socket(self._shader_group, self._material_ouput, out_sock, target_sock)
 
-        self._shader_group = shader_group
         self._channels = channels
 
     def _channel_value(self, channel_id) -> Any | None:
@@ -514,7 +494,7 @@ class ShaderGroupApplier(_GroupNameMixin, _MaterialTypeIdMixin):
 
         node = self._node_tree.nodes.new(node_type_id)
         node.label = label
-        node.name = slugify(self.group_name(), node_type_id, label)
+        node.name = slugify(node_type_id, label)
         node.parent = parent
         node.location = location
 

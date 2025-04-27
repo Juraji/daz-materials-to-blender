@@ -36,6 +36,7 @@ _(!) You will find the UI for this plugin in the `Shader Node Editor` as well as
 under `Juraji's Tools`!_
 
 ### In DAZ Studio
+
 <img src="images/daz-obj-export-opts.png" width="300" height="321" alt="DAZ OBJ Export Options"/>
 
 1. Set up your scene. _You know how this works._
@@ -49,6 +50,7 @@ under `Juraji's Tools`!_
       the MTLs, but we're going to ignore them later anyway._
 
 ### In Blender
+
 <img src="images/plugin-collapsed-marked.png" width="300" height="205" alt="Plugin UI Import"/>
 
 1. Import the `OBJ`s and/or `FBX`s you've exported from DAZ.  
@@ -58,7 +60,6 @@ under `Juraji's Tools`!_
 3. Select your DAZ scene file (`.duf`).
 4. Click `Import All Materials`.
 5. Blender should freeze for a moment and if all went well all of your objects should have the correct materials set up.
-
 
 ## Supported Shaders
 
@@ -71,7 +72,8 @@ all images it finds as Texture nodes.
 All images are set to the `sRGB` colorspace. You will have to figure out the color spaces (sRGB, Non-Color, etc.) and
 how the maps should be linked up. But at least this handles the great image-map search for you.
 
-_I've implemented just the shaders I personally use. If you find that a certain shader should be added and are willing to
+_I've implemented just the shaders I personally use. If you find that a certain shader should be added and are willing
+to
 contribute, shoot a pull-request and we'll work things out!_
 
 ## Deep Dive
@@ -111,6 +113,7 @@ This will delete all groups from the Blender data blocks that are created by thi
 _Note that this is a slight hack, as it looks at the group's description._
 
 ### Shader groups
+
 <img src="images/plugin-shader-groups.png" width="200" height="308" alt="Plugin UI Import Options"/>
 
 As explained earlier in the deep-dive, this plugin uses node groups to represent DAZ Shaders. The Import action will
@@ -132,6 +135,7 @@ they might prove useful.
 These are the full-blown mimic shader groups. Each has options gallore!
 
 ### Import Options
+
 <img src="images/plugin-import-options.png" width="200" height="308" alt="Plugin UI Import Options"/>
 
 #### Renaming
@@ -148,9 +152,30 @@ These options apply to all shaders.
 
 These options apply to specific shaders.
 
+## A few notes
+
+### dForce Hair
+
+This plugin does not convert dForce Strand Based Hair (dForce Render Hair Generator).  
+However, you can pre-tesselate the hair strands in DAZ Studio:
+
+1. Select the dForce Strands object. _(often parented to a Base or Scalp object.)_
+2. In the `Parameters`, under `General/Simulation/Hair/Pre Render (PR)`, enable `Preview PR Hairs`.
+3. Then in the `Parameters`, under `General/Line Tessellation`, set the `Viewport Line Tessellation Sides` to the
+   same value as `Render Line Tessellation Sides`.
+
+DAZ Studio will not like this, but you can now export your figure. Don't forget to atleast restore the
+`Viewport Line Tessellation Sides` before you save and close DAZ, future you, loading the scene, will thank you ;)  
+Blender will handle it a lot better!
+
 ## Special Thanks
+
 While I wrote this plugin mostly by myself there are some credits to mention:
 
-* [Blender Guru](https://www.blenderguru.com) Especially for the base of the "Fake Glass" shader group. A lot of headaches have been saved!  
-Check out [this video](https://www.youtube.com/watch?v=KyXRBu7gn2o), where he explains exactly why it's better than just shoving in a Glass BSDF:
+### Blender Guru
+[blenderguru.com](https://www.blenderguru.com)
+
+Especially for the base of the "Fake Glass" shader group. A lot of headaches have been saved!  
+Check out [this video](https://www.youtube.com/watch?v=KyXRBu7gn2o), where he explains exactly why it's better than
+just shoving in a Glass BSDF:
 

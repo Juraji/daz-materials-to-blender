@@ -45,7 +45,7 @@ under `Juraji's Tools`!_
     - Use `OBJ` if you just need the mesh.
     - In my experience I've found it better to export each figure and the environment into their own files. Keeps things
       managable and undo-able.
-    - Check out the settings, on the right. Especially the `Write Groups` and `Write Surfaces` settings. _You can write
+    - Check out the settings above. Especially the `Write Groups` and `Write Surfaces` settings. _You can write
       the MTLs, but we're going to ignore them later anyway._
 
 ### In Blender

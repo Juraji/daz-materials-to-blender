@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
-id = "jurajis_daz_material_importer"
-name = "Juraji's DAZ Material Importer"
+id = "jurajis_daz_materials_to_blender"
+name = "Juraji's DAZ Materials to Blender"
 version = "1.0.0"
 tagline = "Another DAZ-Blender bridge. But this time the user is in control!"
 type = "add-on"

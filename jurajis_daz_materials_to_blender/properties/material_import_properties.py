@@ -24,6 +24,15 @@ Note that enabling this will break rerunning imports!""",
     )
 
     # General Modifiers
+    bump_strength_multiplier: FloatProperty(
+        name="Bump Strength Multiplier",
+        description="""Multiplier for the bump strength property.
+Bump strength in DAZ is scaled 100x. This option reduces bump strength on import.""",
+        default=0.01,
+        min=0.001,
+        max=1.0,
+    )
+
     dls_weight_multiplier: FloatProperty(
         name="DLS Weight",
         description="""Multiply Dual Lobe Specular weigths by this value.
@@ -48,7 +57,7 @@ Some skin textures look better when normals are x2.0.""",
         name="Use Fake Glass",
         description="""Use a cheaper fake glass instead of full Iray Uber shader for surfaces like eye moisture.
 When the refraction weight of a surface is set to 1.0 and it's refraction index is 1.3 to 1.5, a cheaper glossy shader will be used.""",
-        default = True
+        default = True,
     )
 
     iray_uber_remap_glossy_color_to_roughness: BoolProperty(

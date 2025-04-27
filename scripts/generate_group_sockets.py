@@ -1,11 +1,9 @@
 import json
+from typing import Callable
 
-from jurajis_daz_material_importer.utils.slugify import slugify
+from jurajis_daz_materials_to_blender.utils.slugify import slugify
 
 INDENT = "    "
-
-from collections import defaultdict
-from typing import Any, Callable
 
 
 class Node:

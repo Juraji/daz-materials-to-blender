@@ -384,6 +384,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
 
         if self._channel_enabled('bump_enable'):
             self._channel_to_sockets('bump_strength', builder.in_bump_strength, builder.in_bump_strength_map)
+            self._set_socket(self._shader_group, builder.in_bump_strength, self._properties.bump_strength_multiplier, "MULTIPLY")
 
         if self._channel_enabled('top_coat_enable'):
             self._channel_to_sockets('top_coat_weight', builder.in_top_coat_weight, builder.in_top_coat_weight_map)

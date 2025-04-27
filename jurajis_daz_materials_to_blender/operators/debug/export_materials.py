@@ -7,8 +7,8 @@ from bpy.types import Operator
 from bpy import path as bpath
 
 from ..base import OperatorReportMixin
-from jurajis_daz_material_importer.utils.dson import DazDsonMaterialReader
-from jurajis_daz_material_importer.utils.json import DataclassJSONEncoder
+from ...utils.dson import DazDsonMaterialReader
+from ...utils.json import DataclassJSONEncoder
 
 
 class DebugExportMaterialsOperator(OperatorReportMixin, Operator):

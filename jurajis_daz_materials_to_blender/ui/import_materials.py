@@ -44,10 +44,13 @@ class ImportMaterialsPanelBase(Panel):
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Import Options")
         if options_panel:
-            options_panel.label(text="General")
+            options_panel.label(text="Renaming")
             options_panel.prop(props, "rename_materials")
             options_panel.prop(props, "rename_objects")
+
+            options_panel.label(text="General")
             options_panel.prop(props, "dls_weight_multiplier")
+            options_panel.prop(props, "bump_strength_multiplier")
 
             options_panel.label(text="PBR Skin")
             options_panel.prop(props, "pbr_skin_normal_multiplier")

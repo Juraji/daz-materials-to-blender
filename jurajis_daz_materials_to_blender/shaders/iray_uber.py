@@ -624,7 +624,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         self._channel_to_sockets("normal_map", builder.in_normal_map, builder.in_normal_map_map)
 
         if self._channel_enabled("bump_strength"):
-            self._set_socket(self._shader_group, builder.in_bump_strength, 0.01, "MULTIPLY")
+            self._set_socket(self._shader_group, builder.in_bump_strength, self._properties.bump_strength_multiplier, "MULTIPLY")
 
         # Base Diffuse Overlay
         if self._channel_enabled("diffuse_overlay_weight"):

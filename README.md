@@ -7,7 +7,7 @@ The user decides exactly what gets exported from DAZ and imported in Blender (an
 This bridge just copies materials and sets them up in Blender.
 
 ![Static Badge](https://img.shields.io/badge/stability-experimental-orange)
-![Static Badge](https://img.shields.io/badge/version-0.0.1-blue)
+![Static Badge](https://img.shields.io/badge/version-1.0.0-blue)
 ![Static Badge](https://img.shields.io/badge/licence-GPLv3-green)
 
 ## What does it do

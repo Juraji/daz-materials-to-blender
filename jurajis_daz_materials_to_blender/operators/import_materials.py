@@ -7,8 +7,8 @@ from bpy.types import Operator, Object
 
 from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties
-from ..shaders import ShaderGroupApplier, SHADER_GROUP_BUILDERS, SHADER_GROUP_APPLIERS
-from ..shaders.support import FallbackShaderGroupApplier
+from ..shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
+from ..shaders.fallback import FallbackShaderGroupApplier
 from ..utils.dson import DazDsonMaterialReader, DsonMaterial, DsonSceneNode
 
 
@@ -45,7 +45,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             else:
                 return nid
 
-        self._create_missing_shader_groups(dson_scene_nodes)
+        self._import_missing_groups(dson_scene_nodes)
 
         # Apply materials
         for mat_def in dson_scene_nodes:
@@ -92,7 +92,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             if not applier_cls:
                 self.report_error("No shader group available for material type "
                                   f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
-                applier_cls = FallbackShaderGroupApplier # Fallback
+                applier_cls = FallbackShaderGroupApplier  # Fallback
 
             material.use_nodes = True
             node_tree = material.node_tree
@@ -107,12 +107,12 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
                 material.name = f'{b_object.name}_{mat_name}'
 
     @staticmethod
-    def _create_missing_shader_groups(nodes: list[DsonSceneNode]):
+    def _import_missing_groups(nodes: list[DsonSceneNode]):
         used_mat_types = {mat_def.type_id for node in nodes for mat_def in node.materials}
 
-        for builder in (b for b in SHADER_GROUP_BUILDERS if b.material_type_id() in used_mat_types):
+        for builder in (b for b in SHADER_GROUP_APPLIERS if b.material_type_id() in used_mat_types):
             # noinspection PyUnresolvedReferences
-            bpy.ops.daz_import.create_shader_group(group_name=builder.group_name(), silent=True)
+            bpy.ops.daz_import.import_shader_group(group_name=builder.group_name(), silent=True)
 
     @staticmethod
     def _find_applier_by_type_id(mat_type_id: str) -> Type[ShaderGroupApplier] | None:

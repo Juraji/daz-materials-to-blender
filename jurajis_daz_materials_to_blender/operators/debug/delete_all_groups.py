@@ -2,7 +2,7 @@ import bpy
 from bpy.types import Operator
 
 from ..base import OperatorReportMixin
-from ...shaders import GROUP_DESCRIPTION_PREFIX
+from ...shaders.library import LIB_GROUP_DESCRIPTION
 
 
 class DebugDeleteAllGroupsOperator(OperatorReportMixin, Operator):
@@ -16,7 +16,7 @@ Note 2 that this looks at the group descriptions, as the name is free to change.
         node_groups = bpy.data.node_groups
 
         for node_group in node_groups.values():
-            if node_group.description.startswith(GROUP_DESCRIPTION_PREFIX):
+            if node_group.description == LIB_GROUP_DESCRIPTION:
                 node_groups.remove(node_group)
 
         return {'FINISHED'}

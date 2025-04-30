@@ -1,16 +1,13 @@
 from bpy.types import Panel
 
+from ..shaders.library import SUPPORT_SHADER_GROUPS, SHADER_GROUPS
 from ..properties import MaterialImportProperties
-from ..shaders import SHADER_GROUP_BUILDERS
 
 
 class ImportMaterialsPanelBase(Panel):
     bl_category = "Juraji's Tools"
     bl_region_type = "UI"
     bl_label = "Import DAZ Materials"
-
-    _support_builders = [b for b in SHADER_GROUP_BUILDERS if b.is_support()]
-    _shader_builders = [b for b in SHADER_GROUP_BUILDERS if not b.is_support()]
 
     def draw(self, context):
         layout = self.layout
@@ -28,18 +25,18 @@ class ImportMaterialsPanelBase(Panel):
         shader_groups_header.label(text="Shader Groups")
         if shader_groups_panel:
             shader_groups_panel.label(text="Support")
-            for builder in self._support_builders:
+            for group_name in SUPPORT_SHADER_GROUPS:
                 op = shader_groups_panel.operator(
-                    "daz_import.create_shader_group",
-                    text=builder.group_name())
-                op.group_name = builder.group_name()
+                    "daz_import.import_shader_group",
+                    text=group_name)
+                op.group_name = group_name
 
             shader_groups_panel.label(text="Shaders")
-            for builder in self._shader_builders:
+            for group_name in SHADER_GROUPS:
                 op = shader_groups_panel.operator(
-                    "daz_import.create_shader_group",
-                    text=builder.group_name())
-                op.group_name = builder.group_name()
+                    "daz_import.import_shader_group",
+                    text=group_name)
+                op.group_name = group_name
 
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Import Options")

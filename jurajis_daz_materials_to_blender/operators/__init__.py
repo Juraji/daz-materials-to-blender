@@ -1,12 +1,12 @@
 def register():
     import bpy
     from .import_materials import ImportMaterialsOperator
-    from .create_shader_group import CreateShaderGroupOperator
+    from .import_shader_group import ImportShaderGroupOperator
     from .debug.export_materials import DebugExportMaterialsOperator
     from .debug.delete_all_groups import DebugDeleteAllGroupsOperator
 
     bpy.utils.register_class(ImportMaterialsOperator)
-    bpy.utils.register_class(CreateShaderGroupOperator)
+    bpy.utils.register_class(ImportShaderGroupOperator)
     bpy.utils.register_class(DebugExportMaterialsOperator)
     bpy.utils.register_class(DebugDeleteAllGroupsOperator)
 
@@ -14,12 +14,12 @@ def register():
 def unregister():
     import bpy
     from .import_materials import ImportMaterialsOperator
-    from .create_shader_group import CreateShaderGroupOperator
+    from .import_shader_group import ImportShaderGroupOperator
     from .debug.export_materials import DebugExportMaterialsOperator
     from .debug.delete_all_groups import DebugDeleteAllGroupsOperator
 
     bpy.utils.unregister_class(ImportMaterialsOperator)
-    bpy.utils.unregister_class(CreateShaderGroupOperator)
+    bpy.utils.unregister_class(ImportShaderGroupOperator)
     bpy.utils.unregister_class(DebugDeleteAllGroupsOperator)
 
     try:

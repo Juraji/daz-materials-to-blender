@@ -1,3 +1,5 @@
+from bpy.types import Context as _Context
+
 from .material_import_properties import MaterialImportProperties
 
 def register():
@@ -14,3 +16,7 @@ def unregister():
 
     # noinspection PyUnresolvedReferences
     del bpy.types.Scene.daz_import__material_import_properties
+
+def props_from_ctx(context: _Context) -> MaterialImportProperties:
+    # noinspection PyUnresolvedReferences
+    return context.scene.daz_import__material_import_properties

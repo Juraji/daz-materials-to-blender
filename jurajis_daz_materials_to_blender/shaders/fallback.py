@@ -1,21 +1,17 @@
 from bpy.types import ShaderNodeMapping, ShaderNodeUVMap, ShaderNodeOutputMaterial, ShaderNodeBsdfPrincipled
 
+from ..utils.dson import DsonMaterialChannel
 from .base import ShaderGroupApplier
-from ...utils.b_shaders.principled_bdsf import PrincipledBSDFSockets
-from ...utils.dson import DsonMaterialChannel
-
-__GROUP_NAME__ = "Unknown Material Fallback"
-__MATERIAL_TYPE_ID__ = "fallback"
 
 
 class FallbackShaderGroupApplier(ShaderGroupApplier):
     @staticmethod
     def group_name() -> str:
-        return __GROUP_NAME__
+        return "Unknown Material Fallback"
 
     @staticmethod
     def material_type_id() -> str:
-        return __MATERIAL_TYPE_ID__
+        return "fallback"
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         self._channels: dict[str, DsonMaterialChannel] = {}
@@ -39,6 +35,6 @@ class FallbackShaderGroupApplier(ShaderGroupApplier):
 
         # As a default white BSDF
         principled_bsdf = self._add_node(ShaderNodeBsdfPrincipled, "Principled BSDF", self.node_group_location)
-        self._set_socket(principled_bsdf, PrincipledBSDFSockets.BASE_COLOR, (1.0, 1.0, 1.0, 1.0))
+        self._set_socket(principled_bsdf, 0, (1.0, 1.0, 1.0, 1.0))
 
         self._link_socket(principled_bsdf, self._material_ouput, 0, 0)

@@ -20,10 +20,5 @@ def unregister():
 
     bpy.utils.unregister_class(ImportMaterialsOperator)
     bpy.utils.unregister_class(ImportShaderGroupOperator)
+    bpy.utils.unregister_class(DebugExportMaterialsOperator)
     bpy.utils.unregister_class(DebugDeleteAllGroupsOperator)
-
-    try:
-        # noinspection PyUnresolvedReferences
-        del bpy.types.Scene.daz_import__material_import_properties
-    except:
-        pass

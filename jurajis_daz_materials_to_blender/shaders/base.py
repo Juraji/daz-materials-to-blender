@@ -15,6 +15,7 @@ from ..utils.slugify import slugify
 
 _TNode = TypeVar('_TNode', bound=Node)
 
+
 class ShaderGroupApplier:
     group_node_width = 400
     texture_node_location_x = -915
@@ -34,7 +35,6 @@ class ShaderGroupApplier:
     @staticmethod
     def group_name() -> str:
         raise NotImplementedError()
-
 
     @staticmethod
     def material_type_id() -> str:
@@ -56,9 +56,13 @@ class ShaderGroupApplier:
         self._channels: dict[str, DsonMaterialChannel] = {}
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        self._uv_map = self._add_node(ShaderNodeUVMap, "UV Map", self.uv_map_location, props={"from_instancer": False, "uv_map": "UVMap"})
-        self._mapping = self._add_node(ShaderNodeMapping, "Mapping", self.mapping_location, props={"vector_type": "POINT", "hide": True})
-        self._material_ouput = self._add_node(ShaderNodeOutputMaterial, "Material Output", self.material_output_location, props={"is_active_output": True, "target": "ALL"})
+        self._uv_map = self._add_node(ShaderNodeUVMap, "UV Map", self.uv_map_location,
+                                      props={"from_instancer": False, "uv_map": "UVMap"})
+        self._mapping = self._add_node(ShaderNodeMapping, "Mapping", self.mapping_location,
+                                       props={"vector_type": "POINT", "hide": True})
+        self._material_ouput = self._add_node(ShaderNodeOutputMaterial, "Material Output",
+                                              self.material_output_location,
+                                              props={"is_active_output": True, "target": "ALL"})
         self._link_socket(self._uv_map, self._mapping, 0, 0)
 
         self._shader_group = self._add_node(ShaderNodeGroup, self.group_name(), self.node_group_location, props={
@@ -77,8 +81,13 @@ class ShaderGroupApplier:
         self._channels = channels
 
     def _channel_value(self, channel_id) -> Any | None:
-        ch = self._channels[channel_id]
-        return ch.value if ch.is_set() else ch.default_value
+        ch = self._channels.get(channel_id)
+        if ch is None:
+            return None
+        elif ch.is_set():
+            return ch.value
+        else:
+            return ch.default_value
 
     def _channel_enabled(self, *feat_names: str) -> bool:
         for feat_name in feat_names:

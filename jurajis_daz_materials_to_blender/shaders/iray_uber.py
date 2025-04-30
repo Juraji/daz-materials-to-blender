@@ -1,5 +1,8 @@
+from unittest import case
+
 from .base import ShaderGroupApplier
-from .fake_glass import FakeGlassShaderGroupApplier
+from .iray_uber_as_better_glass import IrayUberAsBetterGlassShaderGroupApplier
+from .iray_uber_as_fake_glass import IrayUberAsFakeGlassShaderGroupApplier
 from .library import IRAY_UBER
 from ..utils.dson import DsonMaterialChannel
 
@@ -15,8 +18,8 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
     IN_DIFFUSE_ROUGHNESS_MAP = "Diffuse Roughness Map"
 
     # Base Bump
-    IN_NORMAL_MAP = "Normal"
-    IN_NORMAL_MAP_MAP = "Normal Map"
+    IN_NORMAL = "Normal"
+    IN_NORMAL_MAP = "Normal Map"
     IN_BUMP_STRENGTH = "Bump Strength"
     IN_BUMP_STRENGTH_MAP = "Bump Strength Map"
 
@@ -131,10 +134,17 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         self._channels = channels
 
-        if self._can_use_glass_shortcut():
-            fake_glass = FakeGlassShaderGroupApplier(self._properties, self._node_tree)
-            fake_glass.apply_shader_group(channels)
-            return
+        refraction_w_ch = self._channels.get("refraction_weight")
+        if refraction_w_ch is not None and refraction_w_ch.value == 1.0 and not refraction_w_ch.has_image():
+            match self._properties.iray_uber_replace_glass:
+                case "1":
+                    replacement = IrayUberAsFakeGlassShaderGroupApplier(self._properties, self._node_tree)
+                    replacement.apply_shader_group(channels)
+                    return
+                case "2":
+                    replacement = IrayUberAsBetterGlassShaderGroupApplier(self._properties, self._node_tree)
+                    replacement.apply_shader_group(channels)
+                    return
 
         super().apply_shader_group(channels)
 
@@ -153,7 +163,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
 
         # Base Bump
         self._channel_to_sockets("bump_strength", self.IN_BUMP_STRENGTH, self.IN_BUMP_STRENGTH_MAP)
-        self._channel_to_sockets("normal_map", self.IN_NORMAL_MAP, self.IN_NORMAL_MAP_MAP)
+        self._channel_to_sockets("normal_map", self.IN_NORMAL, self.IN_NORMAL_MAP)
 
         if self._channel_enabled("bump_strength"):
             self._set_socket(self._shader_group, self.IN_BUMP_STRENGTH, self._properties.bump_strength_multiplier, "MULTIPLY")
@@ -264,20 +274,6 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets("transmitted_measurement_distance", self.IN_TRANSMITTED_MEASUREMENT_DISTANCE, None)
             self._channel_to_sockets("transmitted_color", self.IN_TRANSMITTED_COLOR, self.IN_TRANSMITTED_COLOR_MAP, False)
         # @formatter:on
-
-    def _can_use_glass_shortcut(self):
-        """
-        If the refraction weight is 1 and the refraction index is in between 1.3 and 1.4 we can take a shortcut and use the
-        fake glass shader group, instead of the full Iray Uber setup.
-        """
-
-        if not self._properties.use_fake_glass_fallback:
-            return False
-
-        refraction_weight = self._channel_value("refraction_weight")
-        refraction_index = self._channel_value("refraction_index")
-
-        return refraction_weight == 1 and 1.3 <= refraction_index <= 1.4
 
     def _calculate_emission_luminance(self) -> float:
         base_luminance = self._channel_value("luminance")

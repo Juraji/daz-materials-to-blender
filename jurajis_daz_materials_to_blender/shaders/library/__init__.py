@@ -11,28 +11,30 @@ def library_path():
 # Support Groups
 ADVANCED_TOP_COAT = "Advanced Top Coat"
 ASYMMETRICAL_DISPLACEMENT = "Asymmetrical Displacement"
+BETTER_GLASS = "Better Glass"
 BLACKBODY_EMISSION = "Blackbody Emission"
 DUAL_LOBE_SPECULAR = "Dual Lobe Specular"
+FAKE_GLASS = "Fake Glass"
 METALLIC_FLAKES = "Metallic Flakes"
 WEIGHTED_TRANSLUCENCY = "Weighted Translucency"
 
 SUPPORT_SHADER_GROUPS = [
     ADVANCED_TOP_COAT,
     ASYMMETRICAL_DISPLACEMENT,
+    BETTER_GLASS,
     BLACKBODY_EMISSION,
     DUAL_LOBE_SPECULAR,
+    FAKE_GLASS,
     METALLIC_FLAKES,
     WEIGHTED_TRANSLUCENCY,
 ]
 
 # Shader groups
-FAKE_GLASS = "Fake Glass"
 IRAY_UBER = "Iray Uber"
 IWAVE_TRANSLUCENT_FABRIC = "iWave Translucent Fabric"
 PBR_SKIN = "PBR Skin"
 
 SHADER_GROUPS = [
-    FAKE_GLASS,
     IRAY_UBER,
     IWAVE_TRANSLUCENT_FABRIC,
     PBR_SKIN,

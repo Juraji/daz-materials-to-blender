@@ -1,4 +1,4 @@
-from bpy.props import StringProperty, BoolProperty, FloatProperty
+from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
 from bpy.types import PropertyGroup
 
 
@@ -53,18 +53,23 @@ Some skin textures look better when normals are x2.0.""",
     )
 
     # Iray Uber Modifiers
-    use_fake_glass_fallback: BoolProperty(
-        name="Use Fake Glass",
-        description="""Use a cheaper fake glass instead of full Iray Uber shader for surfaces like eye moisture.
-When the refraction weight of a surface is set to 1.0 and it's refraction index is 1.3 to 1.5, a cheaper glossy shader will be used.""",
-        default = True,
-    )
-
     iray_uber_remap_glossy_color_to_roughness: BoolProperty(
         name="Remap Glossy Color to Roughness",
         description="""Remaps Glossy Color to Roughness.
 If Glossy Roughness is not set.""",
         default=True,
+    )
+
+    iray_uber_replace_glass: EnumProperty(
+        name="Replace Iray Glass",
+        description="""The Iray Uber Shader Group is very expensive for surfaces with 100% refraction.
+You can opt to replace these surfaces with more optimized glassy shader groups.""",
+        default="1",
+        items=[
+            ("1", "Use Fake Glass", "fake_glass"),
+            ("2", "Use Better Glass", "better_glass"),
+            ("3", "Use Iray Uber", "iray_uber"),
+        ]
     )
 
     iray_uber_clamp_emission: FloatProperty(

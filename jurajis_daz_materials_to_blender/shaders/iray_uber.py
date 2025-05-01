@@ -136,7 +136,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         if self._properties.iray_uber_replace_glass:
             refraction_w_ch = self._channels.get("refraction_weight")
             if refraction_w_ch is not None and refraction_w_ch.value == 1.0 and not refraction_w_ch.has_image():
-                replacement = IrayUberAsFakeGlassShaderGroupApplier(self._properties, self._node_tree)
+                replacement = IrayUberAsFakeGlassShaderGroupApplier(self._properties, self._b_object, self._node_tree)
                 replacement.apply_shader_group(channels)
                 return
 

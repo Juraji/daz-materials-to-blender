@@ -4,7 +4,7 @@ import os
 from typing import Literal, Any, Type, TypeVar
 
 import bpy
-from bpy.types import ShaderNodeTree, Node, NodeSocket, \
+from bpy.types import Object as BObject, ShaderNodeTree, Node, NodeSocket, \
     ShaderNodeTexImage, NodeSocketVector, NodeSocketColor, NodeSocketFloat, ShaderNodeGroup, ShaderNodeMapping, \
     ShaderNodeUVMap, ShaderNodeOutputMaterial
 
@@ -42,17 +42,19 @@ class ShaderGroupApplier:
 
     def __init__(self,
                  properties: MaterialImportProperties,
+                 b_object: BObject,
                  node_tree: ShaderNodeTree):
         super().__init__()
         self._properties = properties
+        self._b_object = b_object
         self._node_tree = node_tree
 
         self._texture_node_location_y_current = self.texture_node_location_y_inital
 
-        self._uv_map: Node | None = None
-        self._mapping: Node | None = None
-        self._material_ouput: Node | None = None
-        self._shader_group: Node | None = None
+        self._uv_map: ShaderNodeUVMap | None = None
+        self._mapping: ShaderNodeMapping | None = None
+        self._material_ouput: ShaderNodeOutputMaterial | None = None
+        self._shader_group: ShaderNodeGroup | None = None
         self._channels: dict[str, DsonMaterialChannel] = {}
 
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):

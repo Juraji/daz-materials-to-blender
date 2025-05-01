@@ -100,7 +100,7 @@ class ImportMaterialsOperator(OperatorReportMixin, Operator):
             # Setup defaults
             node_tree.nodes.clear()
 
-            applier = applier_cls(props, node_tree)
+            applier = applier_cls(props, b_object, node_tree)
             applier.apply_shader_group(channels)
 
             if props.rename_materials:

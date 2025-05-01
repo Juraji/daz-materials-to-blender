@@ -28,11 +28,13 @@ SUPPORT_SHADER_GROUPS = [
 ]
 
 # Shader groups
+BLENDED_DUAL_LOBE_HAIR = "Blended Dual Lobe Hair"
 IRAY_UBER = "Iray Uber"
 IWAVE_TRANSLUCENT_FABRIC = "iWave Translucent Fabric"
 PBR_SKIN = "PBR Skin"
 
 SHADER_GROUPS = [
+    BLENDED_DUAL_LOBE_HAIR,
     IRAY_UBER,
     IWAVE_TRANSLUCENT_FABRIC,
     PBR_SKIN,

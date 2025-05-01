@@ -60,16 +60,11 @@ If Glossy Roughness is not set.""",
         default=True,
     )
 
-    iray_uber_replace_glass: EnumProperty(
-        name="Replace Iray Glass",
+    iray_uber_replace_glass: BoolProperty(
+        name="Use Fake Glass",
         description="""The Iray Uber Shader Group is very expensive for surfaces with 100% refraction.
-You can opt to replace these surfaces with more optimized glassy shader groups.""",
-        default="1",
-        items=[
-            ("1", "Use Fake Glass", "fake_glass"),
-            ("2", "Use Better Glass", "better_glass"),
-            ("3", "Use Iray Uber", "iray_uber"),
-        ]
+You can opt to replace these surfaces with a fake glass implementation to save on render cycles.""",
+        default=True,
     )
 
     iray_uber_clamp_emission: FloatProperty(

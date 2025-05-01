@@ -11,7 +11,6 @@ def library_path():
 # Support Groups
 ADVANCED_TOP_COAT = "Advanced Top Coat"
 ASYMMETRICAL_DISPLACEMENT = "Asymmetrical Displacement"
-BETTER_GLASS = "Better Glass"
 BLACKBODY_EMISSION = "Blackbody Emission"
 DUAL_LOBE_SPECULAR = "Dual Lobe Specular"
 FAKE_GLASS = "Fake Glass"
@@ -21,7 +20,6 @@ WEIGHTED_TRANSLUCENCY = "Weighted Translucency"
 SUPPORT_SHADER_GROUPS = [
     ADVANCED_TOP_COAT,
     ASYMMETRICAL_DISPLACEMENT,
-    BETTER_GLASS,
     BLACKBODY_EMISSION,
     DUAL_LOBE_SPECULAR,
     FAKE_GLASS,

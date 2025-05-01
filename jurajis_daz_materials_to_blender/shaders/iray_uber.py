@@ -1,7 +1,6 @@
 from unittest import case
 
 from .base import ShaderGroupApplier
-from .iray_uber_as_better_glass import IrayUberAsBetterGlassShaderGroupApplier
 from .iray_uber_as_fake_glass import IrayUberAsFakeGlassShaderGroupApplier
 from .library import IRAY_UBER
 from ..utils.dson import DsonMaterialChannel
@@ -134,17 +133,12 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
     def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
         self._channels = channels
 
-        refraction_w_ch = self._channels.get("refraction_weight")
-        if refraction_w_ch is not None and refraction_w_ch.value == 1.0 and not refraction_w_ch.has_image():
-            match self._properties.iray_uber_replace_glass:
-                case "1":
-                    replacement = IrayUberAsFakeGlassShaderGroupApplier(self._properties, self._node_tree)
-                    replacement.apply_shader_group(channels)
-                    return
-                case "2":
-                    replacement = IrayUberAsBetterGlassShaderGroupApplier(self._properties, self._node_tree)
-                    replacement.apply_shader_group(channels)
-                    return
+        if self._properties.iray_uber_replace_glass:
+            refraction_w_ch = self._channels.get("refraction_weight")
+            if refraction_w_ch is not None and refraction_w_ch.value == 1.0 and not refraction_w_ch.has_image():
+                replacement = IrayUberAsFakeGlassShaderGroupApplier(self._properties, self._node_tree)
+                replacement.apply_shader_group(channels)
+                return
 
         super().apply_shader_group(channels)
 

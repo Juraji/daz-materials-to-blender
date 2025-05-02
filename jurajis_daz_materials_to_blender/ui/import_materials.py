@@ -46,6 +46,7 @@ class ImportMaterialsPanelBase(Panel):
             options_panel.prop(props, "rename_objects")
 
             options_panel.label(text="General")
+            options_panel.prop(props, "apply_color_corrections")
             options_panel.prop(props, "dls_weight_multiplier")
             options_panel.prop(props, "bump_strength_multiplier")
 

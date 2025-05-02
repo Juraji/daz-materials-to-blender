@@ -8,8 +8,6 @@ from ..utils.dson import DsonMaterialChannel
 class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
     ATTRIB__ROOT_TO_TIP_GRADIENT = "blended_dual_lobe_hair_root_to_tip_gradient"
 
-    IN_ROOT_TO_TIP_GEOMETRY_DATA = "Root to Tip Geometry Data"
-
     # Diffuse Reflection
     IN_HAIR_ROOT_COLOR = "Hair Root Color"
     IN_HAIR_ROOT_COLOR_MAP = "Hair Root Color Map"
@@ -35,17 +33,6 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
     IN_ROOT_TO_TIP_GAIN = "Root to Tip Gain"
     IN_HIGHLIGHT_SEPARATION = "Highlight Separation"
     IN_HIGHLIGHT_SEPARATION_MAP = "Highlight Separation Map"
-    IN_ANISOTROPY = "Anisotropy"
-    IN_ANISOTROPY_MAP = "Anisotropy Map"
-    IN_ANISOTROPY_ROTATIONS = "Anisotropy Rotations"
-    IN_ANISOTROPY_ROTATIONS_MAP = "Anisotropy Rotations Map"
-
-    # Transmission
-    IN_TRANSMISSION_WEIGHT = "Transmission Weight"
-    IN_ROOT_TRANSMISSION_COLOR = "Root Transmission Color"
-    IN_ROOT_TRANSMISSION_COLOR_MAP = "Root Transmission Color Map"
-    IN_TIP_TRANSMISSION_COLOR = "Tip Transmission Color"
-    IN_TIP_TRANSMISSION_COLOR_MAP = "Tip Transmission Color Map"
 
     # Bump
     IN_NORMAL = "Normal"
@@ -54,6 +41,7 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
     IN_BUMP_STRENGTH_MAP = "Bump Strength Map"
 
     # Geometry
+    IN_ROOT_TO_TIP_GEOMETRY_DATA = "Root to Tip Geometry Data"
     IN_CUTOUT_OPACITY = "Cutout Opacity"
     IN_CUTOUT_OPACITY_MAP = "Cutout Opacity Map"
     IN_DISPLACEMENT_STRENGTH = "Displacement Strength"
@@ -74,14 +62,25 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
 
         self._calculate_and_set_root_to_tip_gradient_attribute()
 
+        # @formatter:off
         attribute_props = {"attribute_type": "GEOMETRY",
                            "attribute_name": "blended_dual_lobe_hair_root_to_tip_gradient"}
         node_root_to_tip_attribute = self._add_node(ShaderNodeAttribute, self.IN_ROOT_TO_TIP_GEOMETRY_DATA,
                                                     (self.uv_map_location[0], -120), props=attribute_props)
         self._link_socket(node_root_to_tip_attribute, self._shader_group, 0, self.IN_ROOT_TO_TIP_GEOMETRY_DATA)
 
-        self._channel_to_sockets("hair_root_color", self.IN_HAIR_ROOT_COLOR, self.IN_HAIR_ROOT_COLOR_MAP)
-        self._channel_to_sockets("hair_tip_color", self.IN_HAIR_TIP_COLOR, self.IN_HAIR_TIP_COLOR_MAP)
+        if self._channel_enabled("root_transmission_color") or self._channel_enabled("tip_transmission_color"):
+            self._channel_to_sockets("root_transmission_color", self.IN_HAIR_ROOT_COLOR, self.IN_HAIR_ROOT_COLOR_MAP)
+            self._channel_to_sockets("tip_transmission_color", self.IN_HAIR_TIP_COLOR, self.IN_HAIR_TIP_COLOR_MAP)
+
+            value = self._channel_value("hair_root_color", False, lambda c: c.as_rgba())
+            self._set_socket(self._shader_group, self.IN_HAIR_ROOT_COLOR, value, "MULTIPLY")
+            value = self._channel_value("hair_tip_color", False, lambda c: c.as_rgba())
+            self._set_socket(self._shader_group, self.IN_HAIR_TIP_COLOR, value, "MULTIPLY")
+        else:
+            self._channel_to_sockets("hair_root_color", self.IN_HAIR_ROOT_COLOR, self.IN_HAIR_ROOT_COLOR_MAP)
+            self._channel_to_sockets("hair_tip_color", self.IN_HAIR_TIP_COLOR, self.IN_HAIR_TIP_COLOR_MAP)
+
         self._channel_to_sockets("glossy_layer_weight", self.IN_GLOSSY_LAYER_WEIGHT, self.IN_GLOSSY_LAYER_WEIGHT_MAP)
         self._channel_to_sockets("base_roughness", self.IN_ROUGHNESS, self.IN_ROUGHNESS_MAP)
 
@@ -93,15 +92,10 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
         self._channel_to_sockets("root_to_tip_bias", self.IN_ROOT_TO_TIP_BIAS, None)
         self._channel_to_sockets("root_to_tip_gain", self.IN_ROOT_TO_TIP_GAIN, None)
         self._channel_to_sockets("separation", self.IN_HIGHLIGHT_SEPARATION, self.IN_HIGHLIGHT_SEPARATION_MAP)
-        self._channel_to_sockets("anisotropy", self.IN_ANISOTROPY, self.IN_ANISOTROPY_MAP)
-        self._channel_to_sockets("anisotropy_rotations", self.IN_ANISOTROPY_ROTATIONS, self.IN_ANISOTROPY_ROTATIONS_MAP)
-
-        self._channel_to_sockets("root_transmission_color", self.IN_ROOT_TRANSMISSION_COLOR, self.IN_ROOT_TRANSMISSION_COLOR_MAP)
-        self._channel_to_sockets("tip_transmission_color", self.IN_TIP_TRANSMISSION_COLOR, self.IN_TIP_TRANSMISSION_COLOR_MAP)
 
         self._channel_to_sockets("bump_strength", self.IN_BUMP_STRENGTH, self.IN_BUMP_STRENGTH_MAP)
-
         self._channel_to_sockets("cutout_opacity", self.IN_CUTOUT_OPACITY, self.IN_CUTOUT_OPACITY_MAP)
+        # @formatter:on
 
     def _calculate_and_set_root_to_tip_gradient_attribute(self):
         import bpy

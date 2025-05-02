@@ -24,6 +24,14 @@ Note that enabling this will break rerunning imports!""",
     )
 
     # General Modifiers
+    apply_color_corrections: BoolProperty(
+        name="Apply Color Correction",
+        description="""DAZ Studio uses a curve to determine colors.
+You might have noticed that the numbers, shown on color sliders don't match the colors in the color picker.
+Enabling this option will apply an aproximated curve to correct color inputs.""",
+        default=True,
+    )
+
     bump_strength_multiplier: FloatProperty(
         name="Bump Strength Multiplier",
         description="""Multiplier for the bump strength property.

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Literal, Any, Type, TypeVar
+from typing import Literal, Any, Type, TypeVar, Callable
 
 import bpy
 from bpy.types import Object as BObject, ShaderNodeTree, Node, NodeSocket, \
@@ -11,6 +11,7 @@ from bpy.types import Object as BObject, ShaderNodeTree, Node, NodeSocket, \
 from ..properties import MaterialImportProperties
 from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
     DsonBoolMaterialChannel
+from ..utils.math import tuple_zip_mult
 from ..utils.slugify import slugify
 
 _TNode = TypeVar('_TNode', bound=Node)
@@ -31,6 +32,12 @@ class ShaderGroupApplier:
         "Volume": 1,
         "Displacement": 2,
     }
+
+    daz_color_correction_curve = (
+        2.1975328999518102,
+        2.2044513091402127,
+        2.205027676463837,
+    )
 
     @staticmethod
     def group_name() -> str:
@@ -82,12 +89,19 @@ class ShaderGroupApplier:
 
         self._channels = channels
 
-    def _channel_value(self, channel_id) -> Any | None:
+    def _channel_value(
+            self,
+            channel_id: str,
+            check_set: bool = True,
+            transform: Callable[[DsonMaterialChannel], Any] | None = None) -> Any | None:
         ch = self._channels.get(channel_id)
         if ch is None:
             return None
-        elif ch.is_set():
-            return ch.value
+        elif not check_set or ch.is_set():
+            if transform is not None:
+                return transform(ch)
+            else:
+                return ch.value
         else:
             return ch.default_value
 
@@ -121,7 +135,7 @@ class ShaderGroupApplier:
                 case DsonColorMaterialChannel() as c:
                     match value_socket:
                         case NodeSocketColor():
-                            value_socket.default_value = c.as_rgba()
+                            value_socket.default_value = self._correct_color(c.as_rgba())
                         case NodeSocketVector():
                             value_socket.default_value = c.value
                         case _:
@@ -134,7 +148,6 @@ class ShaderGroupApplier:
             image_texture = self._add_image_texture(channel.image_file, non_color_map, force_new_image_node)
             self._link_socket(self._mapping, image_texture, 0, 0)
             self._link_socket(image_texture, self._shader_group, 0, map_socket_name)
-
         return image_texture
 
     def _add_image_texture(self, path: str, non_color: bool, force_new_node: bool = False) -> ShaderNodeTexImage:
@@ -216,8 +229,8 @@ class ShaderGroupApplier:
             # noinspection PyUnresolvedReferences
             mapping_node.inputs[3].default_value[1] = scale
 
-    @staticmethod
     def _set_socket(
+            self,
             node: Node,
             socket: NodeSocket | int | str,
             value: Any,
@@ -227,13 +240,28 @@ class ShaderGroupApplier:
 
         match op:
             case "SET":
-                setattr(socket_input, "default_value", value)
+                match socket_input:
+                    case NodeSocketColor():
+                        value = self._correct_color(value)
+                        setattr(socket_input, "default_value", value)
+                    case _:
+                        setattr(socket_input, "default_value", value)
             case "MULTIPLY":
-                sock_value = getattr(socket_input, "default_value", 0)
-                if not isinstance(socket_input, NodeSocketFloat):
-                    raise Exception(
-                        f"Invalid operation {op} using value {value} for socket {socket_key} with value {sock_value}!")
-                setattr(socket_input, "default_value", sock_value * value)
+                match socket_input:
+                    case NodeSocketFloat():
+                        sock_value = getattr(socket_input, "default_value", 1.0)
+                        setattr(socket_input, "default_value", sock_value * value)
+                    case NodeSocketColor():
+                        base = (1.0, 1.0, 1.0, 1.0)
+                        sock_value = getattr(socket_input, "default_value", base)
+                        value = self._correct_color(value)
+                        setattr(socket_input, "default_value", tuple_zip_mult(base, sock_value, value))
+                    case NodeSocketVector():
+                        base = (1.0, 1.0, 1.0)
+                        sock_value = getattr(socket_input, "default_value", base)
+                        setattr(socket_input, "default_value", tuple_zip_mult(base, sock_value, value))
+                    case _:
+                        raise Exception(f"Can not use MULITPLY of socket of type: {type(socket_input)}")
 
     def _link_socket(self,
                      source: Node,
@@ -250,3 +278,11 @@ class ShaderGroupApplier:
             target_socket = target.inputs[target_socket]
 
         self._node_tree.links.new(source_socket, target_socket)
+
+    def _correct_color(self, rgba: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+        if self._properties.apply_color_corrections:
+            r, g, b, a = rgba
+            cr, cg, cb = self.daz_color_correction_curve
+            return r ** cr, g ** cg, b ** cb, a
+        else:
+            return rgba

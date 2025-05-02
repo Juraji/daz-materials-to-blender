@@ -60,6 +60,7 @@ class ImportMaterialsPanelBase(Panel):
 
         layout.prop(props, "daz_scene_file")
         layout.operator("daz_import.import_all_materials")
+        layout.operator("daz_import.import_object_materials")
 
 
 class ImportMaterialsPanel3D(ImportMaterialsPanelBase):

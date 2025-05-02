@@ -74,7 +74,7 @@ class DsonSceneNode:
     materials: list[DsonMaterial] = field(default_factory=list)
 
 
-class DazDsonMaterialReader:
+class DsonMaterialReader:
     max_content_dirs = 100
 
     def __init__(self):
@@ -85,7 +85,7 @@ class DazDsonMaterialReader:
         # Initialize content libraries
         self.content_dirs = self._read_content_dirs_from_reg()
 
-    def read_materials(self, daz_scene_file: Path) -> list[DsonSceneNode]:
+    def read_materials(self, daz_scene_file: PathLike) -> list[DsonSceneNode]:
         dson = self._read_dson_file(daz_scene_file)
         scene_nodes = dson['scene']['nodes']
         scene_materials = dson['scene']['materials']

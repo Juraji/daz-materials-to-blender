@@ -1,5 +1,3 @@
-fake-bpy-module
+fake-bpy-module>=20250502
 pylint==3.3.6
-pydevd-pycharm~=243.26053.29
 watchdog==6.0.0
-mathutils==3.3.0

@@ -83,3 +83,6 @@ Some artist use emission to make surfaces pop. However, this looks bad in Cycles
         min=0.0,
         max=1.0
     )
+
+    def has_scene_file_set(self):
+        return self.daz_scene_file != "" and self.daz_scene_file.endswith(".duf")

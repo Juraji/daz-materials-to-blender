@@ -7,7 +7,7 @@ from bpy.types import Operator
 from bpy import path as bpath
 
 from ..base import OperatorReportMixin
-from ...utils.dson import DazDsonMaterialReader
+from ...utils.dson import DsonMaterialReader
 from ...utils.json import DataclassJSONEncoder
 
 
@@ -33,7 +33,7 @@ The file will be saved in the same directory as this file, suffixed by ".materia
             self.report_error(f"File {daz_save_file} does not exist")
             return {"CANCELLED"}
 
-        dson_reader = DazDsonMaterialReader()
+        dson_reader = DsonMaterialReader()
         dson_scene_nodes = dson_reader.read_materials(daz_save_file)
 
         directory = path.dirname(bpy.data.filepath)

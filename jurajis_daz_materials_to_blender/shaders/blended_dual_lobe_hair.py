@@ -29,6 +29,7 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
     IN_HIGHLIGHT_ROUGHNESS_MAP = "Highlight Roughness Map"
 
     # Blend
+    IN_REDNESS_BIAS = "Redness Bias"
     IN_ROOT_TO_TIP_BIAS = "Root To Tip Bias"
     IN_ROOT_TO_TIP_GAIN = "Root to Tip Gain"
     IN_HIGHLIGHT_SEPARATION = "Highlight Separation"
@@ -80,6 +81,11 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
         else:
             self._channel_to_sockets("hair_root_color", self.IN_HAIR_ROOT_COLOR, self.IN_HAIR_ROOT_COLOR_MAP)
             self._channel_to_sockets("hair_tip_color", self.IN_HAIR_TIP_COLOR, self.IN_HAIR_TIP_COLOR_MAP)
+
+        current_root_color = self._socket_value(self.IN_HAIR_ROOT_COLOR)
+        current_tip_color = self._socket_value(self.IN_HAIR_TIP_COLOR)
+        redness_bias = self._calculate_redness_bias(current_root_color, current_tip_color)
+        self._set_socket(self._shader_group, self.IN_REDNESS_BIAS, redness_bias)
 
         self._channel_to_sockets("glossy_layer_weight", self.IN_GLOSSY_LAYER_WEIGHT, self.IN_GLOSSY_LAYER_WEIGHT_MAP)
         self._channel_to_sockets("base_roughness", self.IN_ROUGHNESS, self.IN_ROUGHNESS_MAP)
@@ -180,4 +186,15 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
                         stack.append(linked_face)
         return island_faces
 
+    @staticmethod
+    def _calculate_redness_bias(current_root_color, current_tip_color):
+        rr, rg, rb, _ = current_root_color
+        tr, tg, tb, _ = current_tip_color
 
+        avg_r = ((rr + tr) / 2)
+        avg_g = ((rg + tb) / 2)
+        avg_b = ((rb + tb) / 2)
+        gamma = 0.8
+
+
+        return max(0.0, avg_r - (avg_g + avg_b) / 2) ** gamma / (avg_r ** gamma + 1e-5)

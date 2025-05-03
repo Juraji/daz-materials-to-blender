@@ -263,6 +263,14 @@ class ShaderGroupApplier:
                     case _:
                         raise Exception(f"Can not use MULITPLY of socket of type: {type(socket_input)}")
 
+    def _socket_value(self, socket: NodeSocket | int | str) -> Any:
+        if isinstance(socket, NodeSocket):
+            socket = self._shader_group.inputs[socket.name]
+        else:
+            socket =  self._shader_group.inputs[socket]
+
+        return getattr(socket, "default_value")
+
     def _link_socket(self,
                      source: Node,
                      target: Node,
@@ -278,6 +286,7 @@ class ShaderGroupApplier:
             target_socket = target.inputs[target_socket]
 
         self._node_tree.links.new(source_socket, target_socket)
+
 
     def _correct_color(self, rgba: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
         if self._properties.apply_color_corrections:

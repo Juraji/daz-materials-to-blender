@@ -2,7 +2,7 @@ from bpy.types import ShaderNodeMapping
 
 from .base import ShaderGroupApplier
 from .library import PBR_SKIN
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 
 from ..utils.math import tuple_zip_sum
 
@@ -67,7 +67,7 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "pbrskin"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         super().apply_shader_group(channels)
 
         # @formatter:off

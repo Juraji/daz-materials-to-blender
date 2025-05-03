@@ -1,6 +1,6 @@
 from .base import ShaderGroupApplier
 from .library import FAKE_GLASS
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 
 
 class IrayUberAsFakeGlassShaderGroupApplier(ShaderGroupApplier):
@@ -19,7 +19,7 @@ class IrayUberAsFakeGlassShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "fake_glass"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         super().apply_shader_group(channels)
 
         self._channel_to_sockets("bump_strength", self.IN_BUMP, self.IN_BUMP_MAP)

@@ -2,7 +2,7 @@ from bpy.types import ShaderNodeAttribute
 
 from .base import (ShaderGroupApplier)
 from .library import BLENDED_DUAL_LOBE_HAIR
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 
 
 class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
@@ -57,7 +57,7 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "blended_dual_lobe_hair"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         super().apply_shader_group(channels)
 
         self._calculate_and_set_root_to_tip_gradient_attribute()

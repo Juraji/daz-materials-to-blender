@@ -3,7 +3,7 @@ from unittest import case
 from .base import ShaderGroupApplier
 from .iray_uber_as_fake_glass import IrayUberAsFakeGlassShaderGroupApplier
 from .library import IRAY_UBER
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 
 
 
@@ -130,7 +130,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "iray_uber"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         self._channels = channels
 
         if self._properties.iray_uber_replace_glass:
@@ -214,21 +214,22 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
             self._channel_to_sockets("thin_film_ior", self.IN_THIN_FILM_IOR, self.IN_THIN_FILM_IOR_MAP)
 
         # Emission
-        self._channel_to_sockets("emission_color", self.IN_EMISSION_COLOR, self.IN_EMISSION_COLOR_MAP)
-        self._channel_to_sockets("emission_temperature", self.IN_EMISSION_TEMPERATURE, None)
+        if self._channel_enabled("emission_color"):
+            self._channel_to_sockets("emission_color", self.IN_EMISSION_COLOR, self.IN_EMISSION_COLOR_MAP)
+            self._channel_to_sockets("emission_temperature", self.IN_EMISSION_TEMPERATURE, None)
 
-        # Emission clamping
-        emission_color = self._channel_value("emission_color")
-        emission_max_rgb = max(emission_color[0], emission_color[1], emission_color[2])
-        if 0 <= emission_max_rgb <= self._properties.iray_uber_clamp_emission:
-            self._set_socket(self._shader_group, self.IN_EMISSION_COLOR, (0.0, 0.0, 0.0, 1.0))
+            # Emission clamping
+            emission_color = self._channel_value("emission_color")
+            emission_max_rgb = max(emission_color[0], emission_color[1], emission_color[2])
+            if 0 <= emission_max_rgb <= self._properties.iray_uber_clamp_emission:
+                self._set_socket(self._shader_group, self.IN_EMISSION_COLOR, (0.0, 0.0, 0.0, 1.0))
 
-        if self._channel_enabled('luminance'):
-            self._channel_to_sockets('luminance', self.IN_LUMINANCE, self.IN_LUMINANCE_MAP)
+            if self._channel_enabled('luminance'):
+                self._channel_to_sockets('luminance', self.IN_LUMINANCE, self.IN_LUMINANCE_MAP)
 
-            # Override luminance using units and efficacy
-            b_luminance = self._calculate_emission_luminance()
-            self._set_socket(self._shader_group, self.IN_LUMINANCE, b_luminance)
+                # Override luminance using units and efficacy
+                b_luminance = self._calculate_emission_luminance()
+                self._set_socket(self._shader_group, self.IN_LUMINANCE, b_luminance)
 
         # Geometry Cutout
         self._channel_to_sockets("cutout_opacity", self.IN_CUTOUT_OPACITY, self.IN_CUTOUT_OPACITY_MAP)

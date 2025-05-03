@@ -9,8 +9,8 @@ from bpy.types import Object as BObject, ShaderNodeTree, Node, NodeSocket, \
     ShaderNodeUVMap, ShaderNodeOutputMaterial
 
 from ..properties import MaterialImportProperties
-from ..utils.dson import DsonMaterialChannel, DsonFloatMaterialChannel, DsonColorMaterialChannel, \
-    DsonBoolMaterialChannel
+from ..utils.dson import DsonChannel, DsonFloatChannel, DsonColorChannel, \
+    DsonBoolChannel
 from ..utils.math import tuple_zip_mult
 from ..utils.slugify import slugify
 
@@ -62,9 +62,9 @@ class ShaderGroupApplier:
         self._mapping: ShaderNodeMapping | None = None
         self._material_ouput: ShaderNodeOutputMaterial | None = None
         self._shader_group: ShaderNodeGroup | None = None
-        self._channels: dict[str, DsonMaterialChannel] = {}
+        self._channels: dict[str, DsonChannel] = {}
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         self._uv_map = self._add_node(ShaderNodeUVMap, "UV Map", self.uv_map_location,
                                       props={"from_instancer": False, "uv_map": "UVMap"})
         self._mapping = self._add_node(ShaderNodeMapping, "Mapping", self.mapping_location,
@@ -93,7 +93,7 @@ class ShaderGroupApplier:
             self,
             channel_id: str,
             check_set: bool = True,
-            transform: Callable[[DsonMaterialChannel], Any] | None = None) -> Any | None:
+            transform: Callable[[DsonChannel], Any] | None = None) -> Any | None:
         ch = self._channels.get(channel_id)
         if ch is None:
             return None
@@ -110,7 +110,7 @@ class ShaderGroupApplier:
             channel = self._channels.get(feat_name)
             if not channel:
                 continue
-            if isinstance(channel, DsonBoolMaterialChannel) and channel.value:
+            if isinstance(channel, DsonBoolChannel) and channel.value:
                 return True
             elif channel.is_set():
                 return True
@@ -130,9 +130,9 @@ class ShaderGroupApplier:
             value_socket = self._shader_group.inputs[value_socket_name]
 
             match channel:
-                case DsonFloatMaterialChannel() | DsonBoolMaterialChannel():
+                case DsonFloatChannel() | DsonBoolChannel():
                     value_socket.default_value = channel.value or 0
-                case DsonColorMaterialChannel() as c:
+                case DsonColorChannel() as c:
                     match value_socket:
                         case NodeSocketColor():
                             value_socket.default_value = self._correct_color(c.as_rgba())

@@ -2,7 +2,7 @@ from bpy.types import ShaderNodeMapping
 
 from .base import ShaderGroupApplier
 from .library import IWAVE_TRANSLUCENT_FABRIC
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 from ..utils.math import tuple_zip_sum
 
 
@@ -102,7 +102,7 @@ class IWaveTranslucentFabricShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "translucent_fabric"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
         super().apply_shader_group(channels)
 
         # # @formatter:off

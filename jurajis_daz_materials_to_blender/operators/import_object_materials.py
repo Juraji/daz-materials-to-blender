@@ -9,7 +9,7 @@ from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties, props_from_ctx
 from ..shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
 from ..shaders.fallback import FallbackShaderGroupApplier
-from ..utils.dson import DsonSceneNode, DsonMaterial
+from ..utils.dson import DsonObject, DsonChannels
 from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
 from ..utils.poll import selected_objects_all_is_mesh
 
@@ -69,10 +69,10 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
     def _apply_materials(self,
                          b_object: BObject,
-                         dson_materials: list[DsonMaterial],
+                         dson_materials: list[DsonChannels],
                          props: MaterialImportProperties):
         for mat_def in dson_materials:
-            mat_name = mat_def.material_name
+            mat_name = mat_def.name
             mat_type_id = mat_def.type_id
             channels = mat_def.channels
 
@@ -103,7 +103,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
                 material.name = f'{b_object.name}_{mat_name}'
 
     @staticmethod
-    def _import_missing_groups(materials: list[DsonMaterial]):
+    def _import_missing_groups(materials: list[DsonChannels]):
         used_mat_types = {mat_def.type_id for mat_def in materials}
         used_builders = [b for b in SHADER_GROUP_APPLIERS if b.material_type_id() in used_mat_types]
 

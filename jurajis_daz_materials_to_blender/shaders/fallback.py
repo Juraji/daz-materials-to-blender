@@ -1,6 +1,6 @@
 from bpy.types import ShaderNodeMapping, ShaderNodeUVMap, ShaderNodeOutputMaterial, ShaderNodeBsdfPrincipled
 
-from ..utils.dson import DsonMaterialChannel
+from ..utils.dson import DsonChannel
 from .base import ShaderGroupApplier
 
 
@@ -13,8 +13,8 @@ class FallbackShaderGroupApplier(ShaderGroupApplier):
     def material_type_id() -> str:
         return "fallback"
 
-    def apply_shader_group(self, channels: dict[str, DsonMaterialChannel]):
-        self._channels: dict[str, DsonMaterialChannel] = {}
+    def apply_shader_group(self, channels: dict[str, DsonChannel]):
+        self._channels: dict[str, DsonChannel] = {}
 
         # Setup base nodes
         self._uv_map = self._add_node(ShaderNodeUVMap, "UV Map",

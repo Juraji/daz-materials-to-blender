@@ -15,7 +15,7 @@ DMC_V = TypeVar('DMC_V')
 
 @serializable("has_image", "is_set")
 @dataclass
-class DsonMaterialChannel(Generic[DMC_V]):
+class DsonChannel(Generic[DMC_V]):
     id: str
     value: DMC_V
     default_value: DMC_V
@@ -28,7 +28,7 @@ class DsonMaterialChannel(Generic[DMC_V]):
 
 
 @dataclass
-class DsonColorMaterialChannel(DsonMaterialChannel[tuple[float, float, float]]):
+class DsonColorChannel(DsonChannel[tuple[float, float, float]]):
     alpha: float = 1.0
 
     def as_rgba(self) -> tuple[float, float, float, float]:
@@ -39,42 +39,43 @@ class DsonColorMaterialChannel(DsonMaterialChannel[tuple[float, float, float]]):
 
 
 @dataclass
-class DsonFloatMaterialChannel(DsonMaterialChannel[float]):
+class DsonFloatChannel(DsonChannel[float]):
     pass
 
 
 @dataclass
-class DsonBoolMaterialChannel(DsonMaterialChannel[bool]):
+class DsonBoolChannel(DsonChannel[bool]):
     pass
 
 
 @dataclass
-class DsonStringMaterialChannel(DsonMaterialChannel[str]):
+class DsonStringChannel(DsonChannel[str]):
     pass
 
 
 @dataclass
-class DsonImageMaterialChannel(DsonMaterialChannel[None]):
+class DsonImageChannel(DsonChannel[None]):
     def is_set(self):
         return self.has_image()
 
 
 @dataclass
-class DsonMaterial:
-    material_name: str
+class DsonChannels:
+    name: str
     type_id: str
-    channels: dict[str, DsonMaterialChannel]
+    channels: dict[str, DsonChannel] = field(default_factory=dict)
 
 
 @dataclass
-class DsonSceneNode:
+class DsonObject:
     id: str
     label: str
     parent_id: str | None
-    materials: list[DsonMaterial] = field(default_factory=list)
+    materials: list[DsonChannels] = field(default_factory=list)
+    simulation: list[DsonChannels] = field(default_factory=list)
 
 
-class DsonMaterialReader:
+class DsonReader:
     max_content_dirs = 100
 
     def __init__(self):
@@ -83,64 +84,97 @@ class DsonMaterialReader:
         self.__material_shader_type_cache: dict[str, str] = {}
 
         # Initialize content libraries
-        self.content_dirs = self._read_content_dirs_from_reg()
+        self.content_dirs = self._read_content_dirs_from_registry()
 
-    def read_materials(self, daz_scene_file: PathLike) -> list[DsonSceneNode]:
+    def read_dson(self, daz_scene_file: PathLike) -> list[DsonObject]:
         dson = self._read_dson_file(daz_scene_file)
-        scene_nodes = dson['scene']['nodes']
-        scene_materials = dson['scene']['materials']
-        material_library = dson['material_library']
+        scene_nodes = [n for n in dson["scene"]["nodes"] if "geometries" in n]
 
-        mats_per_object: dict[str, DsonSceneNode] = {}
+        return [
+            DsonObject(
+                id=n["id"],
+                label=n["label"],
+                parent_id=self._unquote_daz_ref(n["parent"]) if "parent" in n else None,
+                materials=self._read_material_channels(n, dson),
+                simulation=self._read_sim_modifiers(n, dson),
+            ) for n in scene_nodes
+        ]
 
-        for scene_mat in scene_materials:
-            mat_name = scene_mat['groups'][0].replace(' ', '_')
-            node_id, node_label, node_parent = self._find_node_by_geo_url(scene_nodes, scene_mat['geometry'])
+    def _read_material_channels(self, scene_node: dict, dson: dict) -> list[DsonChannels]:
+        scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
+        scene_mats = [
+            m for m in dson['scene']['materials']
+            if self._unquote_daz_ref(m["geometry"]) in scene_node_geo_ids
+        ]
+        materials: list[DsonChannels] = []
 
-            lib_mat: dict | None = None
-            if scene_mat['url'].startswith('#'):
-                material_id = self._unquote_daz_ref(scene_mat['url'])
-                lib_mat = next((m for m in material_library if m['id'] == material_id), None)
+        for scene_mat in scene_mats:
+            mat_library_id = self._unquote_daz_ref(scene_mat["url"])
+            lib_mat = next((m for m in dson["material_library"] if m["id"] == mat_library_id), None)
 
-            mat_type = self._find_shader_type(scene_mat, lib_mat)
-            node = mats_per_object.setdefault(node_id, DsonSceneNode(node_id, node_label, node_parent))
+            material = DsonChannels(
+                name=scene_mat["groups"][0],
+                type_id=self._find_shader_type(scene_mat, lib_mat),
+            )
 
-            if mat_name in node.materials:
-                continue
+            materials.append(material)
 
-            channels = {}
+            if "diffuse" in scene_mat:
+                mat_id, mapped = self._map_channel(scene_mat["diffuse"]["channel"])
+                material.channels[mat_id] = mapped
 
-            if 'diffuse' in scene_mat:
-                ch = self._map_channel(scene_mat['diffuse']['channel'])
-                channels[ch.id] = ch
+            for mat_extra in scene_mat.get("extra", []):
+                if mat_extra["type"] == "studio_material_channels":
+                    for channel in mat_extra["channels"]:
+                        mat_id, mapped = self._map_channel(channel["channel"])
+                        material.channels[mat_id] = mapped
 
-            # Map scene materials
-            mat_extra = scene_mat.get('extra', [])
-            mat_channels = []
-            for entry in mat_extra:
-                if entry['type'] == "studio_material_channels":
-                    mat_channels = entry['channels']
-
-            for ch_data in mat_channels:
-                ch = self._map_channel(ch_data['channel'])
-                channels[ch.id] = ch
-
-            # Map library materials if missing from scene material
             if lib_mat:
-                lib_extra = lib_mat.get('extra', [])
-                lib_channels = []
-                for entry in lib_extra:
-                    if entry['type'] == "studio_material_channels":
-                        lib_channels = entry['channels']
+                for mat_extra in lib_mat.get("extra", []):
+                    if mat_extra["type"] == "studio_material_channels":
+                        for channel in mat_extra["channels"]:
+                            mat_id, mapped = self._map_channel(channel["channel"])
+                            if not mat_id in material.channels:
+                                material.channels[mat_id] = mapped
 
-                for ch_data in lib_channels:
-                    ch = self._map_channel(ch_data['channel'])
-                    if not ch.id in channels:
-                        channels[ch.id] = ch
+        return materials
 
-            node.materials.append(DsonMaterial(mat_name, mat_type, channels))
+    def _read_sim_modifiers(self, scene_node: dict, dson: dict) -> list[DsonChannels]:
+        scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
+        scene_mods = [
+            m for m in dson["scene"]["modifiers"]
+            if m["url"][0] == "#"  # Is local
+               and m["extra"][0]["type"] == "studio/simulation_settings/dynamic_simulation"  # is sim
+               and self._unquote_daz_ref(m["parent"]) in scene_node_geo_ids
+        ]
+        modifiers: list[DsonChannels] = []
 
-        return list(mats_per_object.values())
+        for scene_mod in scene_mods:
+            mod_library_id = self._unquote_daz_ref(scene_mod["url"])
+            lib_mod = next((m for m in dson["modifier_library"] if m["id"] == mod_library_id), None)
+
+            modifier = DsonChannels(
+                name=scene_mod["name"],
+                type_id=self._find_modifier_type(scene_mod),
+            )
+
+            modifiers.append(modifier)
+
+            for mod_extra in scene_mod.get("extra", []):
+                if mod_extra["type"] == "studio_modifier_channels":
+                    for channel in mod_extra["channels"]:
+                        mat_id, mapped = self._map_channel(channel["channel"])
+                        modifier.channels[mat_id] = mapped
+
+            if lib_mod:
+                for mat_extra in lib_mod.get("extra", []):
+                    if mat_extra["type"] == "studio_modifier_channels":
+                        for channel in mat_extra["channels"]:
+                            mat_id, mapped = self._map_channel(channel["channel"])
+                            if not mat_id in modifier.channels:
+                                modifier.channels[mat_id] = mapped
+
+        return modifiers
 
     @classmethod
     def _read_dson_file(cls, dson_file: PathLike) -> dict:
@@ -164,25 +198,6 @@ class DsonMaterialReader:
         else:
             fragment_idx = ref.find('#') + 1
             return urlparse.unquote(ref[fragment_idx:])
-
-    def _find_node_by_geo_url(self, scene_nodes, geo_url: str) -> tuple[str, str, str | None]:
-        if geo_url in self.__geo_url_node_id_cache:
-            return self.__geo_url_node_id_cache[geo_url]
-
-        geo_id = self._unquote_daz_ref(geo_url)
-
-        for node in scene_nodes:
-            geometries = node.get('geometries', [])
-            if any(g['id'] == geo_id for g in geometries):
-                scene_node_id = node['id']
-                scene_node_label = node['label']
-                scene_node_parent = None if not 'parent' in node else self._unquote_daz_ref(node['parent'])
-
-                result = (scene_node_id, scene_node_label, scene_node_parent)
-                self.__geo_url_node_id_cache[geo_url] = result
-                return result
-
-        raise Exception(f'No geometries found in scene node for url {geo_url}')
 
     def _find_shader_type(self, scene_mat: dict, lib_mat: dict) -> str:
         url = scene_mat['url']
@@ -208,7 +223,18 @@ class DsonMaterialReader:
 
         raise Exception(f'Unable to find shader type for url {url}.')
 
-    def _determine_content_dir_path(self, path: str) -> Path | None:
+    @staticmethod
+    def _find_modifier_type(scene_mod: dict) -> str:
+        has_hairs_channel = next(
+            (True
+             for extra in scene_mod["extra"] if extra["type"] == "studio_modifier_channels"
+             for ch in extra["channels"] if "PreRender Hairs" in ch["channel"]["id"]),
+            False
+        )
+
+        return "dforce_hair" if has_hairs_channel else "dforce_sim"
+
+    def _find_content_dir_path(self, path: str) -> Path | None:
         if path is None:
             return None
         if path in self.__content_dir_path_cache:
@@ -219,38 +245,39 @@ class DsonMaterialReader:
             if cd_path.exists():
                 self.__content_dir_path_cache[path] = cd_path
                 return cd_path
+        return None
 
-    def _map_channel(self, c: dict) -> DsonMaterialChannel:
-        mat_id = slugify(c['id'])
-        raw_value = c.get("current_value")
-        value_type = c['type']
+    def _map_channel(self, c_data: dict) -> (str, DsonChannel):
+        mat_id = slugify(c_data['id'])
+        raw_value = c_data.get("current_value")
+        value_type = c_data['type']
 
-        image_file = str(self._determine_content_dir_path(c['image_file'])) if 'image_file' in c else None
+        image_file = str(self._find_content_dir_path(c_data['image_file'])) if 'image_file' in c_data else None
 
         match value_type:
             case "float_color" | "color":
-                raw_default_value = c.get("value", (0, 0, 0))
-                dson_channel = DsonColorMaterialChannel(
+                raw_default_value = c_data.get("value", (0, 0, 0))
+                dson_channel = DsonColorChannel(
                     mat_id,
                     tuple(raw_value[:3]),
                     tuple(raw_default_value[:3]),
                     image_file)
             case "float":
-                raw_default_value = c.get("value", 0.0)
-                dson_channel = DsonFloatMaterialChannel(mat_id, float(raw_value), float(raw_default_value), image_file)
+                raw_default_value = c_data.get("value", 0.0)
+                dson_channel = DsonFloatChannel(mat_id, float(raw_value), float(raw_default_value), image_file)
             case "bool":
-                raw_default_value = c.get("value", False)
-                dson_channel = DsonBoolMaterialChannel(mat_id, bool(raw_value), bool(raw_default_value), image_file)
+                raw_default_value = c_data.get("value", False)
+                dson_channel = DsonBoolChannel(mat_id, bool(raw_value), bool(raw_default_value), image_file)
             case "image":
-                dson_channel = DsonImageMaterialChannel(mat_id, None, None, image_file or raw_value)
+                dson_channel = DsonImageChannel(mat_id, None, None, image_file or raw_value)
             case _:
-                raw_default_value = c.get("value", "")
-                dson_channel = DsonStringMaterialChannel(mat_id, str(raw_value), str(raw_default_value), image_file)
+                raw_default_value = c_data.get("value", "")
+                dson_channel = DsonStringChannel(mat_id, str(raw_value), str(raw_default_value), image_file)
 
-        return dson_channel
+        return mat_id, dson_channel
 
     @classmethod
-    def _read_content_dirs_from_reg(cls) -> list[Path]:
+    def _read_content_dirs_from_registry(cls) -> list[Path]:
         def enum_values(k):
             for i in range(cls.max_content_dirs):
                 try:

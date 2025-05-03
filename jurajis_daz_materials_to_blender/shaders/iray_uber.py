@@ -1,6 +1,6 @@
 from unittest import case
 
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 from .iray_uber_as_fake_glass import IrayUberAsFakeGlassShaderGroupApplier
 from .library import IRAY_UBER
 from ..utils.dson import DsonChannel

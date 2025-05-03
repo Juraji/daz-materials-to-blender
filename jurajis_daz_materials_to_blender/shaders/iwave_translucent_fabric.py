@@ -1,6 +1,6 @@
 from bpy.types import ShaderNodeMapping
 
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 from .library import IWAVE_TRANSLUCENT_FABRIC
 from ..utils.dson import DsonChannel
 from ..utils.math import tuple_zip_sum

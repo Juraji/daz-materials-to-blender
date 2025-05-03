@@ -1,6 +1,6 @@
 from typing import Type
 
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 from .blended_dual_lobe_hair import BlendedDualLobeHairShaderApplier
 from .iray_uber_as_fake_glass import IrayUberAsFakeGlassShaderGroupApplier
 from .iray_uber import IrayUberShaderGroupApplier

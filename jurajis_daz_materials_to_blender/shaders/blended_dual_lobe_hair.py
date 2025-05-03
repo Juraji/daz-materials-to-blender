@@ -1,6 +1,6 @@
 from bpy.types import ShaderNodeAttribute
 
-from .base import (ShaderGroupApplier)
+from .shader_group_applier import (ShaderGroupApplier)
 from .library import BLENDED_DUAL_LOBE_HAIR
 from ..utils.dson import DsonChannel
 

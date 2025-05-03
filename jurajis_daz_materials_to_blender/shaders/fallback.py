@@ -1,7 +1,7 @@
 from bpy.types import ShaderNodeMapping, ShaderNodeUVMap, ShaderNodeOutputMaterial, ShaderNodeBsdfPrincipled
 
 from ..utils.dson import DsonChannel
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 
 
 class FallbackShaderGroupApplier(ShaderGroupApplier):

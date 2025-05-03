@@ -1,4 +1,4 @@
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 from .library import FAKE_GLASS
 from ..utils.dson import DsonChannel
 

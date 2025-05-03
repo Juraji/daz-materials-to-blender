@@ -1,6 +1,6 @@
 from bpy.types import ShaderNodeMapping
 
-from .base import ShaderGroupApplier
+from .shader_group_applier import ShaderGroupApplier
 from .library import PBR_SKIN
 from ..utils.dson import DsonChannel
 

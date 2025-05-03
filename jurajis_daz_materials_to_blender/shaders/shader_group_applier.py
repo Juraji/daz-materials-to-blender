@@ -12,7 +12,7 @@ from ..properties import MaterialImportProperties
 from ..utils.dson import DsonChannel, DsonFloatChannel, DsonColorChannel, \
     DsonBoolChannel
 from ..utils.math import tuple_zip_mult
-from ..utils.slugify import slugify
+from ..utils.node_trees import link_socket, add_node, add_image_texture
 
 _TNode = TypeVar('_TNode', bound=Node)
 
@@ -151,26 +151,7 @@ class ShaderGroupApplier:
         return image_texture
 
     def _add_image_texture(self, path: str, non_color: bool, force_new_node: bool = False) -> ShaderNodeTexImage:
-        img_name = os.path.basename(path)
-
-        if not force_new_node:
-            for node in self._node_tree.nodes:
-                if isinstance(node, ShaderNodeTexImage) and node.image and node.image.name == img_name:
-                    return node
-
-        image = bpy.data.images.load(path, check_existing=True)
-        # noinspection PyTypeChecker
-        image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
-
-        return self._add_node(
-            ShaderNodeTexImage,
-            img_name,
-            self._next_image_node_location(),
-            props={
-                "image": image,
-                "hide": True
-            }
-        )
+        return add_image_texture(self._node_tree, self._next_image_node_location(), path, non_color, force_new_node)
 
     def _next_image_node_location(self):
         loc = (self.texture_node_location_x, self._texture_node_location_y_current)
@@ -183,22 +164,7 @@ class ShaderGroupApplier:
                   location: tuple[float, float],
                   parent: Node = None,
                   props: dict[str, Any] = {}) -> _TNode:
-        node_type_id = getattr(getattr(node_type, "bl_rna", None), "identifier", None)
-        if node_type_id is None:
-            raise TypeError(f"Cannot resolve bl_idname for type: {node_type.__name__}")
-
-        node = self._node_tree.nodes.new(node_type_id)
-        node.label = label
-        node.name = slugify(node_type_id, label)
-        node.parent = parent
-        node.location = location
-
-        # Set props
-        for prop, value in props.items():
-            if hasattr(node, prop):
-                setattr(node, prop, value)
-
-        return node
+        return add_node(self._node_tree, node_type, label, location, parent, props)
 
     def _set_material_mapping(self,
                               horizontal_tiling_channel_id: str,
@@ -267,7 +233,7 @@ class ShaderGroupApplier:
         if isinstance(socket, NodeSocket):
             socket = self._shader_group.inputs[socket.name]
         else:
-            socket =  self._shader_group.inputs[socket]
+            socket = self._shader_group.inputs[socket]
 
         return getattr(socket, "default_value")
 
@@ -276,17 +242,7 @@ class ShaderGroupApplier:
                      target: Node,
                      source_socket: NodeSocket | int | str,
                      target_socket: NodeSocket | int | str):
-        if isinstance(source_socket, NodeSocket):
-            source_socket = source.outputs[source_socket.name]
-        else:
-            source_socket = source.outputs[source_socket]
-        if isinstance(target_socket, NodeSocket):
-            target_socket = target.inputs[target_socket.name]
-        else:
-            target_socket = target.inputs[target_socket]
-
-        self._node_tree.links.new(source_socket, target_socket)
-
+        link_socket(self._node_tree, source, target, source_socket, target_socket)
 
     def _correct_color(self, rgba: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
         if self._properties.apply_color_corrections:

@@ -9,9 +9,11 @@ from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties, props_from_ctx
 from ..shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
 from ..shaders.fallback import FallbackShaderGroupApplier
-from ..utils.dson import DsonObject, DsonChannels
+from ..utils.dson import DsonChannels
 from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
 from ..utils.poll import selected_objects_all_is_mesh
+
+MATERIAL_TYPE_ID_PROP = "__DAZ_IMPORT_SHADER_TYPE_ID__"
 
 
 class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
@@ -44,7 +46,6 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             except DsonFileNotFoundException as e:
                 self.report_error(e.message)
                 return {"CANCELLED"}
-
 
         for b_object in b_objects:
             dson_id = dson_id_conversion_table.to_dson(b_object.name)
@@ -98,6 +99,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
             applier = applier_cls(props, b_object, node_tree)
             applier.apply_shader_group(channels)
+            material[MATERIAL_TYPE_ID_PROP] = mat_type_id
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'

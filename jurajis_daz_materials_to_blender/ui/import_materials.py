@@ -1,7 +1,11 @@
 from bpy.types import Panel
 
+from ..operators.convert_materials import ConvertMaterialsOperator
+from ..operators.import_all_materials import ImportAllMaterialsOperator
+from ..operators.import_object_materials import ImportObjectMaterialsOperator
+from ..operators.import_shader_group import ImportShaderGroupOperator
 from ..shaders.library import SUPPORT_SHADER_GROUPS, SHADER_GROUPS
-from ..properties import MaterialImportProperties
+from ..properties import MaterialImportProperties, props_from_ctx
 
 
 class ImportMaterialsPanelBase(Panel):
@@ -13,7 +17,7 @@ class ImportMaterialsPanelBase(Panel):
         layout = self.layout
 
         # noinspection PyUnresolvedReferences
-        props: MaterialImportProperties = context.scene.daz_import__material_import_properties
+        props: MaterialImportProperties = props_from_ctx(context)
 
         tools_header, tools_panel = layout.panel("tools", default_closed=True)
         tools_header.label(text="Tools & Debugging")
@@ -27,14 +31,14 @@ class ImportMaterialsPanelBase(Panel):
             shader_groups_panel.label(text="Support")
             for group_name in SUPPORT_SHADER_GROUPS:
                 op = shader_groups_panel.operator(
-                    "daz_import.import_shader_group",
+                    ImportShaderGroupOperator.bl_idname,
                     text=group_name)
                 op.group_name = group_name
 
             shader_groups_panel.label(text="Shaders")
             for group_name in SHADER_GROUPS:
                 op = shader_groups_panel.operator(
-                    "daz_import.import_shader_group",
+                    ImportShaderGroupOperator.bl_idname,
                     text=group_name)
                 op.group_name = group_name
 
@@ -59,8 +63,9 @@ class ImportMaterialsPanelBase(Panel):
             options_panel.prop(props, "iray_uber_clamp_emission")
 
         layout.prop(props, "daz_scene_file")
-        layout.operator("daz_import.import_all_materials")
-        layout.operator("daz_import.import_object_materials")
+        layout.operator(ImportAllMaterialsOperator.bl_idname)
+        layout.operator(ImportObjectMaterialsOperator.bl_idname)
+        layout.operator(ConvertMaterialsOperator.bl_idname)
 
 
 class ImportMaterialsPanel3D(ImportMaterialsPanelBase):

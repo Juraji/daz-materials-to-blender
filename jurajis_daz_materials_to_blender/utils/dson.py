@@ -143,7 +143,7 @@ class DsonReader:
         scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
         scene_mods = [
             m for m in dson["scene"]["modifiers"]
-            if m["url"][0] == "#"  # Is local
+            if "extra" in m and m["url"][0] == "#"  # Is local
                and m["extra"][0]["type"] == "studio/simulation_settings/dynamic_simulation"  # is sim
                and self._unquote_daz_ref(m["parent"]) in scene_node_geo_ids
         ]

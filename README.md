@@ -66,6 +66,7 @@ under `Juraji's Tools`!_
 * DAZ PBR Skin
 * Iray Uber _(with handling for Metallicity/Roughness, Specular/Glossiness and Weighted sub-shaders)_
 * iWave's Translucent Fabric Shader _(My personal favorite)_
+* Blended Dual Lobe Hair _(Often used with dForce Hair, the strands kind) (Note that some color adjustment might be nessecary, I tried to match DAZ's behaviour as closely as possible, but only you can make it perfect.)_
 
 If a material uses a shader the plugin does not know, it will set up the material with a white Principled BSDF and adds
 all images it finds as Texture nodes.  

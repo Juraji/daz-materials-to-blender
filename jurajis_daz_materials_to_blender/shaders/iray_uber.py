@@ -258,9 +258,6 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
         # Volume Scattering
         if self._channel_enabled("sss_amount"):
             self._channel_to_sockets("sss_amount", self.IN_SSS_WEIGHT, None)
-            self._channel_to_sockets("scattering_measurement_distance", self.IN_SCATTERING_MEASUREMENT_DISTANCE, None)
-            self._channel_to_sockets("sss_color", self.IN_SSS_COLOR, None, False)
-            self._channel_to_sockets("sss_direction", self.IN_SSS_DIRECTION, None)
 
         # Volume Transmission
         if self._channel_enabled("refraction_weight"):

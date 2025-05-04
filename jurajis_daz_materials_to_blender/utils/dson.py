@@ -81,7 +81,9 @@ class DsonReader:
     def __init__(self):
         self.__content_dir_path_cache: dict[str, Path] = {}
         self.__geo_url_node_id_cache: dict[str, tuple[str, str, str | None]] = {}
-        self.__material_shader_type_cache: dict[str, str] = {}
+        self.__material_shader_type_cache: dict[str, str] = {
+            "#Default": "default"
+        }
 
         # Initialize content libraries
         self.content_dirs = self._read_content_dirs_from_registry()
@@ -205,8 +207,8 @@ class DsonReader:
         if url in self.__material_shader_type_cache:
             return self.__material_shader_type_cache[url]
 
-        extra = scene_mat['extra']
-        if extra[0]['type'] == 'studio/material/uber_iray':
+        extra = scene_mat.get('extra')
+        if extra and extra[0]['type'] == 'studio/material/uber_iray':
             mat_id = "iray_uber"
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
@@ -216,7 +218,7 @@ class DsonReader:
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
 
-        if lib_mat and scene_mat['extra'][0]['type'] == 'studio/material/daz_brick':
+        if lib_mat and extra and extra[0]['type'] == 'studio/material/daz_brick':
             shader_type = slugify(lib_mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
             self.__material_shader_type_cache[url] = shader_type
             return shader_type

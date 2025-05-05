@@ -16,7 +16,6 @@ DMC_V = TypeVar('DMC_V')
 @serializable("has_image", "is_set")
 @dataclass
 class DsonChannel(Generic[DMC_V]):
-    id: str
     value: DMC_V
     default_value: DMC_V
     image_file: str | None
@@ -81,9 +80,7 @@ class DsonReader:
     def __init__(self):
         self.__content_dir_path_cache: dict[str, Path] = {}
         self.__geo_url_node_id_cache: dict[str, tuple[str, str, str | None]] = {}
-        self.__material_shader_type_cache: dict[str, str] = {
-            "#Default": "default"
-        }
+        self.__material_shader_type_cache: dict[str, str] = {}
 
         # Initialize content libraries
         self.content_dirs = self._read_content_dirs_from_registry()
@@ -121,23 +118,27 @@ class DsonReader:
 
             materials.append(material)
 
-            if "diffuse" in scene_mat:
-                mat_id, mapped = self._map_channel(scene_mat["diffuse"]["channel"])
-                material.channels[mat_id] = mapped
+            # 1st level channels
+            for key, value in scene_mat.items():
+                if isinstance(value, dict) and "channel" in value:
+                    mat_id = slugify(key)
+                    material.channels[mat_id] = self._map_channel(value["channel"])
 
+            # Extra channels
             for mat_extra in scene_mat.get("extra", []):
                 if mat_extra["type"] == "studio_material_channels":
                     for channel in mat_extra["channels"]:
-                        mat_id, mapped = self._map_channel(channel["channel"])
-                        material.channels[mat_id] = mapped
+                        mat_id = slugify(channel["channel"]["id"])
+                        material.channels[mat_id] = self._map_channel(channel["channel"])
 
+            # Material library channels
             if lib_mat:
                 for mat_extra in lib_mat.get("extra", []):
                     if mat_extra["type"] == "studio_material_channels":
                         for channel in mat_extra["channels"]:
-                            mat_id, mapped = self._map_channel(channel["channel"])
+                            mat_id = slugify(channel["channel"]["id"])
                             if not mat_id in material.channels:
-                                material.channels[mat_id] = mapped
+                                material.channels[mat_id] = self._map_channel(channel["channel"])
 
         return materials
 
@@ -162,19 +163,27 @@ class DsonReader:
 
             modifiers.append(modifier)
 
+            # 1st level channels
+            for key, value in scene_mod.items():
+                if isinstance(value, dict) and "channel" in value:
+                    mat_id = slugify(key)
+                    modifier.channels[mat_id] = self._map_channel(value["channel"])
+
+            # Extra channels
             for mod_extra in scene_mod.get("extra", []):
                 if mod_extra["type"] == "studio_modifier_channels":
                     for channel in mod_extra["channels"]:
-                        mat_id, mapped = self._map_channel(channel["channel"])
-                        modifier.channels[mat_id] = mapped
+                        mat_id = slugify(channel["channel"]["id"])
+                        modifier.channels[mat_id] = self._map_channel(channel["channel"])
 
+            # Modifier library channels
             if lib_mod:
                 for mat_extra in lib_mod.get("extra", []):
                     if mat_extra["type"] == "studio_modifier_channels":
                         for channel in mat_extra["channels"]:
-                            mat_id, mapped = self._map_channel(channel["channel"])
+                            mat_id = slugify(channel["channel"]["id"])
                             if not mat_id in modifier.channels:
-                                modifier.channels[mat_id] = mapped
+                                modifier.channels[mat_id] = self._map_channel(channel["channel"])
 
         return modifiers
 
@@ -204,26 +213,42 @@ class DsonReader:
     def _find_shader_type(self, scene_mat: dict, lib_mat: dict) -> str:
         url = scene_mat['url']
 
+        # Try get from cache
         if url in self.__material_shader_type_cache:
             return self.__material_shader_type_cache[url]
 
-        extra = scene_mat.get('extra')
-        if extra and extra[0]['type'] == 'studio/material/uber_iray':
-            mat_id = "iray_uber"
+        def _find_type():
+            # Uses external DSF
+            if url.startswith("/"):
+                return slugify(self._unquote_daz_ref(url))
+
+            # Try get from extra
+            mat_extra = scene_mat.get('extra')
+            if mat_extra and mat_extra[0]['type'] == 'studio/material/uber_iray':
+                return "iray_uber"
+
+            if lib_mat:
+                if "type" in lib_mat:
+                    return slugify(lib_mat["type"])
+
+                lib_mat_extra = lib_mat.get('extra')
+                if not lib_mat_extra:
+                    return None
+
+                if lib_mat_extra[0]['type'] == 'studio/material/uber_iray':
+                    return "iray_uber"
+
+                if lib_mat_extra[0]['type'] == 'studio/material/daz_brick':
+                    return slugify(lib_mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
+
+            return None
+
+        mat_id = _find_type()
+        if mat_id:
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
-
-        if url.startswith("/"):
-            mat_id = slugify(self._unquote_daz_ref(url))
-            self.__material_shader_type_cache[url] = mat_id
-            return mat_id
-
-        if lib_mat and extra and extra[0]['type'] == 'studio/material/daz_brick':
-            shader_type = slugify(lib_mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
-            self.__material_shader_type_cache[url] = shader_type
-            return shader_type
-
-        raise Exception(f'Unable to find shader type for url {url}.')
+        else:
+            raise Exception(f'Unable to find shader type for url {url}.')
 
     @staticmethod
     def _find_modifier_type(scene_mod: dict) -> str:
@@ -249,8 +274,7 @@ class DsonReader:
                 return cd_path
         return None
 
-    def _map_channel(self, c_data: dict) -> (str, DsonChannel):
-        mat_id = slugify(c_data['id'])
+    def _map_channel(self, c_data: dict) -> DsonChannel:
         raw_value = c_data.get("current_value")
         value_type = c_data['type']
 
@@ -259,24 +283,21 @@ class DsonReader:
         match value_type:
             case "float_color" | "color":
                 raw_default_value = c_data.get("value", (0, 0, 0))
-                dson_channel = DsonColorChannel(
-                    mat_id,
+                return DsonColorChannel(
                     tuple(raw_value[:3]),
                     tuple(raw_default_value[:3]),
                     image_file)
             case "float":
                 raw_default_value = c_data.get("value", 0.0)
-                dson_channel = DsonFloatChannel(mat_id, float(raw_value), float(raw_default_value), image_file)
+                return DsonFloatChannel(float(raw_value), float(raw_default_value), image_file)
             case "bool":
                 raw_default_value = c_data.get("value", False)
-                dson_channel = DsonBoolChannel(mat_id, bool(raw_value), bool(raw_default_value), image_file)
+                return DsonBoolChannel(bool(raw_value), bool(raw_default_value), image_file)
             case "image":
-                dson_channel = DsonImageChannel(mat_id, None, None, image_file or raw_value)
+                return DsonImageChannel(None, None, image_file or raw_value)
             case _:
                 raw_default_value = c_data.get("value", "")
-                dson_channel = DsonStringChannel(mat_id, str(raw_value), str(raw_default_value), image_file)
-
-        return mat_id, dson_channel
+                return DsonStringChannel(str(raw_value), str(raw_default_value), image_file)
 
     @classmethod
     def _read_content_dirs_from_registry(cls) -> list[Path]:

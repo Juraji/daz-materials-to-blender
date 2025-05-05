@@ -1,8 +1,10 @@
-def slugify(*parts: str) -> str:
+def slugify(*parts: str, lower_case: bool = True) -> str:
     result = []
     prev_was_underscore = False
 
-    merged_parts = str.join('_', parts).lower()
+    merged_parts = str.join('_', parts)
+    if lower_case:
+        merged_parts = merged_parts.lower()
 
     for c in merged_parts:
         if c.isalnum():

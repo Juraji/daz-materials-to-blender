@@ -12,6 +12,7 @@ from ..shaders.fallback import FallbackShaderGroupApplier
 from ..utils.dson import DsonChannels
 from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
 from ..utils.poll import selected_objects_all_is_mesh
+from ..utils.slugify import slugify
 
 MATERIAL_TYPE_ID_PROP = "__DAZ_IMPORT_SHADER_TYPE_ID__"
 
@@ -77,11 +78,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             mat_type_id = mat_def.type_id
             channels = mat_def.channels
 
-            if mat_name in b_object.data.materials:
-                material = b_object.data.materials[mat_name]
-            else:
-                material = next((m for m in b_object.data.materials if m.name.startswith(mat_name)), None)
-
+            material = self._find_material_by_name(b_object, mat_name)
             if not material:
                 continue
 
@@ -103,6 +100,27 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
             if props.rename_materials:
                 material.name = f'{b_object.name}_{mat_name}'
+
+    @staticmethod
+    def _find_material_by_name(b_object, mat_name):
+        # Material name exactly equals
+        if mat_name in b_object.data.materials:
+            return b_object.data.materials[mat_name]
+
+        # Slugified material name exactly equals
+        mat_name_slug = slugify(mat_name, lower_case=False)
+        if mat_name_slug in b_object.data.materials:
+            return b_object.data.materials[mat_name_slug]
+
+        # Starts with
+        for mat in b_object.data.materials.values():
+            if mat.name.startswith(mat_name):
+                return mat
+            mat_slug = slugify(mat.name, lower_case=False)
+            if mat_slug.startswith(mat_name_slug):
+                return mat
+
+        return None
 
     @staticmethod
     def _import_missing_groups(materials: list[DsonChannels]):

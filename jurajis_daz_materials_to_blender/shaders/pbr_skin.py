@@ -96,8 +96,6 @@ class PBRSkinShaderGroupApplier(ShaderGroupApplier):
 
         if self._channel_enabled('sub_surface_enable'):
             self._channel_to_sockets('translucency_weight', self.IN_SSS_WEIGHT, None)
-            self._channel_to_sockets('sss_color', self.IN_SSS_RADIUS, None)
-            self._channel_to_sockets('sss_direction', self.IN_SSS_DIRECTION, None)
 
         self._channel_to_sockets('normal_map', self.IN_NORMAL_WEIGHT, self.IN_NORMAL_MAP)
         if self._properties.pbr_skin_normal_multiplier != 1.0:

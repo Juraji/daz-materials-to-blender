@@ -51,7 +51,7 @@ under `Juraji's Tools`!_
 
 ### In Blender
 
-<img src="images/plugin-collapsed-marked.png" width="300" height="205" alt="Plugin UI Import"/>
+<img src="images/plugin-collapsed-marked.png" width="300" height="287.0229007633588" alt="Plugin UI Import"/>
 
 1. Import the `OBJ`s and/or `FBX`s you've exported from DAZ.  
    _IMPORTANT: Do NOT rename any objects or materials! This plugin uses some real magic to determine which material in
@@ -61,12 +61,19 @@ under `Juraji's Tools`!_
 4. Click `Import All Materials`.
 5. Blender should freeze for a moment and if all went well all of your objects should have the correct materials set up.
 
+As for the other buttons:
+
+* `Import Object Materials`: Only import/update materials for the selected objects.
+* `Create Instances`: Big one, copy instanced objects! Check out [Object Instances](#object-instances), below!
+* `Convert Materials`: After import, convert materials from one to the other type. For instance Iray Uber to PBR Skin.
+
 ## Supported Shaders
 
 * DAZ PBR Skin
 * Iray Uber _(with handling for Metallicity/Roughness, Specular/Glossiness and Weighted sub-shaders)_
 * iWave's Translucent Fabric Shader _(My personal favorite)_
-* Blended Dual Lobe Hair _(Often used with dForce Hair, the strands kind) (Note that some color adjustment might be nessecary, I tried to match DAZ's behaviour as closely as possible, but only you can make it perfect.)_
+* Blended Dual Lobe Hair _(Often used with dForce Hair, the strands kind) (Note that some color adjustment might be
+  nessecary, I tried to match DAZ's behaviour as closely as possible, but only you can make it perfect.)_
 
 If a material uses a shader the plugin does not know, it will set up the material with a white Principled BSDF and adds
 all images it finds as Texture nodes.  
@@ -131,19 +138,13 @@ uses.
 These groups are "small" pieces of the shader stacks that make up the full shader groups. You should check them out,
 they might prove useful.
 
-### Shaders
+#### Shaders
 
 These are the full-blown mimic shader groups. Each has options gallore!
 
 ### Import Options
 
-<img src="images/plugin-import-options.png" width="200" height="308" alt="Plugin UI Import Options"/>
-
-#### Renaming
-
-Enabling these options will rename the objects in the outliner to their DAZ Equivalents.  
-_IMPORTANT: This breaks the link between DAZ scene nodes and Blender objects. Meaning the import can not be run
-again._
+<img src="images/plugin-import-options.png" width="300" height="616.5" alt="Plugin UI Import Options"/>
 
 #### General
 
@@ -153,9 +154,29 @@ These options apply to all shaders.
 
 These options apply to specific shaders.
 
-## A few notes
+## Object Instances
 
-### dForce Hair
+DAZ Studio does not export instanced objects. So, there you are, using some scripts to convert all instances to real
+objects. In the meanwhile your export blows up to mere GBs...
+
+Yeah, I've had that exact problem.
+
+Well, no more! Leave your instances instanced and export your environment from DAZ Studio. After import in Blender, you
+follow the same steps as in the [Basic Usage](#basic-usage). _It is recommended to import everything, at this point._
+
+_(!) Before proceeding, make sure the "Exported Scale" has the same value as you used to export from DAZ. This is used
+to scale distances from DAZ to Blender. A wrong value might result in instance locations being incorrect._  
+_When in doubt, just copy the settings one-to-one._
+
+Now Blender has all the mesh-data we need, click that `Create Instances`-button and behold!
+Your instances in DAZ are now instances in Blender. And yes, these are actual instances with linked data, not just mere
+copies.  
+You can edit the materials and mesh data of the original and the instances will follow!
+
+_(!) Currently only the "Single Node" Instance Mode is supported. When my brain recovers from this madness I'll try to
+see if I can support "Node and Children"._
+
+## dForce Hair
 
 This plugin does not convert dForce Strand Based Hair (dForce Render Hair Generator).  
 However, you can pre-tesselate the hair strands in DAZ Studio:
@@ -174,6 +195,7 @@ Blender will handle it a lot better!
 While I wrote this plugin mostly by myself there are some credits to mention:
 
 ### Blender Guru
+
 [blenderguru.com](https://www.blenderguru.com)
 
 Especially for the base of the "Fake Glass" shader group. A lot of headaches have been saved!  

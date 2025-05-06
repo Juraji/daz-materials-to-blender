@@ -11,7 +11,7 @@ from bpy.types import Object as BObject, ShaderNodeTree, Node, NodeSocket, \
 from ..properties import MaterialImportProperties
 from ..utils.dson import DsonChannel, DsonFloatChannel, DsonColorChannel, \
     DsonBoolChannel
-from ..utils.math import tuple_zip_mult
+from ..utils.math import tuple_zip_prod
 from ..utils.node_trees import link_socket, add_node, add_image_texture
 
 _TNode = TypeVar('_TNode', bound=Node)
@@ -221,11 +221,11 @@ class ShaderGroupApplier:
                         base = (1.0, 1.0, 1.0, 1.0)
                         sock_value = getattr(socket_input, "default_value", base)
                         value = self._correct_color(value)
-                        setattr(socket_input, "default_value", tuple_zip_mult(base, sock_value, value))
+                        setattr(socket_input, "default_value", tuple_zip_prod(base, sock_value, value))
                     case NodeSocketVector():
                         base = (1.0, 1.0, 1.0)
                         sock_value = getattr(socket_input, "default_value", base)
-                        setattr(socket_input, "default_value", tuple_zip_mult(base, sock_value, value))
+                        setattr(socket_input, "default_value", tuple_zip_prod(base, sock_value, value))
                     case _:
                         raise Exception(f"Can not use MULITPLY of socket of type: {type(socket_input)}")
 

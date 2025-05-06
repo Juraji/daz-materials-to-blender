@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import bpy
-from bpy.types import Operator
+from bpy.types import Operator, Context
 
 from .base import OperatorReportMixin
 from ..properties import MaterialImportProperties, props_from_ctx
@@ -15,11 +15,11 @@ class ImportAllMaterialsOperator(OperatorReportMixin, Operator):
     bl_options = {"REGISTER", "BLOCKING"}
 
     @classmethod
-    def poll(cls, context):
+    def poll(cls, context: Context):
         props: MaterialImportProperties = props_from_ctx(context)
         return props.has_scene_file_set()
 
-    def execute(self, context):
+    def execute(self, context: Context):
         props: MaterialImportProperties = props_from_ctx(context)
 
         try:

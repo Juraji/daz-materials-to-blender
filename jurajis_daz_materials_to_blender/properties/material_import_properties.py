@@ -1,4 +1,4 @@
-from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, FloatProperty, IntProperty, EnumProperty
 from bpy.types import PropertyGroup
 
 
@@ -9,18 +9,12 @@ class MaterialImportProperties(PropertyGroup):
         subtype="FILE_PATH",
     )
 
-    rename_materials: BoolProperty(
-        name="Rename Materials",
-        description="""Rename materials to their DAZ surface equivalents.
-Note that enabling this will prevent rerunning imports!""",
-        default=False,
-    )
-
-    rename_objects: BoolProperty(
-        name="Rename Objects",
-        description="""Rename objects to their DAZ label equivalent.
-Note that enabling this will break rerunning imports!""",
-        default=False,
+    # Import info
+    exported_scale: IntProperty(
+        name="Exported Scale",
+        description="The export scale used in DAZ's export window.",
+        subtype="PERCENTAGE",
+        default=1,
     )
 
     # General Modifiers
@@ -86,3 +80,6 @@ Some artist use emission to make surfaces pop. However, this looks bad in Cycles
 
     def has_scene_file_set(self):
         return self.daz_scene_file != "" and self.daz_scene_file.endswith(".duf")
+
+    def exported_scale_float(self) -> float:
+        return self.exported_scale / 100

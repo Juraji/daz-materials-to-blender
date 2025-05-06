@@ -1,6 +1,7 @@
 from bpy.types import Panel
 
 from ..operators.convert_materials import ConvertMaterialsOperator
+from ..operators.create_instances import CreateInstancesOperator
 from ..operators.import_all_materials import ImportAllMaterialsOperator
 from ..operators.import_object_materials import ImportObjectMaterialsOperator
 from ..operators.import_shader_group import ImportShaderGroupOperator
@@ -45,18 +46,18 @@ class ImportMaterialsPanelBase(Panel):
         options_header, options_panel = layout.panel("import_options", default_closed=True)
         options_header.label(text="Import Options")
         if options_panel:
-            options_panel.label(text="Renaming")
-            options_panel.prop(props, "rename_materials")
-            options_panel.prop(props, "rename_objects")
-
             options_panel.label(text="General")
             options_panel.prop(props, "apply_color_corrections")
+            options_panel.prop(props, "exported_scale")
+            options_panel.separator()
             options_panel.prop(props, "dls_weight_multiplier")
             options_panel.prop(props, "bump_strength_multiplier")
 
+            options_panel.separator()
             options_panel.label(text="PBR Skin")
             options_panel.prop(props, "pbr_skin_normal_multiplier")
 
+            options_panel.separator()
             options_panel.label(text="Iray Uber")
             options_panel.prop(props, "iray_uber_replace_glass")
             options_panel.prop(props, "iray_uber_remap_glossy_color_to_roughness")
@@ -65,6 +66,8 @@ class ImportMaterialsPanelBase(Panel):
         layout.prop(props, "daz_scene_file")
         layout.operator(ImportAllMaterialsOperator.bl_idname)
         layout.operator(ImportObjectMaterialsOperator.bl_idname)
+        layout.operator(CreateInstancesOperator.bl_idname)
+        layout.separator()
         layout.operator(ConvertMaterialsOperator.bl_idname)
 
 

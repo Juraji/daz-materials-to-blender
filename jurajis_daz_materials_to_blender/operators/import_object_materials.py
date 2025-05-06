@@ -84,7 +84,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
             applier_cls = self._find_applier_by_type_id(mat_type_id)
             if not applier_cls:
-                self.report_error("No shader group available for material type "
+                self.report_warning("No shader group available for material type "
                                   f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
                 applier_cls = FallbackShaderGroupApplier  # Fallback
 
@@ -98,8 +98,6 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             applier.apply_shader_group(channels)
             material[MATERIAL_TYPE_ID_PROP] = mat_type_id
 
-            if props.rename_materials:
-                material.name = f'{b_object.name}_{mat_name}'
 
     @staticmethod
     def _find_material_by_name(b_object, mat_name):

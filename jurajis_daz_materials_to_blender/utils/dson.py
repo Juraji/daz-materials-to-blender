@@ -4,20 +4,23 @@ import winreg
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Protocol
 from urllib import parse as urlparse
 
 from .json import serializable
+from .math import tuple_zip_sum, tuple_zip_prod, tuple_mod, tuple_prod
 from .slugify import slugify
 
-DMC_V = TypeVar('DMC_V')
+_DMC_V = TypeVar('_DMC_V')
+DsonCoordinate = tuple[float, float, float]
+DsonRGBA = tuple[float, float, float, float]
 
 
 @serializable("has_image", "is_set")
 @dataclass
-class DsonChannel(Generic[DMC_V]):
-    value: DMC_V
-    default_value: DMC_V
+class DsonChannel(Generic[_DMC_V]):
+    value: _DMC_V
+    default_value: _DMC_V
     image_file: str | None
 
     def has_image(self) -> bool: return self.image_file is not None
@@ -27,13 +30,13 @@ class DsonChannel(Generic[DMC_V]):
 
 
 @dataclass
-class DsonColorChannel(DsonChannel[tuple[float, float, float]]):
+class DsonColorChannel(DsonChannel[DsonCoordinate]):
     alpha: float = 1.0
 
-    def as_rgba(self) -> tuple[float, float, float, float]:
+    def as_rgba(self) -> DsonRGBA:
         return self.value[0], self.value[1], self.value[2], self.alpha
 
-    def as_float(self):
+    def as_float(self) -> float:
         return (sum(self.value) / 3) * self.alpha
 
 
@@ -65,13 +68,35 @@ class DsonChannels:
     channels: dict[str, DsonChannel] = field(default_factory=dict)
 
 
+class DsonTransforms(Protocol):
+    origin: DsonCoordinate
+    rotation: DsonCoordinate
+    translation: DsonCoordinate
+    scale: DsonCoordinate
+
+
 @dataclass
-class DsonObject:
+class DsonObjectInstance(DsonTransforms):
     id: str
     label: str
+    origin: DsonCoordinate
+    rotation: DsonCoordinate
+    translation: DsonCoordinate
+    scale: DsonCoordinate
+
+
+@dataclass
+class DsonObject(DsonTransforms):
+    id: str
+    label: str
+    origin: DsonCoordinate
+    rotation: DsonCoordinate
+    translation: DsonCoordinate
+    scale: DsonCoordinate
     parent_id: str | None
     materials: list[DsonChannels] = field(default_factory=list)
     simulation: list[DsonChannels] = field(default_factory=list)
+    instances: list[DsonObjectInstance] = field(default_factory=list)
 
 
 class DsonReader:
@@ -79,7 +104,6 @@ class DsonReader:
 
     def __init__(self):
         self.__content_dir_path_cache: dict[str, Path] = {}
-        self.__geo_url_node_id_cache: dict[str, tuple[str, str, str | None]] = {}
         self.__material_shader_type_cache: dict[str, str] = {}
 
         # Initialize content libraries
@@ -89,15 +113,26 @@ class DsonReader:
         dson = self._read_dson_file(daz_scene_file)
         scene_nodes = [n for n in dson["scene"]["nodes"] if "geometries" in n]
 
-        return [
-            DsonObject(
-                id=n["id"],
-                label=n["label"],
-                parent_id=self._unquote_daz_ref(n["parent"]) if "parent" in n else None,
-                materials=self._read_material_channels(n, dson),
-                simulation=self._read_sim_modifiers(n, dson),
-            ) for n in scene_nodes
-        ]
+        dson_objects = []
+
+        for scene_node in scene_nodes:
+            n_base_rot, n_base_trans, n_base_scale = self._find_transforms_recursive(scene_node, None, dson)
+
+            # noinspection PyTypeChecker
+            dson_objects.append(DsonObject(
+                id=scene_node["id"],
+                label=scene_node["label"],
+                origin=tuple(scene_node["preview"]["center_point"]),
+                rotation=n_base_rot,
+                translation=n_base_trans,
+                scale=n_base_scale,
+                parent_id=self._unquote_daz_ref(scene_node["parent"]) if "parent" in scene_node else None,
+                materials=self._read_material_channels(scene_node, dson),
+                simulation=self._read_sim_modifiers(scene_node, dson),
+                instances=self._read_instances(scene_node, dson)
+            ))
+
+        return dson_objects
 
     def _read_material_channels(self, scene_node: dict, dson: dict) -> list[DsonChannels]:
         scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
@@ -186,6 +221,88 @@ class DsonReader:
                                 modifier.channels[mat_id] = self._map_channel(channel["channel"])
 
         return modifiers
+
+    def _read_instances(self, node: dict, dson: dict) -> list[DsonObjectInstance]:
+        scene_nodes = dson["scene"]["nodes"]
+        node_library = dson["node_library"]
+        instance_scene_nodes = [
+            n for n in scene_nodes
+            if "extra" in n
+               and n["extra"][0]["type"] == "studio/node/instance"
+               and self._unquote_daz_ref(n["extra"][1]["channels"][0]["channel"]["node"]) == node["id"]
+        ]
+
+        if len(instance_scene_nodes) == 0:
+            return []
+
+        instances: list[DsonObjectInstance] = []
+        for instance in instance_scene_nodes:
+            lib_node = self._find_entry_by_url(node_library, instance["url"])
+
+            if not lib_node:
+                continue
+
+            instance_rotation, instance_translation, instance_scale = \
+                self._find_transforms_recursive(instance, lib_node, dson)
+            instance_rotation = tuple_mod(instance_rotation, 360.0)
+            instance_origin = self._read_point_axis(lib_node, "center_point", 0.0)
+
+            # noinspection PyTypeChecker
+            instances.append(DsonObjectInstance(
+                id=slugify(instance["id"]),
+                label=instance["label"],
+                origin=instance_origin,
+                rotation=instance_rotation,
+                translation=instance_translation,
+                scale=instance_scale
+            ))
+
+        return instances
+
+    @classmethod
+    def _find_entry_by_url(cls, library: list[dict], url: str):
+        ref = cls._unquote_daz_ref(url)
+        return next((entry for entry in library if entry["id"] == ref), None)
+
+    @classmethod
+    def _find_transforms_recursive(cls,
+                                   node: dict,
+                                   lib_node: dict | None,
+                                   dson: dict) -> tuple[DsonCoordinate, DsonCoordinate, DsonCoordinate]:
+        if "geometries" in node:
+            n_rot = cls._read_point_axis(node, "rotation", 0.0)
+            n_trans = cls._read_point_axis(node, "translation", 0.0)
+
+            sn_gscale = node["general_scale"]["current_value"] if "general_scale" in node else 1.0
+            n_scale = tuple_prod(cls._read_point_axis(node, "scale", 1.0), sn_gscale)
+        elif lib_node:
+            n_rot = tuple(v["current_value"] for v in lib_node["rotation"])
+            n_trans = tuple(v["current_value"] for v in lib_node["translation"])
+            ln_gscale = lib_node["general_scale"]["current_value"]
+            n_scale = tuple(v["current_value"] * ln_gscale for v in lib_node["scale"])
+        else:
+            n_rot = (0, 0, 0)
+            n_trans = (0, 0, 0)
+            n_scale = (1.0, 1.0, 1.0)
+
+        if "parent" in node:
+            p_scene_node = cls._find_entry_by_url(dson["scene"]["nodes"], node["parent"])
+            if p_scene_node:
+                p_lib_node = cls._find_entry_by_url(dson["node_library"], p_scene_node["url"])
+                p_rot, p_trans, p_scale = cls._find_transforms_recursive(p_scene_node, p_lib_node, dson)
+
+                n_rot = tuple_zip_sum(n_rot, p_rot)
+                n_trans = tuple_zip_sum(n_trans, p_trans)
+                n_scale = tuple_zip_prod(n_scale, p_scale)
+
+        return n_rot, n_trans, n_scale
+
+    @staticmethod
+    def _read_point_axis(node: dict, prop_name: str, default: float) -> DsonCoordinate:
+        prop = node.get(prop_name, [])
+        return next((v["current_value"] for v in prop if v["id"] == "x"), default), \
+            next((v["current_value"] for v in prop if v["id"] == "y"), default), \
+            next((v["current_value"] for v in prop if v["id"] == "z"), default)
 
     @classmethod
     def _read_dson_file(cls, dson_file: PathLike) -> dict:

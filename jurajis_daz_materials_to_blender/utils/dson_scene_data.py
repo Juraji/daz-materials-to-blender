@@ -11,15 +11,18 @@ class DsonIdConversionTable:
         self._table_dson_to_blender = {}
         self._table_blender_to_dson = {}
         suffix_groups = defaultdict(list)
+        node_ids = [n.id for n in for_nodes]
 
-        for node in for_nodes:
-            base, *suffix = node.id.rsplit('-', 1)
+        for node_id in node_ids:
+            base, *suffix = node_id.rsplit('-', 1)
             if suffix and suffix[0].isdigit():
-                suffix_groups[base].append(node.id)
+                suffix_groups[base].append(node_id)
 
         for base, variants in suffix_groups.items():
+            offset = 1 if base in node_ids else 0
             for i, variant in enumerate(sorted(variants)):
-                name = f"{base}.{i + 1:03d}"
+                n = i + offset
+                name = f"{base}.{n:03d}" if n > 0 else base
                 self._table_dson_to_blender[variant] = name
                 self._table_blender_to_dson[name] = variant
 
@@ -64,6 +67,7 @@ class DsonSceneData:
 
         dns = bpy.app.driver_namespace
         return dns["dson_scene_nodes"], dns["dson_id_conversion_table"]
+
 
 class DsonFileNotFoundException(Exception):
     def __init__(self, message: str):

@@ -4,7 +4,7 @@ import bpy
 from bpy.types import Operator, Context
 
 from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx
+from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
 from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
 
 
@@ -23,8 +23,9 @@ class ImportAllMaterialsOperator(OperatorReportMixin, Operator):
         props: MaterialImportProperties = props_from_ctx(context)
 
         try:
+            prefs = prefs_from_ctx(context)
             daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-            dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file)
+            dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
             self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
         except DsonFileNotFoundException as e:
             self.report_error(e.message)

@@ -66,9 +66,13 @@ def add_image_texture(node_tree: NodeTree,
             if isinstance(node, ShaderNodeTexImage) and node.image and node.image.name == img_name:
                 return node
 
-    image = bpy.data.images.load(image_path, check_existing=True)
-    # noinspection PyTypeChecker
-    image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
+    try:
+        image = bpy.data.images.load(image_path, check_existing=True)
+        # noinspection PyTypeChecker
+        image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
+    except Exception as e:
+        raise Exception(f"Failed to load image {image_path}: {e}")
+
 
     props = {"image": image, "hide": True}
 

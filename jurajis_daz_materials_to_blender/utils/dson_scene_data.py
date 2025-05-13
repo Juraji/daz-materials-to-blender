@@ -4,6 +4,7 @@ from os import path, PathLike
 import bpy
 
 from .dson import DsonObject, DsonReader
+from ..properties import MaterialImportPreferences
 
 
 class DsonIdConversionTable:
@@ -41,11 +42,11 @@ class DsonIdConversionTable:
 
 class DsonSceneData:
     @staticmethod
-    def load_scene_data(dson_scene_path: PathLike) -> tuple[list[DsonObject], DsonIdConversionTable]:
+    def load_scene_data(dson_scene_path: PathLike, prefs: MaterialImportPreferences) -> tuple[list[DsonObject], DsonIdConversionTable]:
         if not path.exists(dson_scene_path):
             raise DsonFileNotFoundException(f"File {dson_scene_path} does not exist")
 
-        dson_reader = DsonReader()
+        dson_reader = DsonReader(prefs.content_libraries_as_paths())
         dson_scene_nodes = dson_reader.read_dson(dson_scene_path)
         dson_id_conversion_table = DsonIdConversionTable(dson_scene_nodes)
 

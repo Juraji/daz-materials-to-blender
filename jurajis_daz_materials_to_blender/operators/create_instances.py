@@ -7,7 +7,7 @@ from bpy.types import Operator, Context, Collection, Object as BObject
 from mathutils import Vector, Euler, Matrix
 
 from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx
+from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
 from ..utils.dson import DsonObject, DsonTransforms, DsonCoordinate
 from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
 from ..utils.math import tuple_prod, tuple_zip_sum, tuple_zip_prod, tuple_zip_div
@@ -43,7 +43,8 @@ class CreateInstancesOperator(OperatorReportMixin, Operator):
         else:
             try:
                 daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file)
+                prefs = prefs_from_ctx(context)
+                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
                 self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
             except DsonFileNotFoundException as e:
                 self.report_error(e.message)

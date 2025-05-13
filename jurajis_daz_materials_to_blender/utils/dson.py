@@ -1,6 +1,5 @@
 import gzip
 import json
-import winreg
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
@@ -100,14 +99,10 @@ class DsonObject(DsonTransforms):
 
 
 class DsonReader:
-    max_content_dirs = 100
-
-    def __init__(self):
+    def __init__(self, content_dirs: list[Path]):
         self.__content_dir_path_cache: dict[str, Path] = {}
         self.__material_shader_type_cache: dict[str, str] = {}
-
-        # Initialize content libraries
-        self.content_dirs = self._read_content_dirs_from_registry()
+        self.__content_dirs = content_dirs
 
     def read_dson(self, daz_scene_file: PathLike) -> list[DsonObject]:
         dson = self._read_dson_file(daz_scene_file)
@@ -383,7 +378,7 @@ class DsonReader:
             return None
         if path in self.__content_dir_path_cache:
             return self.__content_dir_path_cache[path]
-        for content_dir in self.content_dirs:
+        for content_dir in self.__content_dirs:
             decoded_path = urlparse.unquote(path[1:])
             cd_path = content_dir.joinpath(decoded_path)
             if cd_path.exists():
@@ -395,7 +390,12 @@ class DsonReader:
         raw_value = c_data.get("current_value")
         value_type = c_data['type']
 
-        image_file = str(self._find_content_dir_path(c_data['image_file'])) if 'image_file' in c_data else None
+        image_file = None
+        raw_path = c_data.get("image_file")
+        if raw_path is not None:
+            resolved = self._find_content_dir_path(raw_path)
+            if resolved:
+                image_file = str(resolved)
 
         match value_type:
             case "float_color" | "color":
@@ -415,19 +415,3 @@ class DsonReader:
             case _:
                 raw_default_value = c_data.get("value", "")
                 return DsonStringChannel(str(raw_value), str(raw_default_value), image_file)
-
-    @classmethod
-    def _read_content_dirs_from_registry(cls) -> list[Path]:
-        def enum_values(k):
-            for i in range(cls.max_content_dirs):
-                try:
-                    yield winreg.EnumValue(k, i)
-                except OSError:
-                    break
-
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\DAZ\Studio4') as key:
-            return [
-                Path(value)
-                for k, value, t in enum_values(key)
-                if k.startswith('ContentDir') and t == winreg.REG_SZ
-            ]

@@ -7,6 +7,7 @@ from bpy.types import Operator
 from bpy import path as bpath
 
 from ..base import OperatorReportMixin
+from ...properties import prefs_from_ctx, props_from_ctx
 from ...utils.dson import DsonReader
 from ...utils.json import DataclassJSONEncoder
 
@@ -20,12 +21,13 @@ The file will be saved in the same directory as this file, suffixed by ".materia
     @classmethod
     def poll(cls, context):
         # noinspection PyUnresolvedReferences
-        props: MaterialImportProperties = context.scene.daz_import__material_import_properties
-        return bpy.data.is_saved and props.daz_scene_file != "" and props.daz_scene_file.endswith(".duf")
+        props = props_from_ctx(context)
+        return bpy.data.is_saved and props.has_scene_file_set()
 
     def execute(self, context):
         # noinspection PyUnresolvedReferences
-        props: MaterialImportProperties = context.scene.daz_import__material_import_properties
+        props = props_from_ctx(context)
+        prefs = prefs_from_ctx(context)
 
         # Read and convert DAZ scene
         daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
@@ -33,7 +35,7 @@ The file will be saved in the same directory as this file, suffixed by ".materia
             self.report_error(f"File {daz_save_file} does not exist")
             return {"CANCELLED"}
 
-        dson_reader = DsonReader()
+        dson_reader = DsonReader(prefs.content_libraries_as_paths())
         dson_scene_nodes = dson_reader.read_dson(daz_save_file)
 
         directory = path.dirname(bpy.data.filepath)

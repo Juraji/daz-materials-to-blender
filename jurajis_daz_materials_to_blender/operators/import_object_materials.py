@@ -6,7 +6,7 @@ from bpy.props import BoolProperty
 from bpy.types import Operator, Context, Object as BObject
 
 from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx
+from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
 from ..shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
 from ..shaders.fallback import FallbackShaderGroupApplier
 from ..utils.dson import DsonChannels
@@ -42,7 +42,8 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
         else:
             try:
                 daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file)
+                prefs = prefs_from_ctx(context)
+                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
                 self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
             except DsonFileNotFoundException as e:
                 self.report_error(e.message)

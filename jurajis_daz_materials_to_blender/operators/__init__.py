@@ -7,6 +7,9 @@ def register():
     from .convert_materials import ConvertMaterialsOperator, MaterialItem
     from .debug.export_materials import DebugExportMaterialsOperator
     from .debug.delete_all_groups import DebugDeleteAllGroupsOperator
+    from .preferences.prefs_add_library_operator import PrefsAddLibraryOperator
+    from .preferences.prefs_remove_library_operator import PrefsRemoveLibraryOperator
+    from .preferences.prefs_win_detect_daz_libraries import PrefsWinDetectDazLibraries
 
     bpy.utils.register_class(ImportAllMaterialsOperator)
     bpy.utils.register_class(ImportObjectMaterialsOperator)
@@ -16,6 +19,9 @@ def register():
     bpy.utils.register_class(ConvertMaterialsOperator)
     bpy.utils.register_class(DebugExportMaterialsOperator)
     bpy.utils.register_class(DebugDeleteAllGroupsOperator)
+    bpy.utils.register_class(PrefsAddLibraryOperator)
+    bpy.utils.register_class(PrefsRemoveLibraryOperator)
+    bpy.utils.register_class(PrefsWinDetectDazLibraries)
 
 
 def unregister():
@@ -27,6 +33,9 @@ def unregister():
     from .convert_materials import ConvertMaterialsOperator, MaterialItem
     from .debug.export_materials import DebugExportMaterialsOperator
     from .debug.delete_all_groups import DebugDeleteAllGroupsOperator
+    from .preferences.prefs_add_library_operator import PrefsAddLibraryOperator
+    from .preferences.prefs_remove_library_operator import PrefsRemoveLibraryOperator
+    from .preferences.prefs_win_detect_daz_libraries import PrefsWinDetectDazLibraries
 
     bpy.utils.unregister_class(ImportAllMaterialsOperator)
     bpy.utils.unregister_class(ImportObjectMaterialsOperator)
@@ -36,3 +45,6 @@ def unregister():
     bpy.utils.unregister_class(ConvertMaterialsOperator)
     bpy.utils.unregister_class(DebugExportMaterialsOperator)
     bpy.utils.unregister_class(DebugDeleteAllGroupsOperator)
+    bpy.utils.unregister_class(PrefsAddLibraryOperator)
+    bpy.utils.unregister_class(PrefsRemoveLibraryOperator)
+    bpy.utils.unregister_class(PrefsWinDetectDazLibraries)

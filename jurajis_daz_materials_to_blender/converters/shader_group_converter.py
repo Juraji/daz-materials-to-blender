@@ -46,14 +46,14 @@ class ShaderGroupConverter:
             )
 
             # Link new group to material output
-            material_ouput = next(n for n in node_tree.nodes if isinstance(n, ShaderNodeOutputMaterial))
+            material_output = next(n for n in node_tree.nodes if isinstance(n, ShaderNodeOutputMaterial))
             for out_sock in new_group.outputs:
                 target_sock = to_cls.output_socket_map.get(out_sock.name)
                 if target_sock is None:
                     raise Exception(
                         f"Output socket {out_sock.name} in group {to_cls.group_name()} has no target socket in Material Output.")
 
-                link_socket(node_tree, new_group, material_ouput, out_sock, target_sock)
+                link_socket(node_tree, new_group, material_output, out_sock, target_sock)
 
             # Reroute links and copy values
             for org_sock_name, new_sock_name in mapping:

@@ -68,7 +68,7 @@ class BlendedDualLobeHairShaderApplier(ShaderGroupApplier):
                            "attribute_name": "blended_dual_lobe_hair_root_to_tip_gradient"}
         node_root_to_tip_attribute = self._add_node(ShaderNodeAttribute, self.IN_ROOT_TO_TIP_GEOMETRY_DATA,
                                                     (self.uv_map_location[0], -120), props=attribute_props)
-        self._link_socket(node_root_to_tip_attribute, self._shader_group, 0, self.IN_ROOT_TO_TIP_GEOMETRY_DATA)
+        self._link_socket(node_root_to_tip_attribute, self._shader_group, 2, self.IN_ROOT_TO_TIP_GEOMETRY_DATA)
 
         if self._channel_enabled("root_transmission_color") or self._channel_enabled("tip_transmission_color"):
             self._channel_to_sockets("root_transmission_color", self.IN_HAIR_ROOT_COLOR, self.IN_HAIR_ROOT_COLOR_MAP)

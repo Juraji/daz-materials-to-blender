@@ -1,85 +1,75 @@
-from typing import Type
-
 from .shader_group_converter import ShaderGroupConverter
 from ..shaders import ShaderGroupApplier, IrayUberShaderGroupApplier, IWaveTranslucentFabricShaderGroupApplier
 
 
 class IrayUberToIWaveFabricShaderConverter(ShaderGroupConverter):
-    @staticmethod
-    def from_type() -> Type[ShaderGroupApplier]:
-        return IrayUberShaderGroupApplier
+    from_type = IrayUberShaderGroupApplier
+    to_type = IWaveTranslucentFabricShaderGroupApplier
+    display_name = "Iray Uber To IWave Translucent Fabric"
 
-    @staticmethod
-    def to_type() -> Type[ShaderGroupApplier]:
-        return IWaveTranslucentFabricShaderGroupApplier
-
-    @staticmethod
-    def display_name() -> str:
-        return "Iray Uber To IWave Translucent Fabric"
-
-    @staticmethod
-    def property_mapping() -> list[tuple[str, str]]:
-        iray = IrayUberShaderGroupApplier
-        iwave = IWaveTranslucentFabricShaderGroupApplier
+    @classmethod
+    def property_mapping(cls) -> list[tuple[str, str]]:
+        i = cls.from_type
+        o = cls.to_type
 
         return [
-            (iray.IN_DIFFUSE, iwave.IN_DIFFUSE),
-            (iray.IN_DIFFUSE_MAP, iwave.IN_DIFFUSE_MAP),
+            (i.IN_DIFFUSE, o.IN_DIFFUSE),
+            (i.IN_DIFFUSE_MAP, o.IN_DIFFUSE_MAP),
 
-            (iray.IN_NORMAL, iwave.IN_BASE_NORMAL),
-            (iray.IN_NORMAL_MAP, iwave.IN_BASE_NORMAL_MAP),
-            (iray.IN_BUMP_STRENGTH, iwave.IN_BASE_BUMP),
-            (iray.IN_BUMP_STRENGTH_MAP, iwave.IN_BASE_BUMP_MAP),
+            (i.IN_NORMAL, o.IN_BASE_NORMAL),
+            (i.IN_NORMAL_MAP, o.IN_BASE_NORMAL_MAP),
+            (i.IN_BUMP_STRENGTH, o.IN_BASE_BUMP),
+            (i.IN_BUMP_STRENGTH_MAP, o.IN_BASE_BUMP_MAP),
 
-            (iray.IN_DIFFUSE_OVERLAY_WEIGHT, iwave.IN_FIBER_LAYER_WEIGHT),
-            (iray.IN_DIFFUSE_OVERLAY_WEIGHT_MAP, iwave.IN_FIBER_LAYER_WEIGHT_MAP),
-            (iray.IN_DIFFUSE_OVERLAY_COLOR, iwave.IN_FIBER_LAYER_COLOR),
-            (iray.IN_DIFFUSE_OVERLAY_COLOR_MAP, iwave.IN_FIBER_LAYER_COLOR_MAP),
-            (iray.IN_DIFFUSE_OVERLAY_ROUGHNESS, iwave.IN_FIBER_LAYER_ROUGHNESS),
-            (iray.IN_DIFFUSE_OVERLAY_ROUGHNESS_MAP, iwave.IN_FIBER_LAYER_ROUGHNESS_MAP),
+            (i.IN_DIFFUSE_OVERLAY_WEIGHT, o.IN_FIBER_LAYER_WEIGHT),
+            (i.IN_DIFFUSE_OVERLAY_WEIGHT_MAP, o.IN_FIBER_LAYER_WEIGHT_MAP),
+            (i.IN_DIFFUSE_OVERLAY_COLOR, o.IN_FIBER_LAYER_COLOR),
+            (i.IN_DIFFUSE_OVERLAY_COLOR_MAP, o.IN_FIBER_LAYER_COLOR_MAP),
+            (i.IN_DIFFUSE_OVERLAY_ROUGHNESS, o.IN_FIBER_LAYER_ROUGHNESS),
+            (i.IN_DIFFUSE_OVERLAY_ROUGHNESS_MAP, o.IN_FIBER_LAYER_ROUGHNESS_MAP),
 
-            (iray.IN_CUTOUT_OPACITY, iwave.IN_CUTOUT_OPACITY),
-            (iray.IN_CUTOUT_OPACITY_MAP, iwave.IN_CUTOUT_OPACITY_MAP),
-            (iray.IN_DISPLACEMENT_STRENGTH, iwave.IN_DISPLACEMENT_STRENGTH),
-            (iray.IN_DISPLACEMENT_STRENGTH_MAP, iwave.IN_DISPLACEMENT_STRENGTH_MAP),
-            (iray.IN_MINIMUM_DISPLACEMENT, iwave.IN_MINIMUM_DISPLACEMENT),
-            (iray.IN_MAXIMUM_DISPLACEMENT, iwave.IN_MAXIMUM_DISPLACEMENT),
+            (i.IN_CUTOUT_OPACITY, o.IN_CUTOUT_OPACITY),
+            (i.IN_CUTOUT_OPACITY_MAP, o.IN_CUTOUT_OPACITY_MAP),
+            (i.IN_DISPLACEMENT_STRENGTH, o.IN_DISPLACEMENT_STRENGTH),
+            (i.IN_DISPLACEMENT_STRENGTH_MAP, o.IN_DISPLACEMENT_STRENGTH_MAP),
+            (i.IN_MINIMUM_DISPLACEMENT, o.IN_MINIMUM_DISPLACEMENT),
+            (i.IN_MAXIMUM_DISPLACEMENT, o.IN_MAXIMUM_DISPLACEMENT),
 
-            (iray.IN_GLOSSY_WEIGHT, iwave.IN_GLOSSY_LAYERED_WEIGHT),
-            (iray.IN_GLOSSY_WEIGHT_MAP, iwave.IN_GLOSSY_LAYERED_WEIGHT_MAP),
-            (iray.IN_GLOSSY_COLOR, iwave.IN_GLOSSY_COLOR),
-            (iray.IN_GLOSSY_COLOR_MAP, iwave.IN_GLOSSY_COLOR_MAP),
-            (iray.IN_GLOSSY_REFLECTIVITY, iwave.IN_GLOSSY_REFLECTIVITY),
-            (iray.IN_GLOSSY_REFLECTIVITY_MAP, iwave.IN_GLOSSY_REFLECTIVITY_MAP),
-            (iray.IN_GLOSSY_ROUGHNESS, iwave.IN_GLOSSY_ROUGHNESS),
-            (iray.IN_GLOSSY_ROUGHNESS_MAP, iwave.IN_GLOSSY_ROUGHNESS_MAP),
+            (i.IN_GLOSSY_WEIGHT, o.IN_GLOSSY_LAYERED_WEIGHT),
+            (i.IN_GLOSSY_WEIGHT_MAP, o.IN_GLOSSY_LAYERED_WEIGHT_MAP),
+            (i.IN_GLOSSY_COLOR, o.IN_GLOSSY_COLOR),
+            (i.IN_GLOSSY_COLOR_MAP, o.IN_GLOSSY_COLOR_MAP),
+            (i.IN_GLOSSY_REFLECTIVITY, o.IN_GLOSSY_REFLECTIVITY),
+            (i.IN_GLOSSY_REFLECTIVITY_MAP, o.IN_GLOSSY_REFLECTIVITY_MAP),
+            (i.IN_GLOSSY_ROUGHNESS, o.IN_GLOSSY_ROUGHNESS),
+            (i.IN_GLOSSY_ROUGHNESS_MAP, o.IN_GLOSSY_ROUGHNESS_MAP),
 
-            (iray.IN_DIFFUSE, iwave.IN_GRADIENT_LAYER_GRAZING_COLOR),
-            (iray.IN_DIFFUSE_MAP, iwave.IN_GRADIENT_LAYER_GRAZING_COLOR_MAP),
-            (iray.IN_DIFFUSE, iwave.IN_GRADIENT_LAYER_NORMAL_TINT),
-            (iray.IN_DIFFUSE_MAP, iwave.IN_GRADIENT_LAYER_NORMAL_TINT_MAP),
+            (i.IN_DIFFUSE, o.IN_GRADIENT_LAYER_GRAZING_COLOR),
+            (i.IN_DIFFUSE_MAP, o.IN_GRADIENT_LAYER_GRAZING_COLOR_MAP),
+            (i.IN_DIFFUSE, o.IN_GRADIENT_LAYER_NORMAL_TINT),
+            (i.IN_DIFFUSE_MAP, o.IN_GRADIENT_LAYER_NORMAL_TINT_MAP),
 
-            (iray.IN_METALLIC_FLAKES_WEIGHT, iwave.IN_METALLIC_FLAKES_WEIGHT),
-            (iray.IN_METALLIC_FLAKES_WEIGHT_MAP, iwave.IN_METALLIC_FLAKES_WEIGHT_MAP),
-            (iray.IN_METALLIC_FLAKES_COLOR, iwave.IN_METALLIC_FLAKES_COLOR),
-            (iray.IN_METALLIC_FLAKES_COLOR_MAP, iwave.IN_METALLIC_FLAKES_COLOR_MAP),
-            (iray.IN_METALLIC_FLAKES_ROUGHNESS, iwave.IN_METALLIC_FLAKES_ROUGHNESS),
-            (iray.IN_METALLIC_FLAKES_ROUGHNESS_MAP, iwave.IN_METALLIC_FLAKES_ROUGHNESS_MAP),
-            (iray.IN_METALLIC_FLAKES_SIZE, iwave.IN_METALLIC_FLAKES_SIZE),
-            (iray.IN_METALLIC_FLAKES_STRENGTH, iwave.IN_METALLIC_FLAKES_STRENGTH),
-            (iray.IN_METALLIC_FLAKES_DENSITY, iwave.IN_METALLIC_FLAKES_DENSITY),
+            (i.IN_METALLIC_FLAKES_WEIGHT, o.IN_METALLIC_FLAKES_WEIGHT),
+            (i.IN_METALLIC_FLAKES_WEIGHT_MAP, o.IN_METALLIC_FLAKES_WEIGHT_MAP),
+            (i.IN_METALLIC_FLAKES_COLOR, o.IN_METALLIC_FLAKES_COLOR),
+            (i.IN_METALLIC_FLAKES_COLOR_MAP, o.IN_METALLIC_FLAKES_COLOR_MAP),
+            (i.IN_METALLIC_FLAKES_ROUGHNESS, o.IN_METALLIC_FLAKES_ROUGHNESS),
+            (i.IN_METALLIC_FLAKES_ROUGHNESS_MAP, o.IN_METALLIC_FLAKES_ROUGHNESS_MAP),
+            (i.IN_METALLIC_FLAKES_SIZE, o.IN_METALLIC_FLAKES_SIZE),
+            (i.IN_METALLIC_FLAKES_STRENGTH, o.IN_METALLIC_FLAKES_STRENGTH),
+            (i.IN_METALLIC_FLAKES_DENSITY, o.IN_METALLIC_FLAKES_DENSITY),
 
-            (iray.IN_TOP_COAT_WEIGHT, iwave.IN_TOP_COAT_WEIGHT),
-            (iray.IN_TOP_COAT_WEIGHT_MAP, iwave.IN_TOP_COAT_WEIGHT_MAP),
-            (iray.IN_TOP_COAT_COLOR, iwave.IN_TOP_COAT_COLOR),
-            (iray.IN_TOP_COAT_COLOR_MAP, iwave.IN_TOP_COAT_COLOR_MAP),
-            (iray.IN_TOP_COAT_ROUGHNESS, iwave.IN_TOP_COAT_ROUGHNESS),
-            (iray.IN_TOP_COAT_ROUGHNESS_MAP, iwave.IN_TOP_COAT_ROUGHNESS_MAP),
+            (i.IN_TOP_COAT_WEIGHT, o.IN_TOP_COAT_WEIGHT),
+            (i.IN_TOP_COAT_WEIGHT_MAP, o.IN_TOP_COAT_WEIGHT_MAP),
+            (i.IN_TOP_COAT_COLOR, o.IN_TOP_COAT_COLOR),
+            (i.IN_TOP_COAT_COLOR_MAP, o.IN_TOP_COAT_COLOR_MAP),
+            (i.IN_TOP_COAT_ROUGHNESS, o.IN_TOP_COAT_ROUGHNESS),
+            (i.IN_TOP_COAT_ROUGHNESS_MAP, o.IN_TOP_COAT_ROUGHNESS_MAP),
 
-            (iray.IN_THIN_FILM_WEIGHT, iwave.IN_THIN_FILM_WEIGHT),
-            (iray.IN_THIN_FILM_ROTATIONS, iwave.IN_THIN_FILM_ROTATIONS),
-            (iray.IN_THIN_FILM_THICKNESS, iwave.IN_THIN_FILM_THICKNESS),
-            (iray.IN_THIN_FILM_THICKNESS_MAP, iwave.IN_THIN_FILM_THICKNESS_MAP),
-            (iray.IN_THIN_FILM_IOR, iwave.IN_THIN_FILM_IOR),
-            (iray.IN_THIN_FILM_IOR_MAP, iwave.IN_THIN_FILM_IOR_MAP),
+            (i.IN_THIN_FILM_WEIGHT, o.IN_THIN_FILM_WEIGHT),
+            (i.IN_THIN_FILM_ROTATIONS, o.IN_THIN_FILM_ROTATIONS),
+            (i.IN_THIN_FILM_THICKNESS, o.IN_THIN_FILM_THICKNESS),
+            (i.IN_THIN_FILM_THICKNESS_MAP, o.IN_THIN_FILM_THICKNESS_MAP),
+            (i.IN_THIN_FILM_IOR, o.IN_THIN_FILM_IOR),
+            (i.IN_THIN_FILM_IOR_MAP, o.IN_THIN_FILM_IOR_MAP),
         ]

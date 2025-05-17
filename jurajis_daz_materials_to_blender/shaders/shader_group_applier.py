@@ -60,7 +60,7 @@ class ShaderGroupApplier:
 
         self._uv_map: ShaderNodeUVMap | None = None
         self._mapping: ShaderNodeMapping | None = None
-        self._material_ouput: ShaderNodeOutputMaterial | None = None
+        self._material_output: ShaderNodeOutputMaterial | None = None
         self._shader_group: ShaderNodeGroup | None = None
         self._channels: dict[str, DsonChannel] = {}
 
@@ -69,9 +69,9 @@ class ShaderGroupApplier:
                                       props={"from_instancer": False, "uv_map": "UVMap"})
         self._mapping = self._add_node(ShaderNodeMapping, "Mapping", self.mapping_location,
                                        props={"vector_type": "POINT", "hide": True})
-        self._material_ouput = self._add_node(ShaderNodeOutputMaterial, "Material Output",
-                                              self.material_output_location,
-                                              props={"is_active_output": True, "target": "ALL"})
+        self._material_output = self._add_node(ShaderNodeOutputMaterial, "Material Output",
+                                               self.material_output_location,
+                                               props={"is_active_output": True, "target": "ALL"})
         self._link_socket(self._uv_map, self._mapping, 0, 0)
 
         self._shader_group = self._add_node(ShaderNodeGroup, self.group_name(), self.node_group_location, props={
@@ -85,7 +85,7 @@ class ShaderGroupApplier:
                 raise Exception(
                     f"Output socket {out_sock.name} in group {self.group_name()} has no target socket in Material Output.")
 
-            self._link_socket(self._shader_group, self._material_ouput, out_sock, target_sock)
+            self._link_socket(self._shader_group, self._material_output, out_sock, target_sock)
 
         self._channels = channels
 

@@ -2,9 +2,11 @@ from os import path
 from typing import Any, TypeVar, Type
 
 import bpy
-from bpy.types import NodeTree, Node, NodeSocket, ShaderNodeTexImage
+from bpy.types import NodeTree, Node, NodeSocket, ShaderNodeTexImage, ShaderNodeGroup, NodeSocketColor, NodeSocketFloat
 
 from .slugify import slugify
+
+_TNode = TypeVar('_TNode', bound=Node)
 
 
 def link_socket(node_tree: NodeTree,
@@ -12,7 +14,7 @@ def link_socket(node_tree: NodeTree,
                 target: Node,
                 source_socket: NodeSocket | int | str,
                 target_socket: NodeSocket | int | str,
-                optional: bool = False, ):
+                optional: bool = False):
     if not isinstance(source_socket, NodeSocket):
         source_socket = source.outputs[source_socket]
 
@@ -27,7 +29,44 @@ def link_socket(node_tree: NodeTree,
     node_tree.links.new(source_socket, target_socket)
 
 
-_TNode = TypeVar('_TNode', bound=Node)
+def get_linked_node(node_group: ShaderNodeGroup,
+                    socket: NodeSocket | int | str) -> Node | None:
+    if not isinstance(socket, NodeSocket):
+        socket = node_group.inputs[socket]
+
+    if socket.is_linked:
+        return socket.links[0].from_node
+    else:
+        return None
+
+
+def get_color_socket_value(node_group: ShaderNodeGroup,
+                           socket: NodeSocket | int | str) -> tuple[float, float, float, float] | None:
+    if not isinstance(socket, NodeSocket):
+        socket = node_group.inputs[socket]
+
+    if not isinstance(socket, NodeSocketColor):
+        raise Exception(f"Socket {socket} is not a Color socket!")
+    return getattr(socket, "default_value", None)
+
+
+def get_float_socket_value(node_group: ShaderNodeGroup,
+                           socket: NodeSocket | int | str) -> float | None:
+    if not isinstance(socket, NodeSocket):
+        socket = node_group.inputs[socket]
+
+    if not isinstance(socket, NodeSocketFloat):
+        raise Exception(f"Socket {socket} is not a Color socket!")
+    return getattr(socket, "default_value", None)
+
+
+def set_socket_value(node_group: ShaderNodeGroup,
+                     socket: NodeSocket | int | str,
+                     value: Any):
+    if not isinstance(socket, NodeSocket):
+        socket = node_group.inputs[socket]
+
+    setattr(socket, "default_value", value)
 
 
 def add_node(node_tree: NodeTree,
@@ -35,7 +74,7 @@ def add_node(node_tree: NodeTree,
              label: str,
              location: tuple[float, float],
              parent: Node = None,
-             props: dict[str, Any] = {}) -> _TNode:
+             props: dict[str, Any] | None = None) -> _TNode:
     node_type_id = getattr(getattr(node_type, "bl_rna", None), "identifier", None)
     if node_type_id is None:
         raise TypeError(f"Cannot resolve bl_idname for type: {node_type.__name__}")
@@ -47,9 +86,10 @@ def add_node(node_tree: NodeTree,
     node.location = location
 
     # Set props
-    for prop, value in props.items():
-        if hasattr(node, prop):
-            setattr(node, prop, value)
+    if not props is None:
+        for prop, value in props.items():
+            if hasattr(node, prop):
+                setattr(node, prop, value)
 
     return node
 
@@ -72,7 +112,6 @@ def add_image_texture(node_tree: NodeTree,
         image.colorspace_settings.name = "Non-Color" if non_color else "sRGB"
     except Exception as e:
         raise Exception(f"Failed to load image {image_path}: {e}")
-
 
     props = {"image": image, "hide": True}
 

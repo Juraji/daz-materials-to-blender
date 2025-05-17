@@ -22,6 +22,7 @@ class ConvertMaterialsOperator(OperatorReportMixin, Operator):
         name="Conversion Type",
         items=SHADER_GROUP_CONVERTERS_ENUM_OPTS
     )
+    keep_original_group: BoolProperty(name="Keep Original Group", default=False)
 
     @classmethod
     def poll(cls, context):
@@ -51,12 +52,13 @@ class ConvertMaterialsOperator(OperatorReportMixin, Operator):
         conversion_type = converter_by_cls_name(self.conversion_type)
 
         layout.prop(self, "conversion_type")
+        layout.prop(self, "keep_original_group")
 
         layout.label(text=f"Select materials to convert for '{obj.name}':")
         for item in self.materials_to_convert:
             mat = bpy.data.materials.get(item.name)
             if (mat and MATERIAL_TYPE_ID_PROP in mat
-                    and mat[MATERIAL_TYPE_ID_PROP] == conversion_type.from_type().material_type_id()):
+                    and mat[MATERIAL_TYPE_ID_PROP] == conversion_type.from_type.material_type_id()):
                 row = layout.row()
                 row.prop(item, "select", text=item.name)
 
@@ -72,11 +74,11 @@ class ConvertMaterialsOperator(OperatorReportMixin, Operator):
         converter = converter_cls()
 
         # noinspection PyUnresolvedReferences
-        bpy.ops.daz_import.import_shader_group(silent=True, group_name=converter_cls.to_type().group_name())
+        bpy.ops.daz_import.import_shader_group(silent=True, group_name=converter_cls.to_type.group_name())
 
-        converter.convert_materials(selected_materials)
+        converter.convert_materials(selected_materials, self.keep_original_group)
 
         for mat in selected_materials:
-            mat[MATERIAL_TYPE_ID_PROP] = converter_cls.to_type().material_type_id()
+            mat[MATERIAL_TYPE_ID_PROP] = converter_cls.to_type.material_type_id()
 
         return {"FINISHED"}

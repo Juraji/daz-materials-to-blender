@@ -1,6 +1,5 @@
 from typing import Type
 
-from .dual_lobe_hair_to_melanin import DualLobeHairToMelaninShaderConverter
 from .iray_uber_to_iwave import IrayUberToIWaveFabricShaderConverter
 from .iray_uber_to_pbr_skin import IrayUberToPbrSkinShaderConverter
 from .shader_group_converter import ShaderGroupConverter
@@ -8,7 +7,6 @@ from .shader_group_converter import ShaderGroupConverter
 SHADER_GROUP_CONVERTERS: list[Type[ShaderGroupConverter]] = [
     IrayUberToPbrSkinShaderConverter,
     IrayUberToIWaveFabricShaderConverter,
-    DualLobeHairToMelaninShaderConverter,
 ]
 
 SHADER_GROUP_CONVERTERS_ENUM_OPTS = [

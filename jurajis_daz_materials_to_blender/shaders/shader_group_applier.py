@@ -163,7 +163,7 @@ class ShaderGroupApplier:
                   label: str,
                   location: tuple[float, float],
                   parent: Node = None,
-                  props: dict[str, Any] = {}) -> _TNode:
+                  props: dict[str, Any] | None = None) -> _TNode:
         return add_node(self._node_tree, node_type, label, location, parent, props)
 
     def _set_material_mapping(self,
@@ -227,7 +227,7 @@ class ShaderGroupApplier:
                         sock_value = getattr(socket_input, "default_value", base)
                         setattr(socket_input, "default_value", tuple_zip_prod(base, sock_value, value))
                     case _:
-                        raise Exception(f"Can not use MULITPLY of socket of type: {type(socket_input)}")
+                        raise Exception(f"Can not use MULTIPLY of socket of type: {type(socket_input)}")
 
     def _socket_value(self, socket: NodeSocket | int | str) -> Any:
         if isinstance(socket, NodeSocket):

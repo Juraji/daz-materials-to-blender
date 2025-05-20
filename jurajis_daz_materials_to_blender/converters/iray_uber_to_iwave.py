@@ -1,5 +1,5 @@
 from .shader_group_converter import ShaderGroupConverter
-from ..shaders import ShaderGroupApplier, IrayUberShaderGroupApplier, IWaveTranslucentFabricShaderGroupApplier
+from ..shaders import IrayUberShaderGroupApplier, IWaveTranslucentFabricShaderGroupApplier
 
 
 class IrayUberToIWaveFabricShaderConverter(ShaderGroupConverter):

@@ -94,7 +94,6 @@ class DsonObject(DsonTransforms):
     scale: DsonCoordinate
     parent_id: str | None
     materials: list[DsonChannels] = field(default_factory=list)
-    simulation: list[DsonChannels] = field(default_factory=list)
     instances: list[DsonObjectInstance] = field(default_factory=list)
 
 
@@ -123,7 +122,6 @@ class DsonReader:
                 scale=n_base_scale,
                 parent_id=self._unquote_daz_ref(scene_node["parent"]) if "parent" in scene_node else None,
                 materials=self._read_material_channels(scene_node, dson),
-                simulation=self._read_sim_modifiers(scene_node, dson),
                 instances=self._read_instances(scene_node, dson)
             ))
 
@@ -171,51 +169,6 @@ class DsonReader:
                                 material.channels[mat_id] = self._map_channel(channel["channel"])
 
         return materials
-
-    def _read_sim_modifiers(self, scene_node: dict, dson: dict) -> list[DsonChannels]:
-        scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
-        scene_mods = [
-            m for m in dson["scene"]["modifiers"]
-            if "extra" in m and m["url"][0] == "#"  # Is local
-               and m["extra"][0]["type"] == "studio/simulation_settings/dynamic_simulation"  # is sim
-               and self._unquote_daz_ref(m["parent"]) in scene_node_geo_ids
-        ]
-        modifiers: list[DsonChannels] = []
-
-        for scene_mod in scene_mods:
-            mod_library_id = self._unquote_daz_ref(scene_mod["url"])
-            lib_mod = next((m for m in dson["modifier_library"] if m["id"] == mod_library_id), None)
-
-            modifier = DsonChannels(
-                name=scene_mod["name"],
-                type_id=self._find_modifier_type(scene_mod),
-            )
-
-            modifiers.append(modifier)
-
-            # 1st level channels
-            for key, value in scene_mod.items():
-                if isinstance(value, dict) and "channel" in value:
-                    mat_id = slugify(key)
-                    modifier.channels[mat_id] = self._map_channel(value["channel"])
-
-            # Extra channels
-            for mod_extra in scene_mod.get("extra", []):
-                if mod_extra["type"] == "studio_modifier_channels":
-                    for channel in mod_extra["channels"]:
-                        mat_id = slugify(channel["channel"]["id"])
-                        modifier.channels[mat_id] = self._map_channel(channel["channel"])
-
-            # Modifier library channels
-            if lib_mod:
-                for mat_extra in lib_mod.get("extra", []):
-                    if mat_extra["type"] == "studio_modifier_channels":
-                        for channel in mat_extra["channels"]:
-                            mat_id = slugify(channel["channel"]["id"])
-                            if not mat_id in modifier.channels:
-                                modifier.channels[mat_id] = self._map_channel(channel["channel"])
-
-        return modifiers
 
     def _read_instances(self, node: dict, dson: dict) -> list[DsonObjectInstance]:
         scene_nodes = dson["scene"]["nodes"]

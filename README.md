@@ -51,12 +51,16 @@ under `Juraji's Tools`!_
 
 ### In Blender
 
-<img src="images/plugin-collapsed-marked.png" width="300" height="287.0229007633588" alt="Plugin UI Import"/>
+<img src="images/plugin-collapsed-marked.png" width="300" height="287" alt="Plugin UI Import"/>
 
 1. Import the `OBJ`s and/or `FBX`s you've exported from DAZ.  
-   _IMPORTANT: Do NOT rename any objects or materials! This plugin uses some real magic to determine which material in
-   the `.duf` file belongs to which object/material._
-2. In your 3D Viewport, click the `Juraji's Tools`-tab and you should see a panel like the image on the right.
+   **IMPORTANT**:
+    1. _Do NOT rename any objects or materials! This plugin uses some real magic to determine which material in
+       the `.duf` file belongs to which object/material._
+    2. _If you have multiple figures in your scene of the same generation or multiple instances, you should import them
+       in the same order
+       you've loaded them in DAZ Studio. Or import everything as one object._
+2. In your 3D Viewport, click the `Juraji's Tools`-tab, and you should see a panel like the image on the right.
 3. Select your DAZ scene file (`.duf`).
 4. Click `Import All Materials`.
 5. Blender should freeze for a moment and if all went well all of your objects should have the correct materials set up.
@@ -69,11 +73,13 @@ As for the other buttons:
 
 ## Supported Shaders
 
-* DAZ PBR Skin
-* Iray Uber _(with handling for Metallicity/Roughness, Specular/Glossiness and Weighted sub-shaders)_
-* iWave's Translucent Fabric Shader _(My personal favorite)_
-* Blended Dual Lobe Hair _(Often used with dForce Hair, the strands kind) (Note that some color adjustment might be
-  nessecary, I tried to match DAZ's behaviour as closely as possible, but only you can make it perfect.)_
+* **DAZ PBR Skin**
+* **Iray Uber** _(with handling for Metallicity/Roughness, Specular/Glossiness and Weighted sub-shaders)_
+* **iWave's Translucent Fabric Shader** _(My personal favorite)_
+* **Blended Dual Lobe Hair** _(Often used with dForce Hair, the strands kind)_  
+  This specific shader is handled a bit differently. Instead of importing and mapping colors, the importer calculates
+  melanin and redness from the colors set in DAZ and uses Blender's Hair BSDF shaders. Which imho looks so much better
+  with strands.
 
 If a material uses a shader the plugin does not know, it will set up the material with a white Principled BSDF and adds
 all images it finds as Texture nodes.  

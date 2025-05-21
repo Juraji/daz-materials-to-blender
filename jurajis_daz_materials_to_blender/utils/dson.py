@@ -1,7 +1,8 @@
 import gzip
 import json
+import os
 from dataclasses import dataclass, field
-from os import PathLike
+from os import PathLike, path
 from pathlib import Path
 from typing import TypeVar, Generic, Protocol
 from urllib import parse as urlparse
@@ -326,17 +327,48 @@ class DsonReader:
 
         return "dforce_hair" if has_hairs_channel else "dforce_sim"
 
-    def _find_content_dir_path(self, path: str) -> Path | None:
-        if path is None:
+    @staticmethod
+    def _resolve_real_path(base: Path, raw_path: str) -> Path | None:
+        decoded = urlparse.unquote(raw_path.lstrip(path.sep))
+        candidate = base / decoded
+
+        if candidate.exists():
+            return candidate
+
+        # slow path: resolve with case-insensitive lookup
+        parts = decoded.split(path.sep)
+        current = base
+
+        for part in parts:
+            found = None
+            try:
+                with os.scandir(current) as it:
+                    for entry in it:
+                        if entry.name.lower() == part.lower():
+                            found = Path(entry.path)
+                            break
+            except (PermissionError, FileNotFoundError):
+                return None
+
+            if not found:
+                return None
+            current = found
+
+        return current
+
+    def _resolve_content_dir_path(self, raw_path: str) -> Path | None:
+        if raw_path is None:
             return None
-        if path in self.__content_dir_path_cache:
-            return self.__content_dir_path_cache[path]
+
+        if raw_path in self.__content_dir_path_cache:
+            return self.__content_dir_path_cache[raw_path]
+
         for content_dir in self.__content_dirs:
-            decoded_path = urlparse.unquote(path[1:])
-            cd_path = content_dir.joinpath(decoded_path)
-            if cd_path.exists():
-                self.__content_dir_path_cache[path] = cd_path
+            cd_path = self._resolve_real_path(content_dir, raw_path)
+            if not cd_path is None:
+                self.__content_dir_path_cache[raw_path] = cd_path
                 return cd_path
+
         return None
 
     def _map_channel(self, c_data: dict) -> DsonChannel:
@@ -346,7 +378,7 @@ class DsonReader:
         image_file = None
         raw_path = c_data.get("image_file")
         if raw_path is not None:
-            resolved = self._find_content_dir_path(raw_path)
+            resolved = self._resolve_content_dir_path(raw_path)
             if resolved:
                 image_file = str(resolved)
 

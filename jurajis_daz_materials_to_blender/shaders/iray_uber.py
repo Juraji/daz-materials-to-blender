@@ -128,7 +128,7 @@ class IrayUberShaderGroupApplier(ShaderGroupApplier):
 
     @staticmethod
     def material_type_id() -> str:
-        return "iray_uber"
+        return "uber_iray"
 
     def apply_shader_group(self, channels: dict[str, DsonChannel]):
         self._channels = channels

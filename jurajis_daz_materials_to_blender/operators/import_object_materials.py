@@ -54,7 +54,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             dson_node_mat = next((node.materials for node in dson_scene_nodes if node.id == dson_id), None)
 
             if not dson_node_mat:
-                self.report_warning(f"Could not find materials object {b_object.name}")
+                self.report_warning(f"Could not find materials for object {b_object.name}. (dson id: {dson_id})")
                 continue
 
             dson_direct_children_mats = [

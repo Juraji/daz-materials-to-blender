@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from os import PathLike, path
 from pathlib import Path
 from typing import TypeVar, Generic, Protocol
+from unittest import case
 from urllib import parse as urlparse
 
 from .json import serializable
@@ -115,9 +116,9 @@ class DsonReader:
 
             # noinspection PyTypeChecker
             dson_objects.append(DsonObject(
-                id=scene_node["id"],
+                id=scene_node["id"].strip(),
                 label=scene_node["label"],
-                origin=tuple(scene_node["preview"]["center_point"]),
+                origin=tuple(scene_node["preview"]["center_point"]) if "preview" in scene_node else (0, 0, 0),
                 rotation=n_base_rot,
                 translation=n_base_trans,
                 scale=n_base_scale,
@@ -290,22 +291,25 @@ class DsonReader:
 
             # Try get from extra
             mat_extra = scene_mat.get('extra')
-            if mat_extra and mat_extra[0]['type'] == 'studio/material/uber_iray':
-                return "iray_uber"
+            if mat_extra:
+                mat_type = mat_extra[0]['type']
+                if mat_type != 'studio/material/daz_brick':
+                    # For daz_brick we need to check the lib mat!
+                    return mat_extra[0]['type'][16:]
 
             if lib_mat:
                 if "type" in lib_mat:
-                    return slugify(lib_mat["type"])
+                    return slugify(lib_mat["type"].replace("studio/material/", ""))
 
                 lib_mat_extra = lib_mat.get('extra')
                 if not lib_mat_extra:
                     return None
 
-                if lib_mat_extra[0]['type'] == 'studio/material/uber_iray':
-                    return "iray_uber"
-
-                if lib_mat_extra[0]['type'] == 'studio/material/daz_brick':
-                    return slugify(lib_mat['extra'][0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
+                mat_type = lib_mat_extra[0]['type']
+                if mat_type == 'studio/material/daz_brick':
+                    return slugify(lib_mat_extra[0]['brick_settings']['BrickSetup']['value']['BrickUserName'])
+                else:
+                    return slugify(lib_mat_extra[0].replace("studio/material/", ""))
 
             return None
 
@@ -314,7 +318,7 @@ class DsonReader:
             self.__material_shader_type_cache[url] = mat_id
             return mat_id
         else:
-            raise Exception(f'Unable to find shader type for url {url}.')
+            raise Exception(f'Unable to find shader type for url "{url}".')
 
     @staticmethod
     def _find_modifier_type(scene_mod: dict) -> str:

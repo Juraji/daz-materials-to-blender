@@ -51,22 +51,24 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
         for b_object in b_objects:
             dson_id = dson_id_conversion_table.to_dson(b_object.name)
-            dson_node_mat = next((node.materials for node in dson_scene_nodes if node.id == dson_id), None)
+            node_mat_channels: list[DsonChannels] = \
+                next((node.materials for node in dson_scene_nodes if node.id == dson_id), [])
 
-            if not dson_node_mat:
+            if not node_mat_channels:
                 self.report_warning(f"Could not find materials for object {b_object.name}. (dson id: {dson_id})")
                 continue
 
-            dson_direct_children_mats = [
-                materials
+            node_mat_channel_names = [c.name for c in node_mat_channels]
+            direct_children_mat_channels = [
+                material
                 for node in dson_scene_nodes if node.parent_id == dson_id
-                for materials in node.materials
+                for material in node.materials if material.name not in node_mat_channel_names
             ]
 
-            dson_materials = [*dson_node_mat, *dson_direct_children_mats]
+            mat_channels = [*node_mat_channels, *direct_children_mat_channels]
 
-            self._import_missing_groups(dson_materials)
-            self._apply_materials(b_object, dson_materials, props)
+            self._import_missing_groups(mat_channels)
+            self._apply_materials(b_object, mat_channels, props)
 
         return {"FINISHED"}
 
@@ -86,7 +88,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             applier_cls = self._find_applier_by_type_id(mat_type_id)
             if not applier_cls:
                 self.report_warning("No shader group available for material type "
-                                  f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
+                                    f"\"{mat_type_id}\" for {b_object.name}[{mat_name}].")
                 applier_cls = FallbackShaderGroupApplier  # Fallback
 
             material.use_nodes = True
@@ -98,7 +100,6 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             applier = applier_cls(props, b_object, node_tree)
             applier.apply_shader_group(channels)
             material[MATERIAL_TYPE_ID_PROP] = mat_type_id
-
 
     @staticmethod
     def _find_material_by_name(b_object, mat_name):

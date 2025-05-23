@@ -136,6 +136,7 @@ class DsonReader:
             if self._unquote_daz_ref(m["geometry"]) in scene_node_geo_ids
         ]
         materials: list[DsonChannels] = []
+        # TODO: If node is a geo shell, check which material groups should not be exported
 
         for scene_mat in scene_mats:
             mat_library_id = self._unquote_daz_ref(scene_mat["url"])

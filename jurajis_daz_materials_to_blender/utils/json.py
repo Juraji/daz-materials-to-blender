@@ -5,22 +5,23 @@ from json import JSONEncoder
 class DataclassJSONEncoder(JSONEncoder):
     def default(self, dmc):
         if is_dataclass(dmc):
-            return self.asdict(dmc)
+            return self.as_dict(dmc)
         else:
             return super().default(dmc)
 
     @classmethod
-    def asdict(cls, obj):
+    def as_dict(cls, obj):
         if hasattr(obj, "__as_dict__"):
             return obj.__as_dict__()
         elif is_dataclass(obj):
-            return {f.name: cls.asdict(getattr(obj, f.name)) for f in fields(obj)}
+            return {f.name: cls.as_dict(getattr(obj, f.name)) for f in fields(obj)}
         elif isinstance(obj, (list, tuple)):
-            return [cls.asdict(v) for v in obj]
+            return [cls.as_dict(v) for v in obj]
         elif isinstance(obj, dict):
-            return {k: cls.asdict(v) for k, v in obj.items()}
+            return {k: cls.as_dict(v) for k, v in obj.items()}
         else:
             return obj
+
 
 def serializable(*include_props: str):
     def decorator(cls):
@@ -36,4 +37,5 @@ def serializable(*include_props: str):
 
         cls.__as_dict__ = __as_dict__
         return cls
+
     return decorator

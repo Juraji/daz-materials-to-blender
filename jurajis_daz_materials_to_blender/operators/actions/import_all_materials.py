@@ -1,11 +1,8 @@
-from pathlib import Path
-
 import bpy
 from bpy.types import Operator, Context
 
-from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
-from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
+from ..base import OperatorReportMixin
+from ...properties import props_from_ctx
 
 
 class ImportAllMaterialsOperator(OperatorReportMixin, Operator):
@@ -16,21 +13,10 @@ class ImportAllMaterialsOperator(OperatorReportMixin, Operator):
 
     @classmethod
     def poll(cls, context: Context):
-        props: MaterialImportProperties = props_from_ctx(context)
+        props = props_from_ctx(context)
         return props.has_scene_file_set()
 
     def execute(self, context: Context):
-        props: MaterialImportProperties = props_from_ctx(context)
-
-        try:
-            prefs = prefs_from_ctx(context)
-            daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-            dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
-            self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
-        except DsonFileNotFoundException as e:
-            self.report_error(e.message)
-            return {"CANCELLED"}
-
         # Copy current selection and deselect everything
         prev_selection = context.selected_objects
         bpy.ops.object.select_all(action='DESELECT')

@@ -3,8 +3,8 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty, EnumProp
 from bpy.types import Operator, PropertyGroup
 
 from .import_object_materials import MATERIAL_TYPE_ID_PROP
-from ..converters import SHADER_GROUP_CONVERTERS_ENUM_OPTS, converter_by_cls_name
-from ..operators.base import OperatorReportMixin
+from ..base import OperatorReportMixin
+from ...converters import SHADER_GROUP_CONVERTERS_ENUM_OPTS, converter_by_cls_name
 
 
 class MaterialItem(PropertyGroup):

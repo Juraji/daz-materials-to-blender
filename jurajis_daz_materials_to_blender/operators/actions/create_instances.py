@@ -1,16 +1,14 @@
 import math
-from pathlib import Path
 
 import bpy
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator, Context, Collection, Object as BObject
 from mathutils import Vector, Euler, Matrix
 
-from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
-from ..utils.dson import DsonObject, DsonTransforms, DsonCoordinate
-from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
-from ..utils.math import tuple_prod, tuple_zip_sum, tuple_zip_prod, tuple_zip_div
+from ..base import OperatorReportMixin
+from ...properties import MaterialImportProperties, props_from_ctx
+from ...utils.dson import DsonCacheManager, DsonLoadException, DsonObject, DsonTransforms
+from ...utils.math import tuple_prod, tuple_zip_sum
 
 
 class CreateInstancesOperator(OperatorReportMixin, Operator):
@@ -38,20 +36,14 @@ class CreateInstancesOperator(OperatorReportMixin, Operator):
         props: MaterialImportProperties = props_from_ctx(context)
         instance_collection = self._get_instance_collection(context, self.instances_collection_name)
 
-        if self.use_cached_scene_data and DsonSceneData.has_scene_data():
-            dson_scene_nodes, dson_id_conversion_table = DsonSceneData.get_scene_data()
-        else:
-            try:
-                daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-                prefs = prefs_from_ctx(context)
-                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
-                self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
-            except DsonFileNotFoundException as e:
-                self.report_error(e.message)
-                return {"FINISHED"}
+        try:
+            dson_data = DsonCacheManager.get_or_load(context)
+        except DsonLoadException as e:
+            self.report_error(e.message)
+            return {"CANCELLED"}
 
-        for dson_scene_node in dson_scene_nodes:
-            b_object_name = dson_id_conversion_table.to_blender(dson_scene_node.id)
+        for dson_scene_node in dson_data.objects:
+            b_object_name = dson_data.to_blender_name(dson_scene_node.id)
             b_object = bpy.data.objects.get(b_object_name)
             if b_object is None:
                 continue

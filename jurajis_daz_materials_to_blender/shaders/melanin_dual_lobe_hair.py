@@ -1,7 +1,7 @@
 from .library import MELANIN_DUAL_LOBE_HAIR
 from .shader_group_applier import ShaderGroupApplier
-from ..utils.blended_hair_uv_processor import BlendedHairUVProcessor
 from ..utils.dson import DsonChannel
+from ..utils.uv import HairUVProcessor
 
 
 class MelaninDualLobeHairShaderApplier(ShaderGroupApplier):
@@ -48,7 +48,7 @@ class MelaninDualLobeHairShaderApplier(ShaderGroupApplier):
     def apply_shader_group(self, channels: dict[str, DsonChannel]):
         super().apply_shader_group(channels)
 
-        processor = BlendedHairUVProcessor(self._b_object, self.FIXED_UV_NAME, self.UV_STRAND_SPACING)
+        processor = HairUVProcessor(self._b_object, self.FIXED_UV_NAME, self.UV_STRAND_SPACING)
         if not processor.uv_exists():
             processor.regenerate_uv()
 

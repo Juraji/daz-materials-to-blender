@@ -1,102 +1,15 @@
 import gzip
 import json
 import os
-from dataclasses import dataclass, field
+from collections import defaultdict
 from os import PathLike, path
 from pathlib import Path
-from typing import TypeVar, Generic, Protocol
-from unittest import case
 from urllib import parse as urlparse
 
-from .json import serializable
-from .math import tuple_zip_sum, tuple_zip_prod, tuple_mod, tuple_prod
-from .slugify import slugify
-
-_DMC_V = TypeVar('_DMC_V')
-DsonCoordinate = tuple[float, float, float]
-DsonRGBA = tuple[float, float, float, float]
-
-
-@serializable("has_image", "is_set")
-@dataclass
-class DsonChannel(Generic[_DMC_V]):
-    value: _DMC_V
-    default_value: _DMC_V
-    image_file: str | None
-
-    def has_image(self) -> bool: return self.image_file is not None
-
-    def is_set(self):
-        return self.value != self.default_value or self.has_image()
-
-
-@dataclass
-class DsonColorChannel(DsonChannel[DsonCoordinate]):
-    alpha: float = 1.0
-
-    def as_rgba(self) -> DsonRGBA:
-        return self.value[0], self.value[1], self.value[2], self.alpha
-
-    def as_float(self) -> float:
-        return (sum(self.value) / 3) * self.alpha
-
-
-@dataclass
-class DsonFloatChannel(DsonChannel[float]):
-    pass
-
-
-@dataclass
-class DsonBoolChannel(DsonChannel[bool]):
-    pass
-
-
-@dataclass
-class DsonStringChannel(DsonChannel[str]):
-    pass
-
-
-@dataclass
-class DsonImageChannel(DsonChannel[None]):
-    def is_set(self):
-        return self.has_image()
-
-
-@dataclass
-class DsonChannels:
-    name: str
-    type_id: str
-    channels: dict[str, DsonChannel] = field(default_factory=dict)
-
-
-class DsonTransforms(Protocol):
-    origin: DsonCoordinate
-    rotation: DsonCoordinate
-    translation: DsonCoordinate
-    scale: DsonCoordinate
-
-
-@dataclass
-class DsonObjectInstance(DsonTransforms):
-    id: str
-    label: str
-    origin: DsonCoordinate
-    rotation: DsonCoordinate
-    translation: DsonCoordinate
-    scale: DsonCoordinate
-
-
-@dataclass
-class DsonObject(DsonTransforms):
-    id: str
-    label: str
-    origin: DsonCoordinate
-    rotation: DsonCoordinate
-    translation: DsonCoordinate
-    scale: DsonCoordinate
-    parent_id: str | None
-    materials: list[DsonChannels] = field(default_factory=list)
-    instances: list[DsonObjectInstance] = field(default_factory=list)
+from .dson_data import DsonCoordinate, DsonChannel, DsonColorChannel, DsonFloatChannel, DsonBoolChannel, \
+    DsonStringChannel, DsonImageChannel, DsonChannels, DsonObjectInstance, DsonObject, DsonData
+from ..math import tuple_zip_sum, tuple_zip_prod, tuple_mod, tuple_prod
+from ..slugify import slugify
 
 
 class DsonReader:
@@ -105,7 +18,7 @@ class DsonReader:
         self.__material_shader_type_cache: dict[str, str] = {}
         self.__content_dirs = content_dirs
 
-    def read_dson(self, daz_scene_file: PathLike) -> list[DsonObject]:
+    def read_dson(self, daz_scene_file: PathLike | str) -> DsonData:
         dson = self._read_dson_file(daz_scene_file)
         scene_nodes = [n for n in dson["scene"]["nodes"] if "geometries" in n]
 
@@ -127,7 +40,13 @@ class DsonReader:
                 instances=self._read_instances(scene_node, dson)
             ))
 
-        return dson_objects
+        dson_to_blender, blender_to_dson = self._create_conversion_tables(dson_objects)
+
+        return DsonData(
+            objects=dson_objects,
+            dson_to_blender=dson_to_blender,
+            blender_to_dson=blender_to_dson,
+        )
 
     def _read_material_channels(self, scene_node: dict, dson: dict) -> list[DsonChannels]:
         scene_node_geo_ids = [g["id"] for g in scene_node["geometries"]]
@@ -256,7 +175,7 @@ class DsonReader:
             next((v["current_value"] for v in prop if v["id"] == "z"), default)
 
     @classmethod
-    def _read_dson_file(cls, dson_file: PathLike) -> dict:
+    def _read_dson_file(cls, dson_file: PathLike | str) -> dict:
         with open(dson_file, 'rb') as f:
             file_header = f.read(2)
 
@@ -405,3 +324,25 @@ class DsonReader:
             case _:
                 raw_default_value = c_data.get("value", "")
                 return DsonStringChannel(str(raw_value), str(raw_default_value), image_file)
+
+    @staticmethod
+    def _create_conversion_tables(dson_objects: list[DsonObject]) -> tuple[dict[str, str], dict[str, str]]:
+        dson_to_blender = {}
+        blender_to_dson = {}
+        suffix_groups = defaultdict(list)
+        node_ids = [n.id for n in dson_objects]
+
+        for node_id in node_ids:
+            base, *suffix = node_id.rsplit('-', 1)
+            if suffix and suffix[0].isdigit():
+                suffix_groups[base].append(node_id)
+
+        for base, variants in suffix_groups.items():
+            offset = 1 if base in node_ids else 0
+            for i, variant in enumerate(sorted(variants)):
+                n = i + offset
+                name = f"{base}.{n:03d}" if n > 0 else base
+                dson_to_blender[variant] = name
+                blender_to_dson[name] = variant
+
+        return dson_to_blender, blender_to_dson

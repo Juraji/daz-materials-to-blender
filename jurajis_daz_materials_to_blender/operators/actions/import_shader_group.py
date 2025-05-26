@@ -4,8 +4,8 @@ import bpy
 from bpy.props import StringProperty
 from bpy.types import Operator, Context
 
-from .base import OperatorReportMixin
-from ..shaders.library import library_path, LIB_GROUP_DESCRIPTION
+from ..base import OperatorReportMixin
+from ...shaders.library import library_path, LIB_GROUP_DESCRIPTION
 
 
 class ImportShaderGroupOperator(OperatorReportMixin, Operator):

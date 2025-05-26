@@ -1,12 +1,22 @@
+from bpy.path import abspath
 from bpy.props import CollectionProperty, StringProperty
 from bpy.types import AddonPreferences, PropertyGroup, Context
 
 
 class ContentLibraryItem(PropertyGroup):
+    def get_path(self) -> str | None:
+        return self.get("path", None)
+
+    def set_path(self, value) -> None:
+        self["path"] = abspath(value)
+
+    # noinspection PyTypeChecker
     path: StringProperty(
         name="Library Path",
         description="Path to a content library",
         subtype="DIR_PATH",
+        get=get_path,
+        set=set_path,
     )
 
 

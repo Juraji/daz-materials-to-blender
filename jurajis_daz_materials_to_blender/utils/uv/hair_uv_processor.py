@@ -27,7 +27,7 @@ class DisjointSet:
                 self.rank[rx] += 1
 
 
-class BlendedHairUVProcessor:
+class HairUVProcessor:
     def __init__(self, b_object: BObject,
                  uv_layer_name: str,
                  spacing: float):

@@ -1,10 +1,8 @@
 from bpy.types import Panel
 
-from ..operators.convert_materials import ConvertMaterialsOperator
-from ..operators.create_instances import CreateInstancesOperator
-from ..operators.import_all_materials import ImportAllMaterialsOperator
-from ..operators.import_object_materials import ImportObjectMaterialsOperator
-from ..operators.import_shader_group import ImportShaderGroupOperator
+from ..operators.actions import ImportShaderGroupOperator, ImportAllMaterialsOperator, ImportObjectMaterialsOperator, \
+    CreateInstancesOperator, ConvertMaterialsOperator
+from ..operators.debug import DebugClearSceneCacheOperator, DebugDeleteAllGroupsOperator
 from ..shaders.library import SUPPORT_SHADER_GROUPS, SHADER_GROUPS
 from ..properties import MaterialImportProperties, props_from_ctx
 
@@ -23,8 +21,8 @@ class ImportMaterialsPanelBase(Panel):
         tools_header, tools_panel = layout.panel("tools", default_closed=True)
         tools_header.label(text="Tools & Debugging")
         if tools_panel:
-            tools_panel.operator("daz_import.debug_export_materials_json")
-            tools_panel.operator("daz_import.debug_delete_all_groups")
+            tools_panel.operator(DebugClearSceneCacheOperator.bl_idname)
+            tools_panel.operator(DebugDeleteAllGroupsOperator.bl_idname)
 
         shader_groups_header, shader_groups_panel = layout.panel("shader_groups", default_closed=True)
         shader_groups_header.label(text="Shader Groups")

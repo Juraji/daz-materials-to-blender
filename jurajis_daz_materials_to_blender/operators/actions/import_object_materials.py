@@ -1,18 +1,16 @@
-from pathlib import Path
 from typing import Type
 
 import bpy
 from bpy.props import BoolProperty
 from bpy.types import Operator, Context, Object as BObject
 
-from .base import OperatorReportMixin
-from ..properties import MaterialImportProperties, props_from_ctx, prefs_from_ctx
-from ..shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
-from ..shaders.fallback import FallbackShaderGroupApplier
-from ..utils.dson import DsonChannels
-from ..utils.dson_scene_data import DsonSceneData, DsonFileNotFoundException
-from ..utils.poll import selected_objects_all_is_mesh
-from ..utils.slugify import slugify
+from ..base import OperatorReportMixin
+from ...properties import MaterialImportProperties, props_from_ctx
+from ...shaders import SHADER_GROUP_APPLIERS, ShaderGroupApplier
+from ...shaders.fallback import FallbackShaderGroupApplier
+from ...utils.dson import DsonChannels, DsonCacheManager, DsonLoadException
+from ...utils.poll import selected_objects_all_is_mesh
+from ...utils.slugify import slugify
 
 MATERIAL_TYPE_ID_PROP = "__DAZ_IMPORT_SHADER_TYPE_ID__"
 
@@ -37,22 +35,16 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
         props: MaterialImportProperties = props_from_ctx(context)
         b_objects = context.selected_objects
 
-        if self.use_cached_scene_data and DsonSceneData.has_scene_data():
-            dson_scene_nodes, dson_id_conversion_table = DsonSceneData.get_scene_data()
-        else:
-            try:
-                daz_save_file = Path(bpy.path.abspath(props.daz_scene_file))
-                prefs = prefs_from_ctx(context)
-                dson_scene_nodes, dson_id_conversion_table = DsonSceneData.load_scene_data(daz_save_file, prefs)
-                self.report_info(f"Found {len(dson_scene_nodes)} objects in {daz_save_file}!")
-            except DsonFileNotFoundException as e:
-                self.report_error(e.message)
-                return {"CANCELLED"}
+        try:
+            dson_data = DsonCacheManager.get_or_load(context)
+        except DsonLoadException as e:
+            self.report_error(e.message)
+            return {"CANCELLED"}
 
         for b_object in b_objects:
-            dson_id = dson_id_conversion_table.to_dson(b_object.name)
+            dson_id = dson_data.to_dson_id(b_object.name)
             node_mat_channels: list[DsonChannels] = \
-                next((node.materials for node in dson_scene_nodes if node.id == dson_id), [])
+                next((node.materials for node in dson_data.objects if node.id == dson_id), [])
 
             if not node_mat_channels:
                 self.report_warning(f"Could not find materials for object {b_object.name}. (dson id: {dson_id})")
@@ -61,7 +53,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
             node_mat_channel_names = [c.name for c in node_mat_channels]
             direct_children_mat_channels = [
                 material
-                for node in dson_scene_nodes if node.parent_id == dson_id
+                for node in dson_data.objects if node.parent_id == dson_id
                 for material in node.materials if material.name not in node_mat_channel_names
             ]
 
@@ -69,6 +61,7 @@ class ImportObjectMaterialsOperator(OperatorReportMixin, Operator):
 
             self._import_missing_groups(mat_channels)
             self._apply_materials(b_object, mat_channels, props)
+            self.report_info(f"Applied materials for object {b_object.name}")
 
         return {"FINISHED"}
 

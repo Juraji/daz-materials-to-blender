@@ -1,7 +1,7 @@
 from bpy.types import Operator
 
 from ..base import OperatorReportMixin
-from jurajis_daz_materials_to_blender.utils.dson.dson_cache_manager import DsonCacheManager
+from ...utils.dson import DsonCacheManager
 
 
 class DebugClearSceneCacheOperator(OperatorReportMixin, Operator):

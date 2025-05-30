@@ -93,6 +93,10 @@ class DsonReader:
         return materials
 
     def _read_instances(self, node: dict, dson: dict) -> list[DsonObjectInstance]:
+        if not "node_library" in dson:
+            # Scene does not contain a node library. Might be a scene subset.
+            return []
+
         scene_nodes = dson["scene"]["nodes"]
         node_library = dson["node_library"]
         instance_scene_nodes = [

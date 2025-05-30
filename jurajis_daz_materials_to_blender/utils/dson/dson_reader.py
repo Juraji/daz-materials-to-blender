@@ -159,7 +159,7 @@ class DsonReader:
             n_trans = (0, 0, 0)
             n_scale = (1.0, 1.0, 1.0)
 
-        if "parent" in node:
+        if "parent" in node and "node_library" in dson:
             p_scene_node = cls._find_entry_by_url(dson["scene"]["nodes"], node["parent"])
             if p_scene_node:
                 p_lib_node = cls._find_entry_by_url(dson["node_library"], p_scene_node["url"])

@@ -14,8 +14,8 @@ if __name__ == '__main__':
         pass
 
     with ZipFile(pkg_name, 'w', ZIP_DEFLATED) as zipf:
-        for folder_name, subdir, filenames in walk("jurajis_daz_materials_to_blender"):
+        for folder_name, subdir, filenames in walk(pkg_base_name):
             for filename in filenames:
                 file_path = path.join(folder_name, filename)
-                arcname = path.relpath(file_path, start='jurajis_daz_materials_to_blender')
+                arcname = path.relpath(file_path, start=pkg_base_name)
                 zipf.write(file_path, arcname=arcname)

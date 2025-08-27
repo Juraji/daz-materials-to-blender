@@ -16,4 +16,3 @@ def unregister():
     unregister_properties()
     unregister_operators()
     unregister_ui()
-

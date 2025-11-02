@@ -1,9 +1,9 @@
 import random
+from typing import Iterable
 
 import bpy
-from bpy.props import IntProperty, FloatProperty
 from bpy.types import Operator, Context, Object
-from mathutils import Vector, Matrix, Euler
+from mathutils import Vector, Matrix
 
 from ..base import OperatorReportMixin
 
@@ -13,47 +13,30 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
     bl_label = "Separate Genesis 8 Eyes"
     bl_options = {'REGISTER', 'BLOCKING', 'UNDO'}
 
-    mat_pupils: IntProperty(
-        name="Pupils Material Index",
-        default=10
-    )
-    mat_eye_moisture: IntProperty(
-        name="Eye Moisture Material Index",
-        default=11
-    )
-    mat_cornea: IntProperty(
-        name="Cornea Material Index",
-        default=13
-    )
-    mat_irises: IntProperty(
-        name="Irises Material Index",
-        default=14
-    )
-    mat_sclera: IntProperty(
-        name="Sclera Material Index",
-        default=15
-    )
-    separation_cluster_sample_size: IntProperty(
-        name="Separation Cluster Sample Size",
-        default=1000
-    )
-    separation_cluster_min_dist: FloatProperty(
-        name="Separation Cluster Min Distance",
-        default=0.01,
-        subtype='DISTANCE'
-    )
+    # pupils,eye_moisture,cornea,irises,sclera
+    prefix_g8 = "Genesis8"
+    prefix_g81 = "Genesis8_1"
+    all_mats_g8 = {'pupils': 9, 'eye_moisture': 10, 'cornea': 12, 'irises': 13, 'sclera': 14}
+    all_mats_g81 = {'pupils': 10, 'eye_moisture': 11, 'cornea': 13, 'irises': 14, 'sclera': 15}
+
+    cluster_sample_size = 1000
+    cluster_min_dist = 0.01
 
     @classmethod
     def poll(cls, context: Context):
         obj = context.active_object
-        return context.mode == 'OBJECT' and obj and obj.type == 'MESH' and obj.data.name.startswith("Genesis8")
+        return context.mode == 'OBJECT' and obj and obj.type == 'MESH' and obj.data.name.startswith(cls.prefix_g8)
 
     def execute(self, context: Context):
         genesis_obj = context.active_object
 
+        if genesis_obj.name.startswith(self.prefix_g81):
+            mat_idx_map = self.all_mats_g81
+        else:
+            mat_idx_map = self.all_mats_g8
+
         # Separate eyes from genesis figure (makes the vert count far smaller to jump into and out of edit mode)
-        all_mats = {self.mat_pupils, self.mat_eye_moisture, self.mat_cornea, self.mat_irises, self.mat_sclera}
-        eyes_vertices = self.find_vertices_by_materials(genesis_obj, all_mats)
+        eyes_vertices = self.find_vertices_by_materials(genesis_obj, mat_idx_map.values())
         self.report_info(f"Found {len(eyes_vertices)} vertices for {genesis_obj.name}'s eyes!")
 
         right_eye_obj = self.separate_mesh_by_vertices(context, genesis_obj, eyes_vertices)
@@ -61,33 +44,33 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
 
         # Split left eye from right (by cluster bisection)
         left_eye_vertices, _ = self.bisect_vertex_clusters(
-            right_eye_obj, self.separation_cluster_sample_size, self.separation_cluster_min_dist)
+            right_eye_obj, self.cluster_sample_size, self.cluster_min_dist)
         left_eye_obj = self.separate_mesh_by_vertices(context, right_eye_obj, left_eye_vertices)
         left_eye_obj.name = f"{genesis_obj.name}.Eyes.Left"
 
         # Fix left eye
-        self.align_origin_to_eye(context, left_eye_obj)
+        self.align_origin_to_eye(context, left_eye_obj, mat_idx_map)
         self.set_parent_with_transforms(left_eye_obj, genesis_obj)
 
         # Fix right eye
-        self.align_origin_to_eye(context, right_eye_obj)
+        self.align_origin_to_eye(context, right_eye_obj, mat_idx_map)
         self.set_parent_with_transforms(right_eye_obj, genesis_obj)
 
         self.report_info(
             f"Successfully separated {genesis_obj.name}'s eyes into {right_eye_obj.name} and {left_eye_obj.name}!")
         return {"FINISHED"}
 
-    def align_origin_to_eye(self, context: Context, eye_obj: Object):
+    def align_origin_to_eye(self, context: Context, eye_obj: Object, mat_idx_map: dict[str, int]) -> None:
         with context.temp_override(
                 selected_editable_objects=[eye_obj],
                 active_object=eye_obj):
-            com_vertices = self.find_vertices_by_materials(eye_obj, {self.mat_sclera})
+            com_vertices = self.find_vertices_by_materials(eye_obj, {mat_idx_map['sclera']})
             com = self.find_center_of_mass(eye_obj, com_vertices)
             context.scene.cursor.location = eye_obj.matrix_world @ com
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
             context.scene.cursor.location = Vector()
 
-            direction_vertices = self.find_vertices_by_materials(eye_obj, {self.mat_cornea})
+            direction_vertices = self.find_vertices_by_materials(eye_obj, {mat_idx_map['cornea']})
             normal_vec = self.find_average_vertex_normal(eye_obj, direction_vertices)
             eye_rot = normal_vec.to_track_quat('Z', 'Y')
 
@@ -98,7 +81,7 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
             eye_obj.data.update()
 
     @staticmethod
-    def find_vertices_by_materials(obj: Object, mat_indices: set[int]) -> list[int]:
+    def find_vertices_by_materials(obj: Object, mat_indices: Iterable[int]) -> list[int]:
         mesh = obj.data
         vert_indices: set[int] = set()
 

@@ -73,9 +73,6 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
         self.align_origin_to_eye(context, right_eye_obj)
         self.set_parent_with_transforms(right_eye_obj, genesis_obj)
 
-        # Reset cursor position to identity
-        context.scene.cursor.location = Vector()
-
         self.report_info(
             f"Successfully separated {genesis_obj.name}'s eyes into {right_eye_obj.name} and {left_eye_obj.name}!")
         return {"FINISHED"}
@@ -88,6 +85,7 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
             com = self.find_center_of_mass(eye_obj, com_vertices)
             context.scene.cursor.location = eye_obj.matrix_world @ com
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+            context.scene.cursor.location = Vector()
 
             direction_vertices = self.find_vertices_by_materials(eye_obj, {self.mat_cornea})
             normal_vec = self.find_average_vertex_normal(eye_obj, direction_vertices)

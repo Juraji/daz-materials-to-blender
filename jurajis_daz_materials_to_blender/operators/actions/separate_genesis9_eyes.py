@@ -53,7 +53,6 @@ class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
 
     def execute(self, context: Context):
         genesis_eyes_obj = context.active_object
-        parent = genesis_eyes_obj.parent
 
         left_eye_vertices = self.find_vertices_by_materials(genesis_eyes_obj,
                                                             {self.mat_eye_moisture_left, self.mat_eye_left})

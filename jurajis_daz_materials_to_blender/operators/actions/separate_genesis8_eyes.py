@@ -1,5 +1,5 @@
 import random
-from typing import Iterable
+import re
 
 import bpy
 from bpy.types import Operator, Context, Object
@@ -13,38 +13,32 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
     bl_label = "Separate Genesis 8 Eyes"
     bl_options = {'REGISTER', 'BLOCKING', 'UNDO'}
 
-    # pupils,eye_moisture,cornea,irises,sclera
-    prefix_g8 = "Genesis8"
-    prefix_g81 = "Genesis8_1"
-    all_mats_g8 = {'pupils': 9, 'eye_moisture': 10, 'cornea': 12, 'irises': 13, 'sclera': 14}
-    all_mats_g81 = {'pupils': 10, 'eye_moisture': 11, 'cornea': 13, 'irises': 14, 'sclera': 15}
-
-    cluster_sample_size = 1000
-    cluster_min_dist = 0.01
-
     @classmethod
     def poll(cls, context: Context):
         obj = context.active_object
-        return context.mode == 'OBJECT' and obj and obj.type == 'MESH' and obj.data.name.startswith(cls.prefix_g8)
+        if context.mode != 'OBJECT' or not obj or obj.type != 'MESH':
+            return False
+        name = re.sub('\\.\\d+', '', obj.data.name)
+        options = {'Genesis8Male', 'Genesis8Female', 'Genesis8_1Male', 'Genesis8_1Female'}
+        return name in options
 
     def execute(self, context: Context):
         genesis_obj = context.active_object
 
-        if genesis_obj.name.startswith(self.prefix_g81):
-            mat_idx_map = self.all_mats_g81
+        if genesis_obj.data.name.startswith("Genesis8_1"):
+            mat_idx_map = {'pupils': 10, 'eye_moisture': 11, 'cornea': 13, 'irises': 14, 'sclera': 15}
         else:
-            mat_idx_map = self.all_mats_g8
+            mat_idx_map = {'pupils': 9, 'eye_moisture': 10, 'cornea': 12, 'irises': 13, 'sclera': 14}
 
         # Separate eyes from genesis figure (makes the vert count far smaller to jump into and out of edit mode)
-        eyes_vertices = self.find_vertices_by_materials(genesis_obj, mat_idx_map.values())
+        eyes_vertices = self.find_vertices_by_materials(genesis_obj, set(mat_idx_map.values()))
         self.report_info(f"Found {len(eyes_vertices)} vertices for {genesis_obj.name}'s eyes!")
 
         right_eye_obj = self.separate_mesh_by_vertices(context, genesis_obj, eyes_vertices)
         right_eye_obj.name = f"{genesis_obj.name}.Eyes.Right"
 
         # Split left eye from right (by cluster bisection)
-        left_eye_vertices, _ = self.bisect_vertex_clusters(
-            right_eye_obj, self.cluster_sample_size, self.cluster_min_dist)
+        left_eye_vertices, _ = self.bisect_vertex_clusters(right_eye_obj)
         left_eye_obj = self.separate_mesh_by_vertices(context, right_eye_obj, left_eye_vertices)
         left_eye_obj.name = f"{genesis_obj.name}.Eyes.Left"
 
@@ -81,7 +75,7 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
             eye_obj.data.update()
 
     @staticmethod
-    def find_vertices_by_materials(obj: Object, mat_indices: Iterable[int]) -> list[int]:
+    def find_vertices_by_materials(obj: Object, mat_indices: set[int]) -> list[int]:
         mesh = obj.data
         vert_indices: set[int] = set()
 
@@ -116,7 +110,7 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
         return context.selected_objects[-1]
 
     @staticmethod
-    def bisect_vertex_clusters(obj: Object, sample_size: int, min_dist: float) -> tuple[list[int], list[int]]:
+    def bisect_vertex_clusters(obj: Object, sample_size: int = 1000, min_dist: float = 0.01) -> tuple[list[int], list[int]]:
         mesh = obj.data
         vert_coords = [v.co for v in mesh.vertices]
         n = len(mesh.vertices)

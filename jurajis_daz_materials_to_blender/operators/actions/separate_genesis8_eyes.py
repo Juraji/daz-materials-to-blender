@@ -1,9 +1,10 @@
+from math import radians
 import random
 import re
 
 import bpy
 from bpy.types import Operator, Context, Object
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 
 from ..base import OperatorReportMixin
 
@@ -58,20 +59,26 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
         with context.temp_override(
                 selected_editable_objects=[eye_obj],
                 active_object=eye_obj):
+            # Set origin to center of mass
             com_vertices = self.find_vertices_by_materials(eye_obj, {mat_idx_map['sclera']})
             com = self.find_center_of_mass(eye_obj, com_vertices)
             context.scene.cursor.location = eye_obj.matrix_world @ com
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
             context.scene.cursor.location = Vector()
 
+            # Calculate rotation quat
             direction_vertices = self.find_vertices_by_materials(eye_obj, {mat_idx_map['cornea']})
             normal_vec = self.find_average_vertex_normal(eye_obj, direction_vertices)
-            eye_rot = normal_vec.to_track_quat('Z', 'Y')
+            world_normal_vec = eye_obj.matrix_world.to_quaternion() @ normal_vec
+            z_to_normal_rot = Vector((0,0,1)).rotation_difference(world_normal_vec) @ Quaternion((1, 0, 0), radians(-90))
 
+            # Rotate object
             loc, rot, scale = eye_obj.matrix_world.decompose()
-            eye_obj.matrix_world = Matrix.LocRotScale(loc, eye_rot @ rot, scale)
+            new_rot = rot @ z_to_normal_rot
+            eye_obj.matrix_world = Matrix.LocRotScale(loc, new_rot, scale)
 
-            eye_obj.data.transform(eye_rot.to_matrix().inverted().to_4x4())
+            # Compensate mesh rotation
+            eye_obj.data.transform(z_to_normal_rot.inverted().to_matrix().to_4x4())
             eye_obj.data.update()
 
     @staticmethod

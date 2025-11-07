@@ -66,18 +66,19 @@ class SeparateGenesis8EyesOperator(OperatorReportMixin, Operator):
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
             context.scene.cursor.location = Vector()
 
-            # Calculate rotation quat
+            # Calculate the rotation quaternion in object space
             direction_vertices = self.find_vertices_by_materials(eye_obj, {mat_idx_map['cornea']})
             normal_vec = self.find_average_vertex_normal(eye_obj, direction_vertices)
-            world_normal_vec = eye_obj.matrix_world.to_quaternion() @ normal_vec
-            z_to_normal_rot = Vector((0,0,1)).rotation_difference(world_normal_vec) @ Quaternion((1, 0, 0), radians(-90))
 
-            # Rotate object
+            # Calculate the rotation to align the object's local Z-axis with the normal
+            z_to_normal_rot = Vector((0, 0, 1)).rotation_difference(normal_vec)
+
+            # Apply the rotation to the object's local axes
             loc, rot, scale = eye_obj.matrix_world.decompose()
             new_rot = rot @ z_to_normal_rot
             eye_obj.matrix_world = Matrix.LocRotScale(loc, new_rot, scale)
 
-            # Compensate mesh rotation
+            # Compensate the mesh rotation
             eye_obj.data.transform(z_to_normal_rot.inverted().to_matrix().to_4x4())
             eye_obj.data.update()
 

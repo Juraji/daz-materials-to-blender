@@ -76,19 +76,26 @@ class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
         with context.temp_override(
                 selected_editable_objects=[eye_obj],
                 active_object=eye_obj):
+            # Set origin to center of mass
             com_vertices = self.find_vertices_by_materials(eye_obj, {eye_mat_idx})
             com = self.find_center_of_mass(eye_obj, com_vertices)
             context.scene.cursor.location = eye_obj.matrix_world @ com
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
             context.scene.cursor.location = Vector()
 
+            # Calculate the rotation quaternion in object space
             normal_vec = self.find_eye_direction_via_uv(eye_obj, eye_uv_x, eye_uv_y)
-            eye_rot = normal_vec.to_track_quat('Z', 'Y')
 
+            # Calculate the rotation to align the object's local Z-axis with the normal
+            z_to_normal_rot = Vector((0, 0, 1)).rotation_difference(normal_vec)
+
+            # Apply the rotation to the object's local axes
             loc, rot, scale = eye_obj.matrix_world.decompose()
-            eye_obj.matrix_world = Matrix.LocRotScale(loc, eye_rot @ rot, scale)
+            new_rot = rot @ z_to_normal_rot
+            eye_obj.matrix_world = Matrix.LocRotScale(loc, new_rot, scale)
 
-            eye_obj.data.transform(eye_rot.to_matrix().inverted().to_4x4())
+            # Compensate the mesh rotation
+            eye_obj.data.transform(z_to_normal_rot.inverted().to_matrix().to_4x4())
             eye_obj.data.update()
 
     @staticmethod

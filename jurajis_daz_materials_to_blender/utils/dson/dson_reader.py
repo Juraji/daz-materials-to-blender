@@ -340,8 +340,11 @@ class DsonReader:
             base, *suffix = node_id.rsplit('-', 1)
             if suffix and suffix[0].isdigit():
                 suffix_groups[base].append(node_id)
+            else:
+                suffix_groups[base].append(node_id)
 
         for base, variants in suffix_groups.items():
+            base = base.replace(' ', '_')
             offset = 1 if base in node_ids else 0
             for i, variant in enumerate(sorted(variants)):
                 n = i + offset

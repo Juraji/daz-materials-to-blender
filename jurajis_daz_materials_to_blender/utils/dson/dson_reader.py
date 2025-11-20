@@ -333,23 +333,16 @@ class DsonReader:
     def _create_conversion_tables(dson_objects: list[DsonObject]) -> tuple[dict[str, str], dict[str, str]]:
         dson_to_blender = {}
         blender_to_dson = {}
-        suffix_groups = defaultdict(list)
         node_ids = [n.id for n in dson_objects]
 
         for node_id in node_ids:
-            base, *suffix = node_id.rsplit('-', 1)
-            if suffix and suffix[0].isdigit():
-                suffix_groups[base].append(node_id)
-            else:
-                suffix_groups[base].append(node_id)
+            bl_name, *suffix = node_id.rsplit('-', 1)
+            bl_name = bl_name.replace(' ', '_')
 
-        for base, variants in suffix_groups.items():
-            base = base.replace(' ', '_')
-            offset = 1 if base in node_ids else 0
-            for i, variant in enumerate(sorted(variants)):
-                n = i + offset
-                name = f"{base}.{n:03d}" if n > 0 else base
-                dson_to_blender[variant] = name
-                blender_to_dson[name] = variant
+            if suffix and suffix[0].isdigit():
+                bl_name = bl_name + '_' + bl_name + '_' + suffix[0]
+
+            dson_to_blender[node_id] = bl_name
+            blender_to_dson[bl_name] = node_id
 
         return dson_to_blender, blender_to_dson

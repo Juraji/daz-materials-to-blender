@@ -1,7 +1,7 @@
 from bpy.types import Panel
 
 from ..operators.actions import ImportShaderGroupOperator, ImportAllMaterialsOperator, ImportObjectMaterialsOperator, \
-    CreateInstancesOperator, ConvertMaterialsOperator, ClearCustomSplitNormalsOperator
+    CreateInstancesOperator, ConvertMaterialsOperator, ClearCustomSplitNormalsOperator, FixDforceHairUVOperator
 from ..operators.debug import DebugClearSceneCacheOperator, DebugDeleteAllGroupsOperator
 from ..shaders.library import SUPPORT_SHADER_GROUPS, SHADER_GROUPS
 from ..properties import MaterialImportProperties, props_from_ctx
@@ -22,6 +22,7 @@ class ImportMaterialsPanelBase(Panel):
         tools_header.label(text="Tools & Debugging")
         if tools_panel:
             tools_panel.operator(ClearCustomSplitNormalsOperator.bl_idname)
+            tools_panel.operator(FixDforceHairUVOperator.bl_idname)
             tools_panel.operator(DebugClearSceneCacheOperator.bl_idname)
             tools_panel.operator(DebugDeleteAllGroupsOperator.bl_idname)
 

@@ -6,7 +6,7 @@ from .convert_materials import ConvertMaterialsOperator, MaterialItem
 from .separate_genesis8_eyes import SeparateGenesis8EyesOperator
 from .separate_genesis9_eyes import SeparateGenesis9EyesOperator
 from .clear_custom_split_normals import ClearCustomSplitNormalsOperator
-
+from .fix_dforce_hair_uv import FixDforceHairUVOperator
 
 __CLASSES__ = [
     ImportAllMaterialsOperator,
@@ -18,7 +18,9 @@ __CLASSES__ = [
     SeparateGenesis8EyesOperator,
     SeparateGenesis9EyesOperator,
     ClearCustomSplitNormalsOperator,
+    FixDforceHairUVOperator,
 ]
+
 
 def register():
     from bpy.utils import register_class

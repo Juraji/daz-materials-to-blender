@@ -27,7 +27,7 @@ class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
     )
     eye_left_uv_y: FloatProperty(
         name="Eye Left UV Y Position",
-        default=0.25
+        default=0.75
     )
     mat_eye_left: IntProperty(
         name="Eye Left Material Index",
@@ -43,7 +43,7 @@ class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
     )
     eye_right_uv_y: FloatProperty(
         name="Eye Right UV Y Position",
-        default=0.25
+        default=0.75
     )
 
     @classmethod

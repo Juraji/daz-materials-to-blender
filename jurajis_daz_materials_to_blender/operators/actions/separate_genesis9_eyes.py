@@ -6,6 +6,7 @@ from bpy.types import Operator, Context, Object
 from mathutils import Vector, Matrix
 
 from ..base import OperatorReportMixin
+from ...utils.object import deselect_all_geometry
 
 
 class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
@@ -114,11 +115,9 @@ class SeparateGenesis9EyesOperator(OperatorReportMixin, Operator):
     @staticmethod
     def separate_mesh_by_vertices(context: Context, source_obj: Object,
                                   vertex_indices: list[int]) -> Object:
-        mesh = source_obj.data
 
-        # Update selected vertices of interest
-        for v in mesh.vertices:
-            v.select = False
+        deselect_all_geometry(context, source_obj)
+        mesh = source_obj.data
         for i in vertex_indices:
             mesh.vertices[i].select = True
 

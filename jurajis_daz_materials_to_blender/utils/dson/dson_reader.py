@@ -76,7 +76,7 @@ class DsonReader:
 
             # Extra channels
             for mat_extra in scene_mat.get("extra", []):
-                if mat_extra["type"] == "studio_material_channels":
+                if mat_extra["type"] == "studio_material_channels" and "channels" in mat_extra:
                     for channel in mat_extra["channels"]:
                         mat_id = slugify(channel["channel"]["id"])
                         material.channels[mat_id] = self._map_channel(channel["channel"])
@@ -84,7 +84,7 @@ class DsonReader:
             # Material library channels
             if lib_mat:
                 for mat_extra in lib_mat.get("extra", []):
-                    if mat_extra["type"] == "studio_material_channels":
+                    if mat_extra["type"] == "studio_material_channels" and "channels" in mat_extra:
                         for channel in mat_extra["channels"]:
                             mat_id = slugify(channel["channel"]["id"])
                             if not mat_id in material.channels:
